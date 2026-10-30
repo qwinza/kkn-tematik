@@ -8,7 +8,7 @@ import { createRoot } from 'react-dom/client';
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 
-// testing
+// testing2
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
     resolve: (name) =>
