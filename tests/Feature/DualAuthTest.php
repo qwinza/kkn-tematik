@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\LogKegiatan;
 use App\Models\MasterKegiatan;
 use App\Models\Peserta;
+use App\Models\Prodi;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -89,11 +90,11 @@ class DualAuthTest extends TestCase
             'user_id' => $user->id,
             'nim' => $nim,
             'nama_lengkap' => 'Aa Faris Ahmad Shidiq',
-            'program_studi' => 'Teknik Informatika',
+            'kode_prodi' => null,
         ]);
 
         $this->assertNotNull($user->peserta);
-        $this->assertSame('Teknik Informatika', $user->peserta->program_studi);
+        $this->assertNull($user->peserta->kode_prodi);
 
         $response->assertRedirect(route('dashboard', absolute: false));
     }
@@ -115,7 +116,6 @@ class DualAuthTest extends TestCase
             'user_id' => $user->id,
             'nama_lengkap' => 'Aa Faris Ahmad Shidiq',
             'nim' => $nim,
-            'program_studi' => 'Teknik Informatika',
         ]);
 
         $response = $this->post(route('login'), [
@@ -148,17 +148,19 @@ class DualAuthTest extends TestCase
             'role' => 'mahasiswa',
         ]);
 
+        $prodi = Prodi::factory()->create();
         $peserta = Peserta::create([
             'user_id' => $user->id,
             'nama_lengkap' => 'Aa Faris Ahmad Shidiq',
             'nim' => '152024038',
-            'program_studi' => 'Teknik Informatika',
+            'kode_prodi' => $prodi->kode_prodi,
         ]);
 
         $masterKegiatan = MasterKegiatan::create([
             'kode_kegiatan' => 'KKN-001',
             'nama_kegiatan' => 'Sosialisasi Program Kerja KKN',
             'kategori' => 'Sosialisasi',
+            'kode_prodi' => $prodi->kode_prodi,
         ]);
 
         $logKegiatan = LogKegiatan::create([
@@ -168,11 +170,9 @@ class DualAuthTest extends TestCase
             'jam_kehadiran' => '07:00 - 10:00 (Pagi)',
             'lokasi_kegiatan' => 'Kampus ITENAS',
             'deskripsi_kegiatan' => 'Mengikuti pembekalan dan sosialisasi program KKN.',
-            'foto_kegiatan_path' => 'photos/kkn1.jpg',
             'latitude' => -6.89750000,
             'longitude' => 107.63580000,
             'deskripsi_luaran' => 'Laporan awal rencana kegiatan KKN.',
-            'file_luaran_path' => 'reports/rencana.pdf',
         ]);
 
         // Cek relasi dari User ke Peserta
@@ -180,6 +180,7 @@ class DualAuthTest extends TestCase
 
         // Cek relasi dari Peserta ke User
         $this->assertSame($user->id, $peserta->user->id);
+        $this->assertSame($prodi->kode_prodi, $peserta->prodi->kode_prodi);
 
         // Cek relasi dari Peserta ke LogKegiatan
         $this->assertTrue($peserta->logKegiatans->contains($logKegiatan));

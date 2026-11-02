@@ -6,10 +6,14 @@ import { Link, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 
 export default function AuthenticatedLayout({ header, children }) {
-    const user = usePage().props.auth.user;
+    const pageProps = usePage().props;
+    const user = pageProps.auth.user;
+    const flash = pageProps.flash || {};
+    const activityNotifications = pageProps.activityNotifications || [];
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
         useState(false);
+    const [showingNotifications, setShowingNotifications] = useState(false);
 
     return (
         <div className="min-h-screen bg-gray-100">
@@ -30,10 +34,79 @@ export default function AuthenticatedLayout({ header, children }) {
                                 >
                                     Dashboard
                                 </NavLink>
+                                {user?.is_admin && (
+                                    <NavLink
+                                        href={route('master-kegiatan.index')}
+                                        active={route().current('master-kegiatan.*')}
+                                    >
+                                        Master Kegiatan
+                                    </NavLink>
+                                )}
+                                {user?.is_admin && (
+                                    <NavLink href={route('prodi.index')} active={route().current('prodi.*')}>
+                                        Program Studi
+                                    </NavLink>
+                                )}
+                                <NavLink
+                                    href={route('log-kegiatan.index')}
+                                    active={route().current('log-kegiatan.index') || route().current('log-kegiatan.show')}
+                                >
+                                    Log Kegiatan
+                                </NavLink>
+                                {user?.is_mahasiswa && (
+                                    <NavLink
+                                        href={route('log-kegiatan.create')}
+                                        active={route().current('log-kegiatan.create') || route().current('log-kegiatan.edit')}
+                                    >
+                                        Tambah Kegiatan
+                                    </NavLink>
+                                )}
                             </div>
                         </div>
 
                         <div className="hidden sm:ms-6 sm:flex sm:items-center">
+                            {user?.is_mahasiswa && (
+                                <div className="relative">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowingNotifications((isShowing) => !isShowing)}
+                                        aria-label="Notifikasi log kegiatan"
+                                        aria-expanded={showingNotifications}
+                                        className="relative rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                                    >
+                                        <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.4-1.4a2 2 0 01-.6-1.4V11a6 6 0 00-5-5.9V4a1 1 0 00-2 0v1.1A6 6 0 006 11v3.2a2 2 0 01-.6 1.4L4 17h5m6 0v1a3 3 0 01-6 0v-1m6 0H9" />
+                                        </svg>
+                                        {activityNotifications.length > 0 && (
+                                            <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white" />
+                                        )}
+                                    </button>
+                                    {showingNotifications && (
+                                        <div className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-md bg-white shadow-lg ring-1 ring-black/5">
+                                            <div className="border-b px-4 py-3 text-sm font-semibold text-gray-800">Notifikasi Kegiatan</div>
+                                            {activityNotifications.length === 0 ? (
+                                                <p className="px-4 py-5 text-sm text-gray-500">Belum ada pembaruan status log kegiatan.</p>
+                                            ) : (
+                                                <div className="max-h-80 overflow-y-auto">
+                                                    {activityNotifications.map((notification) => (
+                                                        <Link
+                                                            key={notification.id}
+                                                            href={route('log-kegiatan.show', notification.id)}
+                                                            onClick={() => setShowingNotifications(false)}
+                                                            className="block border-b px-4 py-3 hover:bg-gray-50"
+                                                        >
+                                                            <span className={`text-xs font-semibold ${notification.status === 'disetujui' ? 'text-green-700' : 'text-red-700'}`}>
+                                                                {notification.status === 'disetujui' ? 'Log disetujui' : 'Log ditolak'}
+                                                            </span>
+                                                            <span className="mt-1 block truncate text-sm text-gray-700">{notification.kegiatan}</span>
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                             <div className="relative ms-3">
                                 <Dropdown>
                                     <Dropdown.Trigger>
@@ -134,6 +207,30 @@ export default function AuthenticatedLayout({ header, children }) {
                         >
                             Dashboard
                         </ResponsiveNavLink>
+                        {user?.is_admin && (
+                            <ResponsiveNavLink
+                                href={route('master-kegiatan.index')}
+                                active={route().current('master-kegiatan.*')}
+                            >
+                                Master Kegiatan
+                            </ResponsiveNavLink>
+                        )}
+                        {user?.is_admin && (
+                            <ResponsiveNavLink href={route('prodi.index')} active={route().current('prodi.*')}>
+                                Program Studi
+                            </ResponsiveNavLink>
+                        )}
+                        <ResponsiveNavLink
+                            href={route('log-kegiatan.index')}
+                            active={route().current('log-kegiatan.*')}
+                        >
+                            Log Kegiatan
+                        </ResponsiveNavLink>
+                        {user?.is_mahasiswa && (
+                            <ResponsiveNavLink href={route('log-kegiatan.create')} active={route().current('log-kegiatan.create') || route().current('log-kegiatan.edit')}>
+                                Tambah Kegiatan
+                            </ResponsiveNavLink>
+                        )}
                     </div>
 
                     <div className="border-t border-gray-200 pb-1 pt-4">
@@ -169,6 +266,38 @@ export default function AuthenticatedLayout({ header, children }) {
                     </div>
                 </header>
             )}
+
+            <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+                {flash.success && (
+                    <div className="mb-4 rounded-md bg-green-50 p-4 border border-green-200">
+                        <div className="flex">
+                            <div className="shrink-0">
+                                <svg className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                            <div className="ms-3 text-sm font-medium text-green-800">
+                                {flash.success}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {flash.error && (
+                    <div className="mb-4 rounded-md bg-red-50 p-4 border border-red-200">
+                        <div className="flex">
+                            <div className="shrink-0">
+                                <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                            <div className="ms-3 text-sm font-medium text-red-800">
+                                {flash.error}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
 
             <main>{children}</main>
         </div>

@@ -16,7 +16,14 @@ return new class extends Migration
             $table->string('kode_kegiatan')->unique();
             $table->string('nama_kegiatan');
             $table->string('kategori');
+            $table->string('kode_prodi', 20);
             $table->timestamps();
+
+            $table->foreign('kode_prodi')
+                ->references('kode_prodi')
+                ->on('prodi')
+                ->cascadeOnUpdate()
+                ->restrictOnDelete();
         });
     }
 

@@ -9,7 +9,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -112,21 +111,41 @@ class AuthController extends Controller
     }
 
     /**
-     * Logika autentikasi Mahasiswa via simulasi API eksternal kampus.
+     * Logika autentikasi Mahasiswa via database lokal atau simulasi API ITENAS.
      *
      * @throws ValidationException
      */
     protected function handleMahasiswaLogin(Request $request, string $nim, string $password): RedirectResponse
     {
-        // Simulasi hit API eksternal ITENAS
+        // 1. Cek dulu apakah akun mahasiswa sudah ada di database lokal dengan password yang cocok
+        $existingUser = User::where('nim', $nim)->first();
+
+        if ($existingUser && Hash::check($password, $existingUser->password)) {
+            // Pastikan relasi peserta profil sudah ada
+            if (! $existingUser->peserta) {
+                Peserta::create([
+                    'user_id' => $existingUser->id,
+                    'nama_lengkap' => $existingUser->name,
+                    'nim' => $nim,
+                ]);
+            }
+
+            $this->clearRateLimiter($nim, $request->ip());
+            Auth::login($existingUser, $request->boolean('remember'));
+            $request->session()->regenerate();
+
+            return redirect()->intended(route('dashboard', absolute: false));
+        }
+
+        // 2. Jika belum ada atau password baru, jalankan simulasi API eksternal kampus ITENAS
         $apiResponse = $this->simulateCampusApiLogin($nim, $password);
 
         if (! $apiResponse['success']) {
             $this->hitRateLimiter($nim, $request->ip());
 
             throw ValidationException::withMessages([
-                'identifier' => $apiResponse['message'] ?? 'NIM atau password akun kampus salah.',
-                'email' => $apiResponse['message'] ?? 'NIM atau password akun kampus salah.',
+                'identifier' => $apiResponse['message'] ?? 'NIM atau password akun kampus ITENAS salah.',
+                'email' => $apiResponse['message'] ?? 'NIM atau password akun kampus ITENAS salah.',
             ]);
         }
 
@@ -141,7 +160,7 @@ class AuthController extends Controller
                 $newUser = User::create([
                     'name' => $studentData['nama_lengkap'],
                     'nim' => $nim,
-                    'email' => null,
+                    'email' => "{$nim}@itenas.ac.id",
                     'password' => Hash::make($password),
                     'role' => 'mahasiswa',
                 ]);
@@ -150,7 +169,6 @@ class AuthController extends Controller
                     'user_id' => $newUser->id,
                     'nama_lengkap' => $studentData['nama_lengkap'],
                     'nim' => $nim,
-                    'program_studi' => $studentData['program_studi'],
                 ]);
 
                 return $newUser;
@@ -167,7 +185,6 @@ class AuthController extends Controller
                     'user_id' => $user->id,
                     'nama_lengkap' => $studentData['nama_lengkap'] ?? $user->name,
                     'nim' => $nim,
-                    'program_studi' => $studentData['program_studi'] ?? 'Teknik Informatika',
                 ]);
             }
         }
@@ -188,21 +205,20 @@ class AuthController extends Controller
      */
     protected function simulateCampusApiLogin(string $nim, string $password): array
     {
-        // TODO: Ganti blok ini dengan hit API eksternal ITENAS nantinya menggunakan Http::post()
-        // Contoh implementasi di masa depan:
-        // $response = Http::post('https://api.itenas.ac.id/auth/student/login', [
-        //     'nim' => $nim,
-        //     'password' => $password,
-        // ]);
-        // if ($response->successful()) {
-        //     return [
-        //         'success' => true,
-        //         'data' => $response->json(),
-        //     ];
-        // }
+        // 1. Akun Preset 1: Nadia Amalia (Dari Activity Report UI)
+        if ($nim === '152022041' && ($password === 'password123' || $password === 'password')) {
+            return [
+                'success' => true,
+                'data' => [
+                    'nim' => '152022041',
+                    'nama_lengkap' => 'Nadia Amalia',
+                    'program_studi' => 'Teknik Lingkungan',
+                ],
+            ];
+        }
 
-        // Dummy Logic: Jika NIM == '152024038' dan password == 'password123', maka valid.
-        if ($nim === '152024038' && $password === 'password123') {
+        // 2. Akun Preset 2: Aa Faris Ahmad Shidiq
+        if ($nim === '152024038' && ($password === 'password123' || $password === 'password')) {
             return [
                 'success' => true,
                 'data' => [
@@ -213,9 +229,21 @@ class AuthController extends Controller
             ];
         }
 
+        // 3. Fallback mahasiswa ITENAS umum (format NIM angka 9 digit misal: 15...) dengan password standar
+        if (preg_match('/^15\d{7}$/', $nim) && ($password === 'password123' || $password === 'password')) {
+            return [
+                'success' => true,
+                'data' => [
+                    'nim' => $nim,
+                    'nama_lengkap' => 'Mahasiswa KKN ('.$nim.')',
+                    'program_studi' => 'Teknik Lingkungan',
+                ],
+            ];
+        }
+
         return [
             'success' => false,
-            'message' => 'NIM atau password akun kampus ITENAS tidak valid.',
+            'message' => 'NIM atau password akun kampus ITENAS tidak valid. Gunakan NIM terdaftar (contoh: 152022041 / password123 atau 152024038 / password123).',
         ];
     }
 

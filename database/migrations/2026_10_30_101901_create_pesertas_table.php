@@ -16,8 +16,14 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('nama_lengkap');
             $table->string('nim')->unique();
-            $table->string('program_studi');
+            $table->string('kode_prodi', 20)->nullable();
             $table->timestamps();
+
+            $table->foreign('kode_prodi')
+                ->references('kode_prodi')
+                ->on('prodi')
+                ->cascadeOnUpdate()
+                ->restrictOnDelete();
         });
     }
 

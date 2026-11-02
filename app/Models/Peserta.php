@@ -26,6 +26,11 @@ class Peserta extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function prodi(): BelongsTo
+    {
+        return $this->belongsTo(Prodi::class, 'kode_prodi', 'kode_prodi');
+    }
+
     /**
      * Relasi ke riwayat log kegiatan peserta.
      */

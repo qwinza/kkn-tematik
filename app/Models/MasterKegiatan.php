@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MasterKegiatan extends Model
@@ -16,6 +17,11 @@ class MasterKegiatan extends Model
      * @var list<string>
      */
     protected $guarded = ['id'];
+
+    public function prodi(): BelongsTo
+    {
+        return $this->belongsTo(Prodi::class, 'kode_prodi', 'kode_prodi');
+    }
 
     /**
      * Relasi ke log kegiatan yang menggunakan master kegiatan ini.

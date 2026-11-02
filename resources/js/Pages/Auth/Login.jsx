@@ -32,16 +32,22 @@ export default function Login({ status, canResetPassword }) {
                 </div>
             )}
 
+            <div className="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
+                <div className="font-semibold mb-1">Panduan Login:</div>
+                <div>• <strong>Mahasiswa KKN:</strong> Masukkan <strong>NIM</strong> (contoh: <code>152022041</code> / password: <code>password123</code>).</div>
+                <div>• <strong>Admin KKN:</strong> Masukkan <strong>Email</strong> (contoh: <code>admin@itenas.ac.id</code> / password: <code>password</code>).</div>
+            </div>
+
             <form onSubmit={submit}>
                 <div>
-                    <InputLabel htmlFor="identifier" value="Email (Admin) / NIM (Mahasiswa)" />
+                    <InputLabel htmlFor="identifier" value="NIM (Mahasiswa) / Email (Admin)" />
 
                     <TextInput
                         id="identifier"
                         type="text"
                         name="identifier"
                         value={data.identifier}
-                        placeholder="Contoh: admin@itenas.ac.id atau 152024038"
+                        placeholder="Masukkan NIM Mahasiswa atau Email Admin..."
                         className="mt-1 block w-full"
                         autoComplete="username"
                         isFocused={true}
