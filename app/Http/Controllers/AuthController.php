@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Peserta;
+use App\Models\ProgramStudi;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -131,13 +132,15 @@ class AuthController extends Controller
         }
 
         $studentData = $apiResponse['data'];
+        $prodiString = $studentData['program_studi'] ?? null;
+        $matchedProdi = $prodiString ? ProgramStudi::where('nama_prodi', $prodiString)->first() : null;
 
         // Cek apakah user dengan NIM tersebut sudah ada di tabel users
         $user = User::where('nim', $nim)->first();
 
         if (! $user) {
             // Buatkan shadow user di tabel users dan data profil di tabel pesertas
-            $user = DB::transaction(function () use ($nim, $password, $studentData) {
+            $user = DB::transaction(function () use ($nim, $password, $studentData, $prodiString, $matchedProdi) {
                 $newUser = User::create([
                     'name' => $studentData['nama_lengkap'],
                     'nim' => $nim,
@@ -150,7 +153,8 @@ class AuthController extends Controller
                     'user_id' => $newUser->id,
                     'nama_lengkap' => $studentData['nama_lengkap'],
                     'nim' => $nim,
-                    'program_studi' => $studentData['program_studi'],
+                    'program_studi' => $prodiString,
+                    'program_studi_id' => $matchedProdi?->id,
                 ]);
 
                 return $newUser;
@@ -167,8 +171,20 @@ class AuthController extends Controller
                     'user_id' => $user->id,
                     'nama_lengkap' => $studentData['nama_lengkap'] ?? $user->name,
                     'nim' => $nim,
-                    'program_studi' => $studentData['program_studi'] ?? 'Teknik Informatika',
+                    'program_studi' => $prodiString ?? 'Teknik Informatika',
+                    'program_studi_id' => $matchedProdi?->id,
                 ]);
+            } else {
+                // Sinkronkan relasi jika program_studi_id masih null dan terdapat master data yang cocok
+                if (! $user->peserta->program_studi_id) {
+                    $effectiveProdiName = $prodiString ?? $user->peserta->program_studi;
+                    $existingMatched = $effectiveProdiName ? ProgramStudi::where('nama_prodi', $effectiveProdiName)->first() : null;
+                    if ($existingMatched) {
+                        $user->peserta->update([
+                            'program_studi_id' => $existingMatched->id,
+                        ]);
+                    }
+                }
             }
         }
 
