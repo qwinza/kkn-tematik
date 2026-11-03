@@ -349,31 +349,21 @@ class MahasiswaMonitoringTest extends TestCase
         );
     }
 
-    /**
-     * 11. Login mahasiswa pertama kali otomatis mengisi kode_prodi yang cocok.
-     */
-    public function test_first_time_mahasiswa_login_assigns_matching_kode_prodi(): void
+    public function test_non_mahasiswa_account_cannot_login_with_a_numeric_identifier(): void
     {
-        $prodi = Prodi::create([
-            'kode_prodi' => 'TI-03',
-            'nama_prodi' => 'Teknik Informatika',
-            'fakultas' => 'FTI',
-        ]);
-
         $nim = '152024038';
-        $password = 'password123';
+        User::factory()->admin()->create([
+            'nim' => $nim,
+            'password' => Hash::make('password123'),
+        ]);
 
         $response = $this->post(route('login'), [
             'identifier' => $nim,
-            'password' => $password,
+            'password' => 'password123',
         ]);
 
-        $this->assertAuthenticated();
-
-        $user = auth()->user();
-        $this->assertNotNull($user->peserta);
-        $this->assertSame('Teknik Informatika', $user->peserta->program_studi);
-        $this->assertSame($prodi->kode_prodi, $user->peserta->kode_prodi);
+        $this->assertGuest();
+        $response->assertSessionHasErrors('identifier');
     }
 
     /**

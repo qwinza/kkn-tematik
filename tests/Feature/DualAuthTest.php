@@ -7,6 +7,7 @@ use App\Models\MasterKegiatan;
 use App\Models\Peserta;
 use App\Models\Prodi;
 use App\Models\User;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -63,14 +64,17 @@ class DualAuthTest extends TestCase
         $response->assertSessionHasErrors('identifier');
     }
 
-    public function test_mahasiswa_can_login_using_dummy_api_and_creates_shadow_user_and_peserta(): void
+    public function test_registered_mahasiswa_can_login_and_missing_peserta_profile_is_created(): void
     {
         $nim = '152024038';
         $password = 'password123';
 
-        // Pastikan database awal belum memiliki user ini
-        $this->assertDatabaseMissing('users', ['nim' => $nim]);
-        $this->assertDatabaseMissing('pesertas', ['nim' => $nim]);
+        $user = User::create([
+            'name' => 'Aa Faris Ahmad Shidiq',
+            'nim' => $nim,
+            'password' => Hash::make($password),
+            'role' => 'mahasiswa',
+        ]);
 
         $response = $this->post(route('login'), [
             'identifier' => $nim,
@@ -78,12 +82,7 @@ class DualAuthTest extends TestCase
         ]);
 
         // Cek user berhasil diautentikasi
-        $this->assertAuthenticated();
-        $user = auth()->user();
-        $this->assertNotNull($user);
-        $this->assertSame($nim, $user->nim);
-        $this->assertSame('mahasiswa', $user->role);
-        $this->assertSame('Aa Faris Ahmad Shidiq', $user->name);
+        $this->assertAuthenticatedAs($user);
 
         // Cek data profil di tabel pesertas terbuat dan berelasi
         $this->assertDatabaseHas('pesertas', [
@@ -91,16 +90,68 @@ class DualAuthTest extends TestCase
             'nim' => $nim,
             'nama_lengkap' => 'Aa Faris Ahmad Shidiq',
             'kode_prodi' => null,
-            'program_studi' => 'Teknik Informatika',
         ]);
 
         $this->assertNotNull($user->peserta);
-        $this->assertNull($user->peserta->kode_prodi);
 
         $response->assertRedirect(route('dashboard', absolute: false));
     }
 
-    public function test_mahasiswa_existing_user_can_login_via_dummy_api(): void
+    public function test_unregistered_mahasiswa_cannot_login_or_be_created_automatically(): void
+    {
+        $nim = '152025091';
+
+        $response = $this->from(route('login'))->post(route('login'), [
+            'identifier' => $nim,
+            'password' => 'password123',
+        ]);
+
+        $this->assertGuest();
+        $response->assertSessionHasErrors('identifier');
+        $this->assertDatabaseMissing('users', ['nim' => $nim]);
+        $this->assertDatabaseMissing('pesertas', ['nim' => $nim]);
+    }
+
+    public function test_registered_mahasiswa_cannot_login_with_wrong_password(): void
+    {
+        $nim = '152024038';
+
+        User::create([
+            'name' => 'Aa Faris Ahmad Shidiq',
+            'nim' => $nim,
+            'password' => Hash::make('correct-password'),
+            'role' => 'mahasiswa',
+        ]);
+
+        $response = $this->from(route('login'))->post(route('login'), [
+            'identifier' => $nim,
+            'password' => 'password123',
+        ]);
+
+        $this->assertGuest();
+        $response->assertSessionHasErrors('identifier');
+    }
+
+    public function test_seeded_farid_annas_can_login_with_his_registered_account(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+
+        $response = $this->post(route('login'), [
+            'identifier' => '152025083',
+            'password' => 'password123',
+        ]);
+
+        $this->assertAuthenticated();
+        $this->assertDatabaseHas('pesertas', [
+            'nim' => '152025083',
+            'nama_lengkap' => 'Farid Annas',
+            'program_studi' => 'Sistem Informasi',
+            'kode_prodi' => 'SI-01',
+        ]);
+        $response->assertRedirect(route('dashboard', absolute: false));
+    }
+
+    public function test_mahasiswa_with_registered_password_can_login(): void
     {
         $nim = '152024038';
         $password = 'password123';
@@ -109,7 +160,7 @@ class DualAuthTest extends TestCase
             'name' => 'Aa Faris Ahmad Shidiq',
             'nim' => $nim,
             'email' => null,
-            'password' => Hash::make('old-password'),
+            'password' => Hash::make($password),
             'role' => 'mahasiswa',
         ]);
 
@@ -128,10 +179,18 @@ class DualAuthTest extends TestCase
         $response->assertRedirect(route('dashboard', absolute: false));
     }
 
-    public function test_mahasiswa_cannot_login_with_invalid_credentials_on_dummy_api(): void
+    public function test_mahasiswa_cannot_login_with_invalid_credentials(): void
     {
+        $nim = '152024038';
+        User::create([
+            'name' => 'Aa Faris Ahmad Shidiq',
+            'nim' => $nim,
+            'password' => Hash::make('correct-password'),
+            'role' => 'mahasiswa',
+        ]);
+
         $response = $this->from(route('login'))->post(route('login'), [
-            'identifier' => '152024038',
+            'identifier' => $nim,
             'password' => 'wrong-password',
         ]);
 
