@@ -61,6 +61,14 @@ export default function AuthenticatedLayout({ header, children }) {
                                         Tambah Kegiatan
                                     </NavLink>
                                 )}
+                                {user?.is_admin && (
+                                    <NavLink
+                                        href={route('admin.mahasiswa.index')}
+                                        active={route().current('admin.mahasiswa.*')}
+                                    >
+                                        Monitoring Mahasiswa
+                                    </NavLink>
+                                )}
                             </div>
                         </div>
 
@@ -229,6 +237,14 @@ export default function AuthenticatedLayout({ header, children }) {
                         {user?.is_mahasiswa && (
                             <ResponsiveNavLink href={route('log-kegiatan.create')} active={route().current('log-kegiatan.create') || route().current('log-kegiatan.edit')}>
                                 Tambah Kegiatan
+                            </ResponsiveNavLink>
+                        )}
+                        {user?.is_admin && (
+                            <ResponsiveNavLink
+                                href={route('admin.mahasiswa.index')}
+                                active={route().current('admin.mahasiswa.*')}
+                            >
+                                Monitoring Mahasiswa
                             </ResponsiveNavLink>
                         )}
                     </div>

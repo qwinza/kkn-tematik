@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Peserta;
+use App\Models\ProgramStudi;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -128,6 +129,8 @@ class AuthController extends Controller
                     'nama_lengkap' => $existingUser->name,
                     'nim' => $nim,
                 ]);
+            } else {
+                $this->syncProgramStudi($existingUser->peserta);
             }
 
             $this->clearRateLimiter($nim, $request->ip());
@@ -150,13 +153,15 @@ class AuthController extends Controller
         }
 
         $studentData = $apiResponse['data'];
+        $prodiString = $studentData['program_studi'] ?? null;
+        $matchedProdi = $prodiString ? ProgramStudi::where('nama_prodi', $prodiString)->first() : null;
 
         // Cek apakah user dengan NIM tersebut sudah ada di tabel users
         $user = User::where('nim', $nim)->first();
 
         if (! $user) {
             // Buatkan shadow user di tabel users dan data profil di tabel pesertas
-            $user = DB::transaction(function () use ($nim, $password, $studentData) {
+            $user = DB::transaction(function () use ($nim, $password, $studentData, $prodiString, $matchedProdi) {
                 $newUser = User::create([
                     'name' => $studentData['nama_lengkap'],
                     'nim' => $nim,
@@ -169,6 +174,8 @@ class AuthController extends Controller
                     'user_id' => $newUser->id,
                     'nama_lengkap' => $studentData['nama_lengkap'],
                     'nim' => $nim,
+                    'program_studi' => $prodiString,
+                    'program_studi_id' => $matchedProdi?->id,
                 ]);
 
                 return $newUser;
@@ -185,7 +192,11 @@ class AuthController extends Controller
                     'user_id' => $user->id,
                     'nama_lengkap' => $studentData['nama_lengkap'] ?? $user->name,
                     'nim' => $nim,
+                    'program_studi' => $prodiString ?? 'Teknik Informatika',
+                    'program_studi_id' => $matchedProdi?->id,
                 ]);
+            } else {
+                $this->syncProgramStudi($user->peserta, $prodiString);
             }
         }
 
@@ -196,6 +207,27 @@ class AuthController extends Controller
         $request->session()->regenerate();
 
         return redirect()->intended(route('dashboard', absolute: false));
+    }
+
+    protected function syncProgramStudi(Peserta $peserta, ?string $programStudi = null): void
+    {
+        if ($peserta->program_studi_id) {
+            return;
+        }
+
+        $programStudiName = trim($programStudi ?? (string) $peserta->program_studi);
+
+        if ($programStudiName === '') {
+            return;
+        }
+
+        $matchedProgramStudi = ProgramStudi::where('nama_prodi', $programStudiName)->first();
+
+        if ($matchedProgramStudi) {
+            $peserta->update([
+                'program_studi_id' => $matchedProgramStudi->id,
+            ]);
+        }
     }
 
     /**
