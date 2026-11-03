@@ -1,34 +1,63 @@
-import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
+import SortableHeading from '@/Components/SortableHeading';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdmin }) {
     const [search, setSearch] = useState(filters?.search || '');
     const [status, setStatus] = useState(filters?.status || '');
     const [masterId, setMasterId] = useState(filters?.master_kegiatan_id || '');
+    const [processingId, setProcessingId] = useState(null);
+    const isInitialFilter = useRef(true);
 
-    const handleFilter = (e) => {
-        e?.preventDefault();
-        router.get(
-            route('log-kegiatan.index'),
-            {
+    useEffect(() => {
+        if (isInitialFilter.current) {
+            isInitialFilter.current = false;
+            return;
+        }
+
+        const timeout = setTimeout(() => {
+            router.get(route('log-kegiatan.index'), {
                 search: search || undefined,
                 status: status || undefined,
                 master_kegiatan_id: masterId || undefined,
-            },
-            { preserveState: true, replace: true }
-        );
+                sort: filters?.sort,
+                direction: filters?.direction,
+            }, { preserveState: true, preserveScroll: true, replace: true });
+        }, 300);
+
+        return () => clearTimeout(timeout);
+    }, [search, status, masterId]);
+
+    const handleSort = (column) => {
+        const direction = filters?.sort === column && filters?.direction === 'asc' ? 'desc' : 'asc';
+
+        router.get(route('log-kegiatan.index'), {
+            search: search || undefined,
+            status: status || undefined,
+            master_kegiatan_id: masterId || undefined,
+            sort: column,
+            direction,
+        }, { preserveState: true, preserveScroll: true, replace: true });
+    };
+
+    const handleStatusAction = (action, item) => {
+        router.post(route(`log-kegiatan.${action}`, item.id), {}, {
+            preserveScroll: true,
+            onStart: () => setProcessingId(item.id),
+            onFinish: () => setProcessingId(null),
+        });
     };
 
     const handleReset = () => {
         setSearch('');
         setStatus('');
         setMasterId('');
-        router.get(route('log-kegiatan.index'));
     };
+
+    const isFiltered = Boolean(search || status || masterId);
 
     return (
         <AuthenticatedLayout
@@ -53,7 +82,7 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
                     {/* Filter Bar */}
                     <div className="mb-6 rounded-lg bg-white p-4 shadow-sm">
-                        <form onSubmit={handleFilter} className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                             <div>
                                 <TextInput
                                     type="text"
@@ -71,7 +100,7 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                     onChange={(e) => setStatus(e.target.value)}
                                 >
                                     <option value="">Semua Status</option>
-                                    <option value="draft">Draft (Belum Selesai)</option>
+                                    {!isAdmin && <option value="draft">Draft (Belum Selesai)</option>}
                                     <option value="menunggu">Menunggu</option>
                                     <option value="disetujui">Disetujui</option>
                                     <option value="ditolak">Ditolak</option>
@@ -94,16 +123,13 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                             </div>
 
                             <div className="flex gap-2">
-                                <PrimaryButton type="submit" className="w-full justify-center">
-                                    Filter
-                                </PrimaryButton>
-                                {(filters?.search || filters?.status || filters?.master_kegiatan_id) && (
+                                {isFiltered && (
                                     <SecondaryButton type="button" onClick={handleReset}>
                                         Reset
                                     </SecondaryButton>
                                 )}
                             </div>
-                        </form>
+                        </div>
                     </div>
 
                     {/* Table */}
@@ -113,11 +139,11 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                 <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
                                     <tr>
                                         <th scope="col" className="px-6 py-3">No</th>
-                                        {isAdmin && <th scope="col" className="px-6 py-3">Mahasiswa</th>}
-                                        <th scope="col" className="px-6 py-3">Kegiatan</th>
-                                        <th scope="col" className="px-6 py-3">Waktu & Lokasi</th>
-                                        <th scope="col" className="px-6 py-3">Status</th>
-                                        <th scope="col" className="px-6 py-3">Tahap Stepper</th>
+                                        {isAdmin && <SortableHeading label="Mahasiswa" column="mahasiswa" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />}
+                                        <SortableHeading label="Kegiatan" column="kegiatan" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
+                                        <SortableHeading label="Waktu & Lokasi" column="tanggal_kehadiran" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
+                                        <SortableHeading label="Status" column="status" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
+                                        <SortableHeading label="Tahap Stepper" column="current_step" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
                                         <th scope="col" className="px-6 py-3 text-right">Aksi</th>
                                     </tr>
                                 </thead>
@@ -182,11 +208,46 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                                     </span>
                                                 </td>
                                                 <td className="whitespace-nowrap px-6 py-4 text-right">
-                                                    <Link href={route('log-kegiatan.show', item.id)}>
-                                                        <SecondaryButton className="text-xs">
-                                                            Detail
-                                                        </SecondaryButton>
-                                                    </Link>
+                                                    <div className="inline-flex items-center gap-2">
+                                                        <Link
+                                                            href={route('log-kegiatan.show', item.id)}
+                                                            title="Lihat detail"
+                                                            aria-label={`Lihat detail log ${item.id}`}
+                                                            className={isAdmin
+                                                                ? 'inline-flex h-8 w-8 items-center justify-center rounded-full border border-indigo-200 font-bold text-indigo-700 hover:bg-indigo-50'
+                                                                : 'inline-flex items-center rounded bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100'}
+                                                        >
+                                                            {isAdmin ? 'i' : 'Detail'}
+                                                        </Link>
+                                                        {isAdmin && item.status === 'menunggu' && (
+                                                            <>
+                                                                <button
+                                                                    type="button"
+                                                                    title="Setujui log"
+                                                                    aria-label={`Setujui log ${item.id}`}
+                                                                    disabled={processingId === item.id}
+                                                                    onClick={() => handleStatusAction('approve', item)}
+                                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-green-200 text-green-700 hover:bg-green-50 disabled:opacity-50"
+                                                                >
+                                                                    <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4 fill-none stroke-current stroke-2">
+                                                                        <path d="m4 10 4 4 8-8" />
+                                                                    </svg>
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    title="Tolak log"
+                                                                    aria-label={`Tolak log ${item.id}`}
+                                                                    disabled={processingId === item.id}
+                                                                    onClick={() => handleStatusAction('reject', item)}
+                                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-50"
+                                                                >
+                                                                    <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4 fill-none stroke-current stroke-2">
+                                                                        <path d="m5 5 10 10M15 5 5 15" />
+                                                                    </svg>
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))

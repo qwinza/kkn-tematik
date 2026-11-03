@@ -3,7 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\Peserta;
-use App\Models\ProgramStudi;
+use App\Models\Prodi;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -27,7 +27,7 @@ class MahasiswaMonitoringTest extends TestCase
         $response->assertInertia(fn (Assert $page) => $page
             ->component('Admin/Mahasiswa/Index')
             ->has('mahasiswas.data')
-            ->has('programStudis')
+            ->has('prodis')
             ->has('filters')
             ->has('totalCount')
         );
@@ -121,6 +121,57 @@ class MahasiswaMonitoringTest extends TestCase
         );
     }
 
+    public function test_admin_can_search_mahasiswa_by_program_studi_name(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $prodi = Prodi::factory()->create([
+            'nama_prodi' => 'Teknik Informatika',
+            'fakultas' => 'FTI',
+        ]);
+        $user = User::factory()->mahasiswa()->create();
+        $peserta = Peserta::factory()->create([
+            'user_id' => $user->id,
+            'kode_prodi' => $prodi->kode_prodi,
+            'program_studi' => null,
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.mahasiswa.index', ['search' => 'Informatika']));
+
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Admin/Mahasiswa/Index')
+            ->has('mahasiswas.data', 1)
+            ->where('mahasiswas.data.0.id', $peserta->id)
+        );
+    }
+
+    public function test_admin_can_sort_mahasiswa_by_name_ascending(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $zUser = User::factory()->mahasiswa()->create();
+        $zPeserta = Peserta::factory()->create([
+            'user_id' => $zUser->id,
+            'nama_lengkap' => 'Zahra',
+        ]);
+        $aUser = User::factory()->mahasiswa()->create();
+        $aPeserta = Peserta::factory()->create([
+            'user_id' => $aUser->id,
+            'nama_lengkap' => 'Alya',
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.mahasiswa.index', [
+            'sort' => 'nama_lengkap',
+            'direction' => 'asc',
+        ]));
+
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Admin/Mahasiswa/Index')
+            ->where('mahasiswas.data.0.id', $aPeserta->id)
+            ->where('mahasiswas.data.1.id', $zPeserta->id)
+            ->where('filters.sort', 'nama_lengkap')
+            ->where('filters.direction', 'asc')
+        );
+    }
+
     /**
      * 6. Admin dapat memfilter mahasiswa berdasarkan program studi.
      */
@@ -128,8 +179,8 @@ class MahasiswaMonitoringTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
 
-        $prodiIf = ProgramStudi::create(['nama_prodi' => 'Teknik Informatika', 'fakultas' => 'FTI']);
-        $prodiArs = ProgramStudi::create(['nama_prodi' => 'Arsitektur', 'fakultas' => 'FAD']);
+        $prodiIf = Prodi::create(['kode_prodi' => 'TI-01', 'nama_prodi' => 'Teknik Informatika', 'fakultas' => 'FTI']);
+        $prodiArs = Prodi::create(['kode_prodi' => 'AR-01', 'nama_prodi' => 'Arsitektur', 'fakultas' => 'FAD']);
 
         $user1 = User::factory()->mahasiswa()->create();
         $peserta1 = Peserta::create([
@@ -137,7 +188,7 @@ class MahasiswaMonitoringTest extends TestCase
             'nama_lengkap' => 'Aa Faris Ahmad Shidiq',
             'nim' => '152024038',
             'program_studi' => 'Teknik Informatika',
-            'program_studi_id' => $prodiIf->id,
+            'kode_prodi' => $prodiIf->kode_prodi,
         ]);
 
         $user2 = User::factory()->mahasiswa()->create();
@@ -146,10 +197,14 @@ class MahasiswaMonitoringTest extends TestCase
             'nama_lengkap' => 'Citra Dewi',
             'nim' => '212024010',
             'program_studi' => 'Arsitektur',
-            'program_studi_id' => $prodiArs->id,
+            'kode_prodi' => $prodiArs->kode_prodi,
         ]);
 
-        $response = $this->actingAs($admin)->get(route('admin.mahasiswa.index', ['program_studi_id' => $prodiIf->id]));
+        $response = $this->actingAs($admin)->get(route('admin.mahasiswa.index', [
+            'kode_prodi' => $prodiIf->kode_prodi,
+            'sort' => 'id',
+            'direction' => 'desc',
+        ]));
 
         $response->assertStatus(200);
         $response->assertInertia(fn (Assert $page) => $page
@@ -157,22 +212,47 @@ class MahasiswaMonitoringTest extends TestCase
             ->has('mahasiswas.data', 1)
             ->where('mahasiswas.data.0.id', $peserta1->id)
             ->where('mahasiswas.data.0.program_studi', 'Teknik Informatika')
-            ->where('mahasiswas.data.0.program_studi_detail.id', $prodiIf->id)
-            ->where('mahasiswas.data.0.program_studi_detail.nama_prodi', 'Teknik Informatika')
-            ->where('mahasiswas.data.0.program_studi_detail.fakultas', 'FTI')
+            ->where('mahasiswas.data.0.kode_prodi', $prodiIf->kode_prodi)
+            ->where('mahasiswas.data.0.prodi.nama_prodi', 'Teknik Informatika')
+            ->where('mahasiswas.data.0.prodi.fakultas', 'FTI')
+            ->where('filters.kode_prodi', $prodiIf->kode_prodi)
+            ->where('filters.sort', 'id')
+            ->where('filters.direction', 'desc')
+        );
+    }
+
+    public function test_program_study_filter_includes_legacy_names_without_a_prodi_code(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $prodi = Prodi::factory()->create(['nama_prodi' => 'Teknik Informatika']);
+        $user = User::factory()->mahasiswa()->create();
+        $peserta = Peserta::factory()->create([
+            'user_id' => $user->id,
+            'kode_prodi' => null,
+            'program_studi' => 'Teknik Informatika',
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('admin.mahasiswa.index', [
+            'kode_prodi' => $prodi->kode_prodi,
+        ]));
+
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Admin/Mahasiswa/Index')
+            ->has('mahasiswas.data', 1)
+            ->where('mahasiswas.data.0.id', $peserta->id)
         );
     }
 
     /**
-     * 7. Validasi filter program_studi_id memastikan id harus ada di tabel program_studis.
+     * 7. Validasi filter kode_prodi memastikan kode harus ada di tabel prodi.
      */
-    public function test_filter_fails_when_program_studi_id_does_not_exist(): void
+    public function test_filter_fails_when_kode_prodi_does_not_exist(): void
     {
         $admin = User::factory()->admin()->create();
 
-        $response = $this->actingAs($admin)->get(route('admin.mahasiswa.index', ['program_studi_id' => 99999]));
+        $response = $this->actingAs($admin)->get(route('admin.mahasiswa.index', ['kode_prodi' => 'MISSING']));
 
-        $response->assertSessionHasErrors('program_studi_id');
+        $response->assertSessionHasErrors('kode_prodi');
     }
 
     /**
@@ -182,7 +262,7 @@ class MahasiswaMonitoringTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
 
-        $prodi = ProgramStudi::create(['nama_prodi' => 'Teknik Informatika', 'fakultas' => 'FTI']);
+        $prodi = Prodi::create(['kode_prodi' => 'TI-02', 'nama_prodi' => 'Teknik Informatika', 'fakultas' => 'FTI']);
 
         $user = User::factory()->mahasiswa()->create([
             'name' => 'Aa Faris',
@@ -195,7 +275,7 @@ class MahasiswaMonitoringTest extends TestCase
             'nama_lengkap' => 'Aa Faris Ahmad Shidiq',
             'nim' => '152024038',
             'program_studi' => 'Teknik Informatika',
-            'program_studi_id' => $prodi->id,
+            'kode_prodi' => $prodi->kode_prodi,
         ]);
 
         $response = $this->actingAs($admin)->get(route('admin.mahasiswa.show', $peserta));
@@ -206,9 +286,9 @@ class MahasiswaMonitoringTest extends TestCase
             ->where('mahasiswa.id', $peserta->id)
             ->where('mahasiswa.nama_lengkap', 'Aa Faris Ahmad Shidiq')
             ->where('mahasiswa.program_studi', 'Teknik Informatika')
-            ->where('mahasiswa.program_studi_detail.id', $prodi->id)
-            ->where('mahasiswa.program_studi_detail.nama_prodi', 'Teknik Informatika')
-            ->where('mahasiswa.program_studi_detail.fakultas', 'FTI')
+            ->where('mahasiswa.kode_prodi', $prodi->kode_prodi)
+            ->where('mahasiswa.prodi.nama_prodi', 'Teknik Informatika')
+            ->where('mahasiswa.prodi.fakultas', 'FTI')
             ->where('mahasiswa.user.name', 'Aa Faris')
         );
     }
@@ -234,9 +314,9 @@ class MahasiswaMonitoringTest extends TestCase
     }
 
     /**
-     * 10. Data program studi legacy (string) tetap terlihat dan program_studi_detail null ketika program_studi_id bernilai null.
+     * 10. Data program studi lama tetap terlihat ketika peserta belum memiliki relasi prodi.
      */
-    public function test_legacy_program_studi_data_remains_visible_when_program_studi_id_is_null(): void
+    public function test_legacy_program_studi_data_remains_visible_when_kode_prodi_is_null(): void
     {
         $admin = User::factory()->admin()->create();
 
@@ -246,7 +326,6 @@ class MahasiswaMonitoringTest extends TestCase
             'nama_lengkap' => 'Eko Prasetyo',
             'nim' => '142024005',
             'program_studi' => 'Teknik Kimia',
-            'program_studi_id' => null,
         ]);
 
         // Uji pada halaman index
@@ -255,8 +334,8 @@ class MahasiswaMonitoringTest extends TestCase
         $indexResponse->assertInertia(fn (Assert $page) => $page
             ->component('Admin/Mahasiswa/Index')
             ->where('mahasiswas.data.0.program_studi', 'Teknik Kimia')
-            ->where('mahasiswas.data.0.program_studi_id', null)
-            ->where('mahasiswas.data.0.program_studi_detail', null)
+            ->where('mahasiswas.data.0.kode_prodi', null)
+            ->where('mahasiswas.data.0.prodi', null)
         );
 
         // Uji pada halaman show
@@ -265,17 +344,18 @@ class MahasiswaMonitoringTest extends TestCase
         $showResponse->assertInertia(fn (Assert $page) => $page
             ->component('Admin/Mahasiswa/Show')
             ->where('mahasiswa.program_studi', 'Teknik Kimia')
-            ->where('mahasiswa.program_studi_id', null)
-            ->where('mahasiswa.program_studi_detail', null)
+            ->where('mahasiswa.kode_prodi', null)
+            ->where('mahasiswa.prodi', null)
         );
     }
 
     /**
-     * 11. Login mahasiswa pertama kali otomatis mengisi program_studi_id yang cocok.
+     * 11. Login mahasiswa pertama kali otomatis mengisi kode_prodi yang cocok.
      */
-    public function test_first_time_mahasiswa_login_assigns_matching_program_studi_id(): void
+    public function test_first_time_mahasiswa_login_assigns_matching_kode_prodi(): void
     {
-        $prodi = ProgramStudi::create([
+        $prodi = Prodi::create([
+            'kode_prodi' => 'TI-03',
             'nama_prodi' => 'Teknik Informatika',
             'fakultas' => 'FTI',
         ]);
@@ -293,15 +373,16 @@ class MahasiswaMonitoringTest extends TestCase
         $user = auth()->user();
         $this->assertNotNull($user->peserta);
         $this->assertSame('Teknik Informatika', $user->peserta->program_studi);
-        $this->assertSame($prodi->id, $user->peserta->program_studi_id);
+        $this->assertSame($prodi->kode_prodi, $user->peserta->kode_prodi);
     }
 
     /**
-     * 12. Mahasiswa lama yang memiliki program_studi_id null akan disinkronkan saat login.
+     * 12. Mahasiswa lama yang belum memiliki kode_prodi akan disinkronkan saat login.
      */
-    public function test_existing_mahasiswa_with_missing_program_studi_id_gets_synchronized(): void
+    public function test_existing_mahasiswa_with_missing_kode_prodi_gets_synchronized(): void
     {
-        $prodi = ProgramStudi::create([
+        $prodi = Prodi::create([
+            'kode_prodi' => 'TI-04',
             'nama_prodi' => 'Teknik Informatika',
             'fakultas' => 'FTI',
         ]);
@@ -322,10 +403,9 @@ class MahasiswaMonitoringTest extends TestCase
             'nama_lengkap' => 'Aa Faris Ahmad Shidiq',
             'nim' => $nim,
             'program_studi' => 'Teknik Informatika',
-            'program_studi_id' => null,
         ]);
 
-        $this->assertNull($peserta->program_studi_id);
+        $this->assertNull($peserta->kode_prodi);
 
         $response = $this->post(route('login'), [
             'identifier' => $nim,
@@ -335,7 +415,7 @@ class MahasiswaMonitoringTest extends TestCase
         $this->assertAuthenticated();
 
         $peserta->refresh();
-        $this->assertSame($prodi->id, $peserta->program_studi_id);
+        $this->assertSame($prodi->kode_prodi, $peserta->kode_prodi);
         $this->assertSame('Teknik Informatika', $peserta->program_studi);
     }
 }

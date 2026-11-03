@@ -20,6 +20,7 @@ class ProdiFactory extends Factory
         return [
             'kode_prodi' => 'PR'.str_pad((string) fake()->unique()->numberBetween(1, 9999), 4, '0', STR_PAD_LEFT),
             'nama_prodi' => 'Program Studi '.fake()->unique()->word(),
+            'fakultas' => 'Fakultas Teknik',
         ];
     }
 }

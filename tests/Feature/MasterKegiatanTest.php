@@ -30,6 +30,67 @@ class MasterKegiatanTest extends TestCase
         );
     }
 
+    public function test_admin_can_sort_master_kegiatan_by_name_ascending(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $zKegiatan = MasterKegiatan::factory()->create(['nama_kegiatan' => 'Z Kegiatan']);
+        $aKegiatan = MasterKegiatan::factory()->create(['nama_kegiatan' => 'A Kegiatan']);
+
+        $response = $this->actingAs($admin)->get(route('master-kegiatan.index', [
+            'sort' => 'nama_kegiatan',
+            'direction' => 'asc',
+        ]));
+
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('MasterKegiatan/Index')
+            ->where('kegiatans.data.0.id', $aKegiatan->id)
+            ->where('kegiatans.data.1.id', $zKegiatan->id)
+            ->where('filters.sort', 'nama_kegiatan')
+            ->where('filters.direction', 'asc')
+        );
+    }
+
+    public function test_admin_can_filter_master_kegiatan_by_prodi(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $prodiIf = Prodi::factory()->create(['nama_prodi' => 'Teknik Informatika']);
+        $prodiArs = Prodi::factory()->create(['nama_prodi' => 'Arsitektur']);
+        $kegiatanIf = MasterKegiatan::factory()->create(['kode_prodi' => $prodiIf->kode_prodi]);
+        MasterKegiatan::factory()->create(['kode_prodi' => $prodiArs->kode_prodi]);
+
+        $response = $this->actingAs($admin)->get(route('master-kegiatan.index', [
+            'kode_prodi' => $prodiIf->kode_prodi,
+            'sort' => 'id',
+            'direction' => 'desc',
+        ]));
+
+        $response->assertOk();
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('MasterKegiatan/Index')
+            ->has('kegiatans.data', 1)
+            ->where('kegiatans.data.0.id', $kegiatanIf->id)
+            ->where('filters.kode_prodi', $prodiIf->kode_prodi)
+            ->where('filters.sort', 'id')
+            ->where('filters.direction', 'desc')
+        );
+    }
+
+    public function test_admin_can_search_master_kegiatan_by_prodi_name(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $prodi = Prodi::factory()->create(['nama_prodi' => 'Arsitektur']);
+        $kegiatan = MasterKegiatan::factory()->create(['kode_prodi' => $prodi->kode_prodi]);
+        MasterKegiatan::factory()->create();
+
+        $response = $this->actingAs($admin)->get(route('master-kegiatan.index', ['search' => 'Arsitektur']));
+
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('MasterKegiatan/Index')
+            ->has('kegiatans.data', 1)
+            ->where('kegiatans.data.0.id', $kegiatan->id)
+        );
+    }
+
     public function test_admin_can_create_master_kegiatan(): void
     {
         $admin = User::factory()->admin()->create();

@@ -57,6 +57,39 @@ class LogKegiatanStepperTest extends TestCase
         );
     }
 
+    public function test_admin_log_list_only_includes_reviewable_statuses_and_sorts_them(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $draft = LogKegiatan::factory()->draft()->create();
+        $waiting = LogKegiatan::factory()->create(['status' => 'menunggu']);
+        $approved = LogKegiatan::factory()->create(['status' => 'disetujui']);
+        $rejected = LogKegiatan::factory()->create(['status' => 'ditolak']);
+
+        $response = $this->actingAs($admin)->get(route('log-kegiatan.index', [
+            'sort' => 'status',
+            'direction' => 'asc',
+        ]));
+
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('LogKegiatan/Index')
+            ->has('logs.data', 3)
+            ->where('logs.data.0.id', $approved->id)
+            ->where('logs.data.1.id', $rejected->id)
+            ->where('logs.data.2.id', $waiting->id)
+        );
+
+        $this->assertDatabaseHas('log_kegiatans', ['id' => $draft->id, 'status' => 'draft']);
+    }
+
+    public function test_admin_cannot_filter_log_list_by_draft_status(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->get(route('log-kegiatan.index', ['status' => 'draft']))
+            ->assertSessionHasErrors('status');
+    }
+
     public function test_mahasiswa_can_initiate_step_1_saving_as_draft(): void
     {
         $user = User::factory()->mahasiswa()->create();

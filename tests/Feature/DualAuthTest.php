@@ -92,7 +92,6 @@ class DualAuthTest extends TestCase
             'nama_lengkap' => 'Aa Faris Ahmad Shidiq',
             'kode_prodi' => null,
             'program_studi' => 'Teknik Informatika',
-            'program_studi_id' => null,
         ]);
 
         $this->assertNotNull($user->peserta);

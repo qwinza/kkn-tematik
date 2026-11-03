@@ -7,6 +7,7 @@ use App\Models\MasterKegiatan;
 use App\Models\Prodi;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,20 +22,41 @@ class MasterKegiatanController extends Controller
             abort(403, 'Akses ditolak. Halaman Master Kegiatan hanya dapat diakses oleh Admin.');
         }
 
-        $search = (string) $request->input('search', '');
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'kode_prodi' => ['nullable', 'string', 'exists:prodi,kode_prodi'],
+            'sort' => ['nullable', Rule::in(['id', 'kode_kegiatan', 'nama_kegiatan', 'kategori', 'prodi', 'log_kegiatans_count'])],
+            'direction' => ['nullable', Rule::in(['asc', 'desc'])],
+        ]);
 
-        $kegiatans = MasterKegiatan::query()
+        $search = $filters['search'] ?? '';
+        $sort = $filters['sort'] ?? 'id';
+        $direction = $filters['direction'] ?? 'desc';
+
+        $query = MasterKegiatan::query()
             ->with('prodi')
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('kode_kegiatan', 'like', "%{$search}%")
                         ->orWhere('nama_kegiatan', 'like', "%{$search}%")
-                        ->orWhere('kategori', 'like', "%{$search}%");
+                        ->orWhere('kategori', 'like', "%{$search}%")
+                        ->orWhereHas('prodi', fn ($prodiQuery) => $prodiQuery->where('nama_prodi', 'like', "%{$search}%"));
                 });
             })
-            ->withCount('logKegiatans')
-            ->latest('id')
-            ->paginate(10)
+            ->when($filters['kode_prodi'] ?? null, fn ($query, $kodeProdi) => $query->where('kode_prodi', $kodeProdi))
+            ->withCount('logKegiatans');
+
+        if ($sort === 'prodi') {
+            $query->orderBy(Prodi::query()
+                ->select('nama_prodi')
+                ->whereColumn('prodi.kode_prodi', 'master_kegiatans.kode_prodi'), $direction);
+        } elseif ($sort !== 'id') {
+            $query->orderBy($sort, $direction);
+        } else {
+            $query->orderByDesc('id');
+        }
+
+        $kegiatans = $query->paginate(10)
             ->withQueryString();
 
         return Inertia::render('MasterKegiatan/Index', [
@@ -42,6 +64,9 @@ class MasterKegiatanController extends Controller
             'prodis' => Prodi::query()->orderBy('nama_prodi')->get(['kode_prodi', 'nama_prodi']),
             'filters' => [
                 'search' => $search,
+                'kode_prodi' => $filters['kode_prodi'] ?? '',
+                'sort' => $sort,
+                'direction' => $direction,
             ],
             'canManage' => $request->user()?->isAdmin() ?? false,
         ]);

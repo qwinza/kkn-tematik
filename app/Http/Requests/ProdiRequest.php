@@ -35,6 +35,7 @@ class ProdiRequest extends FormRequest
                 Rule::unique('prodi', 'kode_prodi')->ignore($prodiKey, 'kode_prodi'),
             ],
             'nama_prodi' => ['required', 'string', 'max:255'],
+            'fakultas' => ['required', 'string', 'max:255'],
         ];
     }
 
@@ -47,6 +48,7 @@ class ProdiRequest extends FormRequest
             'kode_prodi.required' => 'Kode prodi wajib diisi.',
             'kode_prodi.unique' => 'Kode prodi sudah digunakan.',
             'nama_prodi.required' => 'Nama prodi wajib diisi.',
+            'fakultas.required' => 'Fakultas wajib diisi.',
         ];
     }
 }

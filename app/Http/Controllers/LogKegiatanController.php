@@ -30,9 +30,21 @@ class LogKegiatanController extends Controller
     {
         $user = $request->user();
         $isAdmin = $user?->isAdmin() ?? false;
-        $search = (string) $request->input('search', '');
-        $status = (string) $request->input('status', '');
-        $masterId = $request->input('master_kegiatan_id');
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', Rule::in($isAdmin
+                ? ['menunggu', 'disetujui', 'ditolak']
+                : ['draft', 'menunggu', 'disetujui', 'ditolak'])],
+            'master_kegiatan_id' => ['nullable', 'integer', 'exists:master_kegiatans,id'],
+            'sort' => ['nullable', Rule::in(['mahasiswa', 'kegiatan', 'tanggal_kehadiran', 'status', 'current_step'])],
+            'direction' => ['nullable', Rule::in(['asc', 'desc'])],
+        ]);
+
+        $search = $filters['search'] ?? '';
+        $status = $filters['status'] ?? '';
+        $masterId = $filters['master_kegiatan_id'] ?? null;
+        $sort = $filters['sort'] ?? 'tanggal_kehadiran';
+        $direction = $filters['direction'] ?? 'desc';
 
         $query = LogKegiatan::query()
             ->with(['masterKegiatan', 'peserta.user'])
@@ -40,6 +52,7 @@ class LogKegiatanController extends Controller
                 $pesertaId = $user?->peserta?->id ?? 0;
                 $q->where('peserta_id', $pesertaId);
             })
+            ->when($isAdmin, fn ($q) => $q->whereIn('status', ['menunggu', 'disetujui', 'ditolak']))
             ->when($status !== '', function ($q) use ($status) {
                 $q->where('status', $status);
             })
@@ -62,8 +75,19 @@ class LogKegiatanController extends Controller
                         });
                     }
                 });
-            })
-            ->latest('id');
+            });
+
+        if ($sort === 'mahasiswa') {
+            $query->orderBy(Peserta::query()
+                ->select('nama_lengkap')
+                ->whereColumn('pesertas.id', 'log_kegiatans.peserta_id'), $direction);
+        } elseif ($sort === 'kegiatan') {
+            $query->orderBy(MasterKegiatan::query()
+                ->select('nama_kegiatan')
+                ->whereColumn('master_kegiatans.id', 'log_kegiatans.master_kegiatan_id'), $direction);
+        } else {
+            $query->orderBy($sort, $direction);
+        }
 
         $logs = $query->paginate(10)->withQueryString();
         $masterKegiatans = MasterKegiatan::query()
@@ -78,6 +102,8 @@ class LogKegiatanController extends Controller
                 'search' => $search,
                 'status' => $status,
                 'master_kegiatan_id' => $masterId,
+                'sort' => $sort,
+                'direction' => $direction,
             ],
             'isAdmin' => $isAdmin,
         ]);

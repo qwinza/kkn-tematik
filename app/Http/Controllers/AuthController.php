@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Peserta;
-use App\Models\ProgramStudi;
+use App\Models\Prodi;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -130,7 +130,7 @@ class AuthController extends Controller
                     'nim' => $nim,
                 ]);
             } else {
-                $this->syncProgramStudi($existingUser->peserta);
+                $this->syncProdi($existingUser->peserta);
             }
 
             $this->clearRateLimiter($nim, $request->ip());
@@ -154,7 +154,7 @@ class AuthController extends Controller
 
         $studentData = $apiResponse['data'];
         $prodiString = $studentData['program_studi'] ?? null;
-        $matchedProdi = $prodiString ? ProgramStudi::where('nama_prodi', $prodiString)->first() : null;
+        $matchedProdi = $prodiString ? Prodi::where('nama_prodi', $prodiString)->first() : null;
 
         // Cek apakah user dengan NIM tersebut sudah ada di tabel users
         $user = User::where('nim', $nim)->first();
@@ -175,7 +175,7 @@ class AuthController extends Controller
                     'nama_lengkap' => $studentData['nama_lengkap'],
                     'nim' => $nim,
                     'program_studi' => $prodiString,
-                    'program_studi_id' => $matchedProdi?->id,
+                    'kode_prodi' => $matchedProdi?->kode_prodi,
                 ]);
 
                 return $newUser;
@@ -193,10 +193,10 @@ class AuthController extends Controller
                     'nama_lengkap' => $studentData['nama_lengkap'] ?? $user->name,
                     'nim' => $nim,
                     'program_studi' => $prodiString ?? 'Teknik Informatika',
-                    'program_studi_id' => $matchedProdi?->id,
+                    'kode_prodi' => $matchedProdi?->kode_prodi,
                 ]);
             } else {
-                $this->syncProgramStudi($user->peserta, $prodiString);
+                $this->syncProdi($user->peserta, $prodiString);
             }
         }
 
@@ -209,9 +209,9 @@ class AuthController extends Controller
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
-    protected function syncProgramStudi(Peserta $peserta, ?string $programStudi = null): void
+    protected function syncProdi(Peserta $peserta, ?string $programStudi = null): void
     {
-        if ($peserta->program_studi_id) {
+        if ($peserta->kode_prodi) {
             return;
         }
 
@@ -221,11 +221,11 @@ class AuthController extends Controller
             return;
         }
 
-        $matchedProgramStudi = ProgramStudi::where('nama_prodi', $programStudiName)->first();
+        $matchedProdi = Prodi::where('nama_prodi', $programStudiName)->first();
 
-        if ($matchedProgramStudi) {
+        if ($matchedProdi) {
             $peserta->update([
-                'program_studi_id' => $matchedProgramStudi->id,
+                'kode_prodi' => $matchedProdi->kode_prodi,
             ]);
         }
     }

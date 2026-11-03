@@ -6,6 +6,7 @@ use App\Http\Requests\ProdiRequest;
 use App\Models\Prodi;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -15,11 +16,28 @@ class ProdiController extends Controller
     {
         $this->authorizeAdmin($request);
 
+        $filters = $request->validate([
+            'fakultas' => ['nullable', 'string', 'max:255'],
+            'sort' => ['nullable', Rule::in(['kode_prodi', 'nama_prodi', 'fakultas', 'pesertas_count', 'master_kegiatans_count'])],
+            'direction' => ['nullable', Rule::in(['asc', 'desc'])],
+        ]);
+
+        $sort = $filters['sort'] ?? 'nama_prodi';
+        $direction = $filters['direction'] ?? 'asc';
+
         return Inertia::render('Prodi/Index', [
             'prodis' => Prodi::query()
                 ->withCount(['pesertas', 'masterKegiatans'])
-                ->orderBy('nama_prodi')
+                ->when(($filters['fakultas'] ?? '') === '__empty', fn ($query) => $query->where('fakultas', ''))
+                ->when(! in_array($filters['fakultas'] ?? '', ['', '__empty'], true), fn ($query) => $query->where('fakultas', $filters['fakultas']))
+                ->orderBy($sort, $direction)
                 ->get(),
+            'fakultasOptions' => Prodi::query()->distinct()->orderBy('fakultas')->pluck('fakultas'),
+            'filters' => [
+                'fakultas' => $filters['fakultas'] ?? '',
+                'sort' => $sort,
+                'direction' => $direction,
+            ],
         ]);
     }
 

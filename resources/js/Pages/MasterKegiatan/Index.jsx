@@ -5,12 +5,15 @@ import Modal from '@/Components/Modal';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
+import SortableHeading from '@/Components/SortableHeading';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router, useForm } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function MasterKegiatanIndex({ kegiatans, filters, canManage, prodis = [] }) {
     const [search, setSearch] = useState(filters?.search || '');
+    const [kodeProdi, setKodeProdi] = useState(filters?.kode_prodi || '');
+    const filterTimer = useRef(null);
     const [modalState, setModalState] = useState({ isOpen: false, mode: 'create', item: null });
     const [deleteItem, setDeleteItem] = useState(null);
 
@@ -21,13 +24,30 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
         kode_prodi: '',
     });
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        router.get(
-            route('master-kegiatan.index'),
-            { search },
-            { preserveState: true, replace: true }
-        );
+    useEffect(() => () => clearTimeout(filterTimer.current), []);
+
+    const applyFilters = (nextSearch, nextKodeProdi, delay = 300) => {
+        clearTimeout(filterTimer.current);
+        filterTimer.current = setTimeout(() => {
+            router.get(route('master-kegiatan.index'), {
+                search: nextSearch || undefined,
+                kode_prodi: nextKodeProdi || undefined,
+                sort: filters?.sort,
+                direction: filters?.direction,
+            }, { preserveState: true, preserveScroll: true, replace: true });
+        }, delay);
+    };
+
+    const handleSort = (column) => {
+        clearTimeout(filterTimer.current);
+        const direction = filters?.sort === column && filters?.direction === 'asc' ? 'desc' : 'asc';
+
+        router.get(route('master-kegiatan.index'), {
+            search: search || undefined,
+            kode_prodi: kodeProdi || undefined,
+            sort: column,
+            direction,
+        }, { preserveState: true, preserveScroll: true, replace: true });
     };
 
     const openCreateModal = () => {
@@ -94,27 +114,52 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
                 <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
                     {/* Search and Filters */}
                     <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <form onSubmit={handleSearch} className="flex w-full max-w-md items-center gap-2">
+                        <div className="flex w-full flex-col gap-3 sm:max-w-2xl sm:flex-row sm:items-center">
                             <TextInput
                                 type="text"
                                 className="w-full"
-                                placeholder="Cari kode, nama, atau kategori kegiatan..."
+                                placeholder="Cari kode, kegiatan, kategori, atau prodi..."
                                 value={search}
-                                onChange={(e) => setSearch(e.target.value)}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setSearch(value);
+                                    applyFilters(value, kodeProdi);
+                                }}
                             />
-                            <SecondaryButton type="submit">Cari</SecondaryButton>
-                            {filters?.search && (
+                            <select
+                                aria-label="Filter berdasarkan program studi"
+                                className="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:max-w-xs"
+                                value={kodeProdi}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setKodeProdi(value);
+                                    applyFilters(search, value, 0);
+                                }}
+                            >
+                                <option value="">Semua Program Studi</option>
+                                {prodis.map((prodi) => (
+                                    <option key={prodi.kode_prodi} value={prodi.kode_prodi}>
+                                        {prodi.nama_prodi}
+                                    </option>
+                                ))}
+                            </select>
+                            {(search || kodeProdi) && (
                                 <SecondaryButton
                                     type="button"
                                     onClick={() => {
+                                        clearTimeout(filterTimer.current);
                                         setSearch('');
-                                        router.get(route('master-kegiatan.index'));
+                                        setKodeProdi('');
+                                        router.get(route('master-kegiatan.index'), {
+                                            sort: filters?.sort,
+                                            direction: filters?.direction,
+                                        }, { preserveState: true, preserveScroll: true, replace: true });
                                     }}
                                 >
                                     Reset
                                 </SecondaryButton>
                             )}
-                        </form>
+                        </div>
                     </div>
 
                     {/* Table */}
@@ -124,11 +169,11 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
                                 <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
                                     <tr>
                                         <th scope="col" className="px-6 py-3">No</th>
-                                        <th scope="col" className="px-6 py-3">Kode</th>
-                                        <th scope="col" className="px-6 py-3">Nama Kegiatan</th>
-                                        <th scope="col" className="px-6 py-3">Kategori</th>
-                                        <th scope="col" className="px-6 py-3">Prodi</th>
-                                        <th scope="col" className="px-6 py-3">Jumlah Log</th>
+                                        <SortableHeading label="Kode" column="kode_kegiatan" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
+                                        <SortableHeading label="Nama Kegiatan" column="nama_kegiatan" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
+                                        <SortableHeading label="Kategori" column="kategori" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
+                                        <SortableHeading label="Prodi" column="prodi" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
+                                        <SortableHeading label="Jumlah Log" column="log_kegiatans_count" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
                                         {canManage && (
                                             <th scope="col" className="px-6 py-3 text-right">Aksi</th>
                                         )}

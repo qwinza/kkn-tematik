@@ -3,8 +3,8 @@ import { Head, Link } from '@inertiajs/react';
 
 export default function Show({ mahasiswa }) {
     const prodiNama =
-        mahasiswa.program_studi_detail?.nama_prodi || mahasiswa.program_studi || '-';
-    const fakultas = mahasiswa.program_studi_detail?.fakultas || '-';
+        mahasiswa.prodi?.nama_prodi || mahasiswa.program_studi || '-';
+    const fakultas = mahasiswa.prodi?.fakultas || '-';
     const email = mahasiswa.user?.email || '-';
     const namaAkun = mahasiswa.user?.name || '-';
 

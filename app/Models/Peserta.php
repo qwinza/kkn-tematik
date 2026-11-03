@@ -38,14 +38,4 @@ class Peserta extends Model
     {
         return $this->hasMany(LogKegiatan::class);
     }
-
-    /**
-     * Relasi ke master data Program Studi.
-     *
-     * @return BelongsTo<ProgramStudi, $this>
-     */
-    public function programStudi(): BelongsTo
-    {
-        return $this->belongsTo(ProgramStudi::class);
-    }
 }

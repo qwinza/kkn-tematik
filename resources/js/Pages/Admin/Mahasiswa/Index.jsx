@@ -1,40 +1,50 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import SortableHeading from '@/Components/SortableHeading';
 import { Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-export default function Index({ mahasiswas, programStudis, filters, totalCount }) {
+export default function Index({ mahasiswas, prodis, filters, totalCount }) {
     const [search, setSearch] = useState(filters.search || '');
-    const [programStudiId, setProgramStudiId] = useState(filters.program_studi_id || '');
+    const [kodeProdi, setKodeProdi] = useState(filters.kode_prodi || '');
+    const filterTimer = useRef(null);
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        router.get(
-            route('admin.mahasiswa.index'),
-            {
-                search: search || undefined,
-                program_studi_id: programStudiId || undefined,
-            },
-            {
-                preserveState: true,
-                replace: true,
-            }
-        );
+    useEffect(() => () => clearTimeout(filterTimer.current), []);
+
+    const applyFilters = (nextSearch, nextKodeProdi, delay = 300) => {
+        clearTimeout(filterTimer.current);
+        filterTimer.current = setTimeout(() => {
+            router.get(route('admin.mahasiswa.index'), {
+                search: nextSearch || undefined,
+                kode_prodi: nextKodeProdi || undefined,
+                sort: filters.sort,
+                direction: filters.direction,
+            }, { preserveState: true, preserveScroll: true, replace: true });
+        }, delay);
+    };
+
+    const handleSort = (column) => {
+        clearTimeout(filterTimer.current);
+        const direction = filters.sort === column && filters.direction === 'asc' ? 'desc' : 'asc';
+
+        router.get(route('admin.mahasiswa.index'), {
+            search: search || undefined,
+            kode_prodi: kodeProdi || undefined,
+            sort: column,
+            direction,
+        }, { preserveState: true, preserveScroll: true, replace: true });
     };
 
     const handleReset = () => {
+        clearTimeout(filterTimer.current);
         setSearch('');
-        setProgramStudiId('');
-        router.get(
-            route('admin.mahasiswa.index'),
-            {},
-            {
-                preserveState: true,
-                replace: true,
-            }
-        );
+        setKodeProdi('');
+        router.get(route('admin.mahasiswa.index'), {
+            sort: filters.sort,
+            direction: filters.direction,
+        }, { preserveState: true, preserveScroll: true, replace: true });
     };
 
-    const isFiltered = Boolean(filters.search || filters.program_studi_id);
+    const isFiltered = Boolean(search || kodeProdi);
 
     return (
         <AuthenticatedLayout
@@ -56,23 +66,24 @@ export default function Index({ mahasiswas, programStudis, filters, totalCount }
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     {/* Filter & Search Bar */}
                     <div className="mb-6 rounded-lg bg-white p-5 shadow-sm">
-                        <form
-                            onSubmit={handleSearch}
-                            className="flex flex-col gap-4 md:flex-row md:items-end"
-                        >
+                        <div className="flex flex-col gap-4 md:flex-row md:items-end">
                             {/* Input Pencarian */}
                             <div className="flex-1">
                                 <label
                                     htmlFor="search"
                                     className="block text-sm font-medium text-gray-700"
                                 >
-                                    Cari Nama atau NIM
+                                    Cari Nama, NIM, atau Program Studi
                                 </label>
                                 <input
                                     id="search"
                                     type="text"
                                     value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setSearch(value);
+                                        applyFilters(value, kodeProdi);
+                                    }}
                                     placeholder="Contoh: Faris atau 152024038..."
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
                                 />
@@ -81,35 +92,32 @@ export default function Index({ mahasiswas, programStudis, filters, totalCount }
                             {/* Dropdown Program Studi */}
                             <div className="w-full md:w-72">
                                 <label
-                                    htmlFor="program_studi_id"
+                                    htmlFor="kode_prodi"
                                     className="block text-sm font-medium text-gray-700"
                                 >
                                     Filter Program Studi
                                 </label>
                                 <select
-                                    id="program_studi_id"
-                                    value={programStudiId}
-                                    onChange={(e) => setProgramStudiId(e.target.value)}
+                                    id="kode_prodi"
+                                    value={kodeProdi}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setKodeProdi(value);
+                                        applyFilters(search, value, 0);
+                                    }}
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
                                 >
                                     <option value="">Semua Program Studi</option>
-                                    {programStudis.map((prodi) => (
-                                        <option key={prodi.id} value={prodi.id}>
+                                    {prodis.map((prodi) => (
+                                        <option key={prodi.kode_prodi} value={prodi.kode_prodi}>
                                             {prodi.nama_prodi} ({prodi.fakultas})
                                         </option>
                                     ))}
                                 </select>
                             </div>
 
-                            {/* Tombol Aksi */}
-                            <div className="flex items-center gap-2">
-                                <button
-                                    type="submit"
-                                    className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                                >
-                                    Cari
-                                </button>
-                                {isFiltered && (
+                            {isFiltered && (
+                                <div className="flex items-end">
                                     <button
                                         type="button"
                                         onClick={handleReset}
@@ -117,9 +125,9 @@ export default function Index({ mahasiswas, programStudis, filters, totalCount }
                                     >
                                         Reset Filter
                                     </button>
-                                )}
-                            </div>
-                        </form>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Tabel Mahasiswa */}
@@ -134,30 +142,10 @@ export default function Index({ mahasiswas, programStudis, filters, totalCount }
                                         >
                                             No.
                                         </th>
-                                        <th
-                                            scope="col"
-                                            className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
-                                        >
-                                            Nama Lengkap
-                                        </th>
-                                        <th
-                                            scope="col"
-                                            className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
-                                        >
-                                            NIM
-                                        </th>
-                                        <th
-                                            scope="col"
-                                            className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
-                                        >
-                                            Program Studi
-                                        </th>
-                                        <th
-                                            scope="col"
-                                            className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
-                                        >
-                                            Fakultas
-                                        </th>
+                                        <SortableHeading label="Nama Lengkap" column="nama_lengkap" sort={filters.sort} direction={filters.direction} onSort={handleSort} className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500" />
+                                        <SortableHeading label="NIM" column="nim" sort={filters.sort} direction={filters.direction} onSort={handleSort} className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500" />
+                                        <SortableHeading label="Program Studi" column="prodi" sort={filters.sort} direction={filters.direction} onSort={handleSort} className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500" />
+                                        <SortableHeading label="Fakultas" column="fakultas" sort={filters.sort} direction={filters.direction} onSort={handleSort} className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500" />
                                         <th
                                             scope="col"
                                             className="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500"
@@ -175,11 +163,11 @@ export default function Index({ mahasiswas, programStudis, filters, totalCount }
                                                 index +
                                                 1;
                                             const prodiNama =
-                                                mhs.program_studi_detail?.nama_prodi ||
+                                                mhs.prodi?.nama_prodi ||
                                                 mhs.program_studi ||
                                                 '-';
                                             const fakultas =
-                                                mhs.program_studi_detail?.fakultas || '-';
+                                                mhs.prodi?.fakultas || '-';
 
                                             return (
                                                 <tr
