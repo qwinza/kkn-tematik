@@ -23,5 +23,9 @@
     },
     "optionalDependencies": {
         "@laravel/multiplex": "^0.4.1"
+    },
+    "dependencies": {
+        "bootstrap": "^5.3.8",
+        "sweetalert2": "^11.26.25"
     }
 }

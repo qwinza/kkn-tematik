@@ -215,7 +215,7 @@ class LogKegiatanController extends Controller
             return redirect()->route('log-kegiatan.edit', [
                 'log_kegiatan' => $logKegiatan->id,
                 'step' => 2,
-            ])->with('success', 'Identitas terverifikasi.');
+            ]);
         }
 
         // STEP 2: SCHEDULE
@@ -245,7 +245,7 @@ class LogKegiatanController extends Controller
             return redirect()->route('log-kegiatan.edit', [
                 'log_kegiatan' => $logKegiatan->id,
                 'step' => 3,
-            ])->with('success', 'Jadwal kegiatan berhasil disimpan.');
+            ]);
         }
 
         // STEP 3: ACTIVITY (FACULTY & PROJECT CODE)
@@ -272,7 +272,7 @@ class LogKegiatanController extends Controller
             return redirect()->route('log-kegiatan.edit', [
                 'log_kegiatan' => $logKegiatan->id,
                 'step' => 4,
-            ])->with('success', 'Aktivitas kegiatan berhasil disimpan.');
+            ]);
         }
 
         // STEP 4: DETAILS (LOCATION, GPS, DESCRIPTION)
@@ -302,7 +302,7 @@ class LogKegiatanController extends Controller
             return redirect()->route('log-kegiatan.edit', [
                 'log_kegiatan' => $logKegiatan->id,
                 'step' => 5,
-            ])->with('success', 'Detail kegiatan berhasil disimpan.');
+            ]);
         }
 
         // STEP 5: EVIDENCE (PHOTO UPLOAD MAX 50MB)
@@ -332,7 +332,7 @@ class LogKegiatanController extends Controller
             return redirect()->route('log-kegiatan.edit', [
                 'log_kegiatan' => $logKegiatan->id,
                 'step' => 6,
-            ])->with('success', 'Foto dokumentasi berhasil disimpan.');
+            ]);
         }
 
         // STEP 6: OUTPUTS (DELIVERABLES MAX 50MB)
@@ -365,7 +365,7 @@ class LogKegiatanController extends Controller
             return redirect()->route('log-kegiatan.edit', [
                 'log_kegiatan' => $logKegiatan->id,
                 'step' => 7,
-            ])->with('success', 'Berkas luaran berhasil disimpan.');
+            ]);
         }
 
         // STEP 7: REVIEW & SUBMIT

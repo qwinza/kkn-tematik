@@ -6,6 +6,7 @@ import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import confirmWithSweetAlert from '@/Components/confirmWithSweetAlert';
 import { Head, router, useForm } from '@inertiajs/react';
 import SortableHeading from '@/Components/SortableHeading';
 import { useEffect, useRef, useState } from 'react';
@@ -69,14 +70,15 @@ export default function ProdiIndex({ prodis = [], fakultasOptions = [], filters 
         }, { preserveState: true, replace: true });
     };
 
-    const handleDelete = () => {
-        if (!deleteItem) {
-            return;
-        }
-
-        router.delete(route('prodi.destroy', deleteItem.kode_prodi), {
-            onSuccess: () => setDeleteItem(null),
+    const handleDelete = async (prodi) => {
+        const confirmed = await confirmWithSweetAlert({
+            title: 'Hapus program studi?',
+            text: `Data ${prodi.kode_prodi} — ${prodi.nama_prodi} akan dihapus.`,
+            confirmButtonText: 'Ya, hapus',
         });
+        if (!confirmed) return;
+
+        router.delete(route('prodi.destroy', prodi.kode_prodi));
     };
 
     return (
@@ -136,7 +138,7 @@ export default function ProdiIndex({ prodis = [], fakultasOptions = [], filters 
                                                 <SecondaryButton onClick={() => openEditModal(prodi)} className="text-xs">
                                                     Edit
                                                 </SecondaryButton>
-                                                <DangerButton onClick={() => setDeleteItem(prodi)} className="text-xs">
+                                                <DangerButton onClick={() => handleDelete(prodi)} className="text-xs">
                                                     Hapus
                                                 </DangerButton>
                                             </td>

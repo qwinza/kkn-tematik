@@ -7,6 +7,7 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
 import SortableHeading from '@/Components/SortableHeading';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import confirmWithSweetAlert from '@/Components/confirmWithSweetAlert';
 import { Head, router, useForm } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -86,11 +87,15 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
         }
     };
 
-    const handleDelete = () => {
-        if (!deleteItem) return;
-        router.delete(route('master-kegiatan.destroy', deleteItem.id), {
-            onSuccess: () => setDeleteItem(null),
+    const handleDelete = async (item) => {
+        const confirmed = await confirmWithSweetAlert({
+            title: 'Hapus master kegiatan?',
+            text: `Data ${item.nama_kegiatan} (${item.kode_kegiatan}) akan dihapus.`,
+            confirmButtonText: 'Ya, hapus',
         });
+        if (!confirmed) return;
+
+        router.delete(route('master-kegiatan.destroy', item.id));
     };
 
     return (
@@ -210,7 +215,7 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
                                                             Edit
                                                         </SecondaryButton>
                                                         <DangerButton
-                                                            onClick={() => setDeleteItem(item)}
+                                                            onClick={() => handleDelete(item)}
                                                             className="text-xs"
                                                         >
                                                             Hapus

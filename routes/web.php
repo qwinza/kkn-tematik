@@ -5,24 +5,19 @@ use App\Http\Controllers\MasterKegiatanController;
 use App\Http\Controllers\ProdiController;
 use App\Http\Controllers\ProfileController;
 use App\Models\LogKegiatan;
-use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
+    return redirect()->route('login');
 });
 
 Route::get('/dashboard', function (Request $request) {
     $user = $request->user();
     $pesertaId = $user?->peserta?->id;
-    $logs = LogKegiatan::query()->where('peserta_id', $pesertaId ?? 0);
+    $logs = LogKegiatan::query()
+        ->when(! $user?->isAdmin(), fn ($query) => $query->where('peserta_id', $pesertaId ?? 0));
 
     return Inertia::render('Dashboard', [
         'summary' => [

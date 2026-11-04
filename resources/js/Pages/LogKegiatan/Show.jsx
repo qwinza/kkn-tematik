@@ -3,6 +3,7 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
+import confirmWithSweetAlert from '@/Components/confirmWithSweetAlert';
 
 export default function LogKegiatanShow({ log, isAdmin }) {
     const [isApproving, setIsApproving] = useState(false);
@@ -12,7 +13,15 @@ export default function LogKegiatanShow({ log, isAdmin }) {
     const photoFiles = log.files?.filter((file) => file.jenis_file === 'foto_kegiatan') ?? [];
     const outputFiles = log.files?.filter((file) => file.jenis_file === 'file_luaran') ?? [];
 
-    const handleApprove = () => {
+    const handleApprove = async () => {
+        const confirmed = await confirmWithSweetAlert({
+            title: 'Setujui laporan ini?',
+            text: 'Status laporan akan berubah menjadi disetujui.',
+            confirmButtonText: 'Ya, setujui',
+            icon: 'question',
+        });
+        if (!confirmed) return;
+
         router.post(route('log-kegiatan.approve', log.id), {}, {
             preserveScroll: true,
             onStart: () => setIsApproving(true),
@@ -20,7 +29,14 @@ export default function LogKegiatanShow({ log, isAdmin }) {
         });
     };
 
-    const handleReject = () => {
+    const handleReject = async () => {
+        const confirmed = await confirmWithSweetAlert({
+            title: 'Tolak laporan ini?',
+            text: 'Mahasiswa perlu memperbaiki laporan yang ditolak.',
+            confirmButtonText: 'Ya, tolak',
+        });
+        if (!confirmed) return;
+
         router.post(route('log-kegiatan.reject', log.id), {}, {
             preserveScroll: true,
             onStart: () => setIsRejecting(true),
@@ -65,8 +81,8 @@ export default function LogKegiatanShow({ log, isAdmin }) {
         >
             <Head title={`Detail Log Kegiatan #${log.id}`} />
 
-            <div className="py-8">
-                <div className="mx-auto max-w-4xl sm:px-6 lg:px-8 space-y-6">
+            <div className="portal-log-detail-page py-8">
+                <div className="portal-log-detail-content mx-auto max-w-4xl sm:px-6 lg:px-8 space-y-6">
                     {/* Header Card: Status & Peserta */}
                     <div className="rounded-lg bg-white p-6 shadow-sm">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b pb-4">

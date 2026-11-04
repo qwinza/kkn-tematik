@@ -1,115 +1,281 @@
-import Checkbox from '@/Components/Checkbox';
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
-import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
 
-export default function Login({ status, canResetPassword }) {
-    const { data, setData, post, processing, errors, reset } = useForm({
+import { useState } from 'react';
+import { Head, useForm } from '@inertiajs/react';
+
+export default function Login({ status }) {
+    const [showPassword, setShowPassword] = useState(false);
+
+    const {
+        data,
+        setData,
+        post,
+        processing,
+        errors,
+        reset,
+    } = useForm({
         identifier: '',
-        email: '',
         password: '',
-        remember: false,
     });
 
-    const submit = (e) => {
-        e.preventDefault();
+    const identifierError = errors.identifier || errors.email;
+
+    function submit(event) {
+        event.preventDefault();
 
         post(route('login'), {
             onFinish: () => reset('password'),
         });
-    };
+    }
 
     return (
-        <GuestLayout>
-            <Head title="Log in" />
+        <>
+            <Head title="Masuk" />
 
-            {status && (
-                <div className="mb-4 text-sm font-medium text-green-600">
-                    {status}
-                </div>
-            )}
+            <main className="login-page">
+                <img
+                    className="login-emblem-watermark"
+                    src="/images/itenas-emblem.svg"
+                    alt=""
+                    aria-hidden="true"
+                />
+                <section
+                    className="login-card"
+                    aria-label="Masuk ke KKN Tematik"
+                >
+                    <div className="login-form-side">
+                        <div className="login-form-wrapper">
+                            <div className="login-mobile-brand">
+                                <img
+                                    className="login-itenas-wordmark"
+                                    src="/images/itenas-wordmark.svg"
+                                    alt="Institut Teknologi Nasional"
+                                />
+                                <span>PORTAL KKN RESIK</span>
+                            </div>
 
-            <div className="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
-                <div className="font-semibold mb-1">Panduan Login:</div>
-                <div>• <strong>Mahasiswa KKN:</strong> Masukkan <strong>NIM</strong> (contoh: <code>152022041</code> / password: <code>password123</code>).</div>
-                <div>• <strong>Admin KKN:</strong> Masukkan <strong>Email</strong> (contoh: <code>admin@itenas.ac.id</code> / password: <code>password</code>).</div>
-            </div>
+                            <header className="login-heading">
+                                <h1>
+                                    Selamat Datang di Portal KKN ITENAS RESIK 2026
+                                </h1>
+                                <p>
+                                    Masukkan NIM atau email admin dan password
+                                    untuk melanjutkan aktivitas KKN Anda.
+                                </p>
+                            </header>
 
-            <form onSubmit={submit}>
-                <div>
-                    <InputLabel htmlFor="identifier" value="NIM (Mahasiswa) / Email (Admin)" />
+                            {status && (
+                                <div
+                                    className="login-alert success"
+                                    role="status"
+                                >
+                                    {status}
+                                </div>
+                            )}
 
-                    <TextInput
-                        id="identifier"
-                        type="text"
-                        name="identifier"
-                        value={data.identifier}
-                        placeholder="Masukkan NIM Mahasiswa atau Email Admin..."
-                        className="mt-1 block w-full"
-                        autoComplete="username"
-                        isFocused={true}
-                        onChange={(e) => {
-                            const val = e.target.value;
-                            setData((prev) => ({
-                                ...prev,
-                                identifier: val,
-                                email: val,
-                            }));
-                        }}
-                    />
+                            <form
+                                className="login-form"
+                                onSubmit={submit}
+                            >
+                                {/* IDENTIFIER */}
+                                <div className="login-field">
+                                    <label htmlFor="identifier">
+                                        NIM / Email Admin
+                                    </label>
 
-                    <InputError message={errors.identifier || errors.email} className="mt-2" />
-                </div>
+                                    <div
+                                        className={`login-input-wrapper ${
+                                            identifierError ? 'has-error' : ''
+                                        }`}
+                                    >
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            aria-hidden="true"
+                                        >
+                                            <rect
+                                                x="3.5"
+                                                y="5"
+                                                width="17"
+                                                height="14"
+                                                rx="2"
+                                            />
+                                            <path d="m4.5 7 7.5 6 7.5-6" />
+                                        </svg>
 
-                <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
+                                        <input
+                                            id="identifier"
+                                            name="identifier"
+                                            type="text"
+                                            value={data.identifier}
+                                            placeholder="Masukkan NIM atau email"
+                                            autoComplete="username"
+                                            aria-invalid={Boolean(identifierError)}
+                                            aria-describedby={
+                                                identifierError
+                                                    ? 'identifier-error'
+                                                    : undefined
+                                            }
+                                            onChange={(event) =>
+                                                setData(
+                                                    'identifier',
+                                                    event.target.value
+                                                )
+                                            }
+                                        />
+                                    </div>
 
-                    <TextInput
-                        id="password"
-                        type="password"
-                        name="password"
-                        value={data.password}
-                        className="mt-1 block w-full"
-                        autoComplete="current-password"
-                        onChange={(e) => setData('password', e.target.value)}
-                    />
+                                    {identifierError && (
+                                        <div
+                                            className="login-error"
+                                            id="identifier-error"
+                                        >
+                                            {identifierError}
+                                        </div>
+                                    )}
+                                </div>
 
-                    <InputError message={errors.password} className="mt-2" />
-                </div>
+                                {/* PASSWORD */}
+                                <div className="login-field">
+                                    <div className="login-label-row">
+                                        <label htmlFor="password">
+                                            Password
+                                        </label>
+                                    </div>
 
-                <div className="mt-4 block">
-                    <label className="flex items-center">
-                        <Checkbox
-                            name="remember"
-                            checked={data.remember}
-                            onChange={(e) =>
-                                setData('remember', e.target.checked)
-                            }
-                        />
-                        <span className="ms-2 text-sm text-gray-600">
-                            Remember me
-                        </span>
-                    </label>
-                </div>
+                                    <div
+                                        className={`login-input-wrapper ${
+                                            errors.password ? 'has-error' : ''
+                                        }`}
+                                    >
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            aria-hidden="true"
+                                        >
+                                            <rect
+                                                x="5"
+                                                y="10"
+                                                width="14"
+                                                height="11"
+                                                rx="2"
+                                            />
+                                            <path d="M8 10V7a4 4 0 1 1 8 0v3M12 14v3" />
+                                        </svg>
 
-                <div className="mt-4 flex items-center justify-end">
-                    {canResetPassword && (
-                        <Link
-                            href={route('password.request')}
-                            className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                        >
-                            Forgot your password?
-                        </Link>
-                    )}
+                                        <input
+                                            id="password"
+                                            name="password"
+                                            type={
+                                                showPassword
+                                                    ? 'text'
+                                                    : 'password'
+                                            }
+                                            value={data.password}
+                                            placeholder="Masukkan password"
+                                            autoComplete="current-password"
+                                            aria-invalid={Boolean(errors.password)}
+                                            aria-describedby={
+                                                errors.password
+                                                    ? 'password-error'
+                                                    : undefined
+                                            }
+                                            onChange={(event) =>
+                                                setData(
+                                                    'password',
+                                                    event.target.value
+                                                )
+                                            }
+                                        />
 
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Log in
-                    </PrimaryButton>
-                </div>
-            </form>
-        </GuestLayout>
+                                        <button
+                                            type="button"
+                                            className="password-toggle"
+                                            onClick={() =>
+                                                setShowPassword(!showPassword)
+                                            }
+                                            aria-label={
+                                                showPassword
+                                                    ? 'Sembunyikan password'
+                                                    : 'Tampilkan password'
+                                            }
+                                        >
+                                            {showPassword ? (
+                                                <svg
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    aria-hidden="true"
+                                                >
+                                                    <path d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                                                    <path d="M9.9 5.2A10.8 10.8 0 0 1 12 5c5.5 0 9 7 9 7a16 16 0 0 1-3.2 4.1M6.2 6.2C3.9 7.7 3 12 3 12s3.5 7 9 7c1.1 0 2.1-.3 3-.7" />
+                                                </svg>
+                                            ) : (
+                                                <svg
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    aria-hidden="true"
+                                                >
+                                                    <path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7Z" />
+                                                    <circle
+                                                        cx="12"
+                                                        cy="12"
+                                                        r="3"
+                                                    />
+                                                </svg>
+                                            )}
+                                        </button>
+                                    </div>
+
+                                    {errors.password && (
+                                        <div
+                                            className="login-error"
+                                            id="password-error"
+                                        >
+                                            {errors.password}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* LOGIN BUTTON */}
+                                <button
+                                    className="login-submit"
+                                    type="submit"
+                                    disabled={processing}
+                                    aria-busy={processing}
+                                >
+                                    {processing ? (
+                                        <>
+                                            <span className="login-spinner" />
+                                            Memproses...
+                                        </>
+                                    ) : (
+                                        <>
+                                            Masuk
+                                            <svg
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                aria-hidden="true"
+                                            >
+                                                <path d="M5 12h14M13 6l6 6-6 6" />
+                                            </svg>
+                                        </>
+                                    )}
+                                </button>
+                            </form>
+
+                            <div className="login-footer">
+                                <p>
+                                    Gunakan akun yang telah terdaftar
+                                    untuk mengakses sistem.
+                                </p>
+
+                                <span>
+                                    © 2026 KKN Tematik. All rights reserved.
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </>
     );
 }

@@ -4,6 +4,7 @@ import SortableHeading from '@/Components/SortableHeading';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
+import confirmWithSweetAlert from '@/Components/confirmWithSweetAlert';
 
 export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdmin }) {
     const [search, setSearch] = useState(filters?.search || '');
@@ -43,7 +44,18 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
         }, { preserveState: true, preserveScroll: true, replace: true });
     };
 
-    const handleStatusAction = (action, item) => {
+    const handleStatusAction = async (action, item) => {
+        const isApprove = action === 'approve';
+        const confirmed = await confirmWithSweetAlert({
+            title: isApprove ? 'Setujui laporan ini?' : 'Tolak laporan ini?',
+            text: isApprove
+                ? 'Status laporan akan berubah menjadi disetujui.'
+                : 'Mahasiswa perlu memperbaiki laporan yang ditolak.',
+            confirmButtonText: isApprove ? 'Ya, setujui' : 'Ya, tolak',
+            icon: isApprove ? 'question' : 'warning',
+        });
+        if (!confirmed) return;
+
         router.post(route(`log-kegiatan.${action}`, item.id), {}, {
             preserveScroll: true,
             onStart: () => setProcessingId(item.id),
@@ -78,10 +90,10 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
         >
             <Head title="Log Kegiatan" />
 
-            <div className="py-8">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
+            <div className="portal-logs-page py-8">
+                <div className="portal-logs-content mx-auto max-w-7xl sm:px-6 lg:px-8">
                     {/* Filter Bar */}
-                    <div className="mb-6 rounded-lg bg-white p-4 shadow-sm">
+                    <div className="portal-filter-panel mb-6 rounded-lg bg-white p-4 shadow-sm">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                             <div>
                                 <TextInput
@@ -133,9 +145,9 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                     </div>
 
                     {/* Table */}
-                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                    <div className="portal-table-shell overflow-hidden bg-white shadow-sm sm:rounded-lg">
                         <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200 text-left text-sm text-gray-700">
+                            <table className="portal-data-table min-w-full divide-y divide-gray-200 text-left text-sm text-gray-700">
                                 <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
                                     <tr>
                                         <th scope="col" className="px-6 py-3">No</th>
@@ -166,21 +178,23 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                                 )}
                                                 <td className="px-6 py-4">
                                                     <div className="font-medium text-indigo-700">
-                                                        {item.master_kegiatan?.nama_kegiatan ?? '-'}
+                                                        {item.master_kegiatan?.nama_kegiatan ?? 'Kegiatan belum dipilih'}
                                                     </div>
-                                                    <div className="text-xs text-gray-500 font-mono">
-                                                        {item.master_kegiatan?.kode_kegiatan}
-                                                    </div>
+                                                    {item.master_kegiatan?.kode_kegiatan && (
+                                                        <div className="text-xs text-gray-500 font-mono">
+                                                            {item.master_kegiatan.kode_kegiatan}
+                                                        </div>
+                                                    )}
                                                 </td>
                                                 <td className="whitespace-nowrap px-6 py-4">
                                                     <div className="text-gray-900">
-                                                        {item.tanggal_kehadiran}
+                                                        {item.tanggal_kehadiran || 'Tanggal belum diisi'}
                                                     </div>
                                                     <div className="text-xs text-gray-500">
-                                                        {item.jam_kehadiran}
+                                                        {item.jam_kehadiran || 'Waktu belum diisi'}
                                                     </div>
                                                     <div className="text-xs text-gray-500">
-                                                        📍 {item.lokasi_kegiatan}
+                                                        {item.lokasi_kegiatan ? `📍 ${item.lokasi_kegiatan}` : 'Lokasi belum diisi'}
                                                     </div>
                                                 </td>
                                                 <td className="whitespace-nowrap px-6 py-4">

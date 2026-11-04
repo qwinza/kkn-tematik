@@ -250,13 +250,13 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
     const selectedProdi = prodis.find((prodi) => prodi.kode_prodi === form.data.kode_prodi);
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout showSweetAlerts={false}>
             <Head title="Activity Report - Log Kegiatan KKN" />
 
-            <div className="min-h-screen bg-[#fbfcfb] py-10 px-4 sm:px-6 lg:px-8">
-                <div className="mx-auto max-w-4xl">
+            <div className="portal-stepper-page min-h-screen bg-[#fbfcfb] py-10 px-4 sm:px-6 lg:px-8">
+                <div className="portal-stepper-content mx-auto max-w-4xl">
                     {/* Page Header */}
-                    <div className="text-center mb-8">
+                    <div className="portal-stepper-heading text-center mb-8">
                         <h1 className="text-3xl font-extrabold text-[#111827] tracking-tight">
                             Activity report
                         </h1>
@@ -281,7 +281,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                     </div>
 
                     {/* Stepper Progress Bar */}
-                    <div className="mb-10">
+                    <div className="portal-stepper-progress mb-10">
                         <div className="relative flex items-center justify-between">
                             {/* Horizontal Line behind */}
                             <div className="absolute left-6 right-6 top-4 -translate-y-1/2 h-0.5 bg-gray-200 z-0" />
@@ -343,7 +343,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                     )}
 
                     {/* Stepper Card Content */}
-                    <div className="rounded-2xl border border-gray-100 bg-white p-6 sm:p-10 shadow-sm">
+                    <div className="portal-stepper-card rounded-2xl border border-gray-100 bg-white p-6 sm:p-10 shadow-sm">
                         {/* STEP 1: IDENTITY */}
                         {activeStep === 1 && (
                             <div>
