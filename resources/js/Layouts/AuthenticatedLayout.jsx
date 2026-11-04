@@ -79,25 +79,27 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                         <div className="portal-navigation hidden lg:flex">
                             {user?.is_admin ? (
                                 <div className="portal-admin-navigation">
-                                    {adminNavigationItems.map((item) => item.disabled ? (
-                                        <span
-                                            key={item.label}
-                                            className="portal-admin-nav-item is-disabled"
-                                            aria-disabled="true"
-                                            title="Halaman belum tersedia"
-                                        >
-                                            {item.label}
-                                        </span>
-                                    ) : (
-                                        <Link
-                                            key={item.label}
-                                            href={item.href}
-                                            className={`portal-admin-nav-item${item.active ? ' is-active' : ''}`}
-                                            aria-current={item.active ? 'page' : undefined}
-                                        >
-                                            {item.label}
-                                        </Link>
-                                    ))}
+                                    {adminNavigationItems.map((item) =>
+                                        item.disabled ? (
+                                            <span
+                                                key={item.label}
+                                                className="portal-admin-nav-item is-disabled"
+                                                aria-disabled="true"
+                                                title="Halaman belum tersedia"
+                                            >
+                                                {item.label}
+                                            </span>
+                                        ) : (
+                                            <Link
+                                                key={item.label}
+                                                href={item.href}
+                                                className={`portal-admin-nav-item${item.active ? ' is-active' : ''}`}
+                                                aria-current={item.active ? 'page' : undefined}
+                                            >
+                                                {item.label}
+                                            </Link>
+                                        )
+                                    )}
                                 </div>
                             ) : (
                                 <div className="portal-student-navigation">
@@ -107,18 +109,35 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                                     >
                                         Dashboard
                                     </NavLink>
+
                                     <NavLink
                                         href={route('log-kegiatan.index')}
-                                        active={route().current('log-kegiatan.index') || route().current('log-kegiatan.show')}
+                                        active={
+                                            route().current('log-kegiatan.index') ||
+                                            route().current('log-kegiatan.show')
+                                        }
                                     >
                                         Jadwal Kegiatan
                                     </NavLink>
+
                                     <NavLink
                                         href={route('log-kegiatan.create')}
-                                        active={route().current('log-kegiatan.create') || route().current('log-kegiatan.edit')}
+                                        active={
+                                            route().current('log-kegiatan.create') ||
+                                            route().current('log-kegiatan.edit')
+                                        }
                                     >
-                                        Dokumentasi &amp; Luaran
+                                        Dokumentasi&amp; Luaran
                                     </NavLink>
+
+                                    {user?.is_mahasiswa && (
+                                        <NavLink
+                                            href={route('mahasiswa.rencana-kehadiran.index')}
+                                            active={route().current('mahasiswa.rencana-kehadiran.*')}
+                                        >
+                                            Rencana Kehadiran
+                                        </NavLink>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -341,6 +360,14 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                                     Dokumentasi &amp; Luaran
                                 </ResponsiveNavLink>
                             </>
+                        )}
+                        {user?.is_mahasiswa && (
+                            <ResponsiveNavLink
+                                href={route('mahasiswa.rencana-kehadiran.index')}
+                                active={route().current('mahasiswa.rencana-kehadiran.*')}
+                            >
+                                Rencana Kehadiran
+                            </ResponsiveNavLink>
                         )}
                     </div>
 
