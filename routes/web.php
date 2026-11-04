@@ -61,3 +61,4 @@ Route::middleware('auth')->group(function () {
 
 require __DIR__.'/auth.php';
 require __DIR__.'/admin/mahasiswa.php';
+require __DIR__.'/mahasiswa/rencana-kehadiran.php';

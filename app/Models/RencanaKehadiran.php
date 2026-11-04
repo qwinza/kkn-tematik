@@ -1,0 +1,41 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class RencanaKehadiran extends Model
+{
+    use HasFactory;
+
+    /**
+     * The attributes that aren't mass assignable.
+     *
+     * @var list<string>
+     */
+    protected $guarded = ['id'];
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'tanggal_rencana' => 'date',
+        ];
+    }
+
+    /**
+     * Relasi ke peserta pemilik rencana kehadiran.
+     *
+     * @return BelongsTo<Peserta, $this>
+     */
+    public function peserta(): BelongsTo
+    {
+        return $this->belongsTo(Peserta::class);
+    }
+}
