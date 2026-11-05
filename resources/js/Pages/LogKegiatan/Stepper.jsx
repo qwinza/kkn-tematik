@@ -251,7 +251,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
 
     return (
         <AuthenticatedLayout showSweetAlerts={false}>
-            <Head title="Activity Report - Log Kegiatan KKN" />
+            <Head title="Laporan KKN" />
 
             <div className="portal-stepper-page min-h-screen bg-[#fbfcfb] py-10 px-4 sm:px-6 lg:px-8">
                 <div className="portal-stepper-content mx-auto max-w-4xl">
@@ -524,7 +524,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                                         ))}
                                     </select>
                                     {filteredActivities.length === 0 && (
-                                        <p className="mt-2 text-sm text-amber-700">Belum ada master kegiatan untuk program studi ini.</p>
+                                        <p className="mt-2 text-sm text-amber-700">Belum ada jadwal kegiatan untuk program studi ini.</p>
                                     )}
                                     <InputError message={form.errors.master_kegiatan_id} className="mt-1" />
                                 </div>

@@ -89,7 +89,7 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
 
     const handleDelete = async (item) => {
         const confirmed = await confirmWithSweetAlert({
-            title: 'Hapus master kegiatan?',
+            title: 'Hapus jadwal kegiatan?',
             text: `Data ${item.nama_kegiatan} (${item.kode_kegiatan}) akan dihapus.`,
             confirmButtonText: 'Ya, hapus',
         });
@@ -99,26 +99,29 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
     };
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                        Master Kegiatan
-                    </h2>
-                    {canManage && (
-                        <PrimaryButton onClick={openCreateModal}>
-                            + Tambah Kegiatan
-                        </PrimaryButton>
-                    )}
-                </div>
-            }
-        >
-            <Head title="Master Kegiatan" />
+        <AuthenticatedLayout>
+            <Head title="Jadwal Kegiatan" />
 
-            <div className="py-8">
-                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
+            <div className="portal-master-kegiatan-page">
+                <div className="portal-master-kegiatan-content mx-auto max-w-7xl sm:px-6 lg:px-8">
+                    <header className="portal-dashboard-page-heading portal-master-kegiatan-heading">
+                        <div>
+                            <p className="portal-dashboard-breadcrumb">
+                                Portal Admin <span>/</span> Jadwal Kegiatan
+                            </p>
+                            <h1>Jadwal Kegiatan</h1>
+                            <p>Kelola daftar kegiatan yang digunakan dalam laporan mahasiswa KKN.</p>
+                        </div>
+                        {canManage && (
+                            <PrimaryButton onClick={openCreateModal}>
+                                + Tambah Kegiatan
+                            </PrimaryButton>
+                        )}
+                    </header>
+
                     {/* Search and Filters */}
-                    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="portal-filter-panel portal-master-kegiatan-filter mb-6 rounded-lg bg-white p-4 shadow-sm">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex w-full flex-col gap-3 sm:max-w-2xl sm:flex-row sm:items-center">
                             <TextInput
                                 type="text"
@@ -166,11 +169,12 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
                             )}
                         </div>
                     </div>
+                    </div>
 
                     {/* Table */}
-                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                    <div className="portal-table-shell overflow-hidden bg-white sm:rounded-lg">
                         <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200 text-left text-sm text-gray-700">
+                            <table className="portal-data-table min-w-full divide-y divide-gray-200 text-left text-sm text-gray-700">
                                 <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
                                     <tr>
                                         <th scope="col" className="px-6 py-3">No</th>
@@ -227,7 +231,7 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
                                     ) : (
                                         <tr>
                                             <td colSpan={canManage ? 7 : 6} className="py-8 text-center text-gray-500">
-                                                Belum ada data master kegiatan.
+                                                Belum ada data jadwal kegiatan.
                                             </td>
                                         </tr>
                                     )}
@@ -268,10 +272,10 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
             <Modal show={modalState.isOpen} onClose={closeModal}>
                 <form onSubmit={handleSubmit} className="p-6">
                     <h3 className="text-lg font-medium text-gray-900">
-                        {modalState.mode === 'create' ? 'Tambah Master Kegiatan' : 'Edit Master Kegiatan'}
+                        {modalState.mode === 'create' ? 'Tambah Jadwal Kegiatan' : 'Edit Jadwal Kegiatan'}
                     </h3>
                     <p className="mt-1 text-sm text-gray-600">
-                        Isi data kegiatan yang akan digunakan sebagai referensi log kegiatan mahasiswa.
+                        Isi data kegiatan yang akan digunakan sebagai referensi laporan mahasiswa.
                     </p>
 
                     <div className="mt-6 space-y-4">
@@ -355,7 +359,7 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
                         Konfirmasi Hapus
                     </h3>
                     <p className="mt-2 text-sm text-gray-600">
-                        Apakah Anda yakin ingin menghapus master kegiatan <strong>{deleteItem?.nama_kegiatan}</strong> ({deleteItem?.kode_kegiatan})?
+                        Apakah Anda yakin ingin menghapus jadwal kegiatan <strong>{deleteItem?.nama_kegiatan}</strong> ({deleteItem?.kode_kegiatan})?
                     </p>
                     <div className="mt-6 flex justify-end gap-3">
                         <SecondaryButton onClick={() => setDeleteItem(null)}>

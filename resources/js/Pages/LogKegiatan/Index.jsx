@@ -72,26 +72,24 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
     const isFiltered = Boolean(search || status || masterId);
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                            Log Kegiatan KKN
-                        </h2>
-                        <p className="mt-1 text-sm text-gray-500">
-                            {isAdmin
-                                ? 'Memantau seluruh aktivitas log kegiatan mahasiswa KKN.'
-                                : 'Catat dan kelola laporan kegiatan harian Anda dengan alur stepper berjenjang.'}
-                        </p>
-                    </div>
-                </div>
-            }
-        >
-            <Head title="Log Kegiatan" />
+        <AuthenticatedLayout>
+            <Head title="Laporan" />
 
-            <div className="portal-logs-page py-8">
+            <div className={`portal-logs-page py-8${isAdmin ? ' portal-logs-admin' : ' portal-logs-student'}`}>
                 <div className="portal-logs-content mx-auto max-w-7xl sm:px-6 lg:px-8">
+                    <header className={`portal-dashboard-page-heading ${isAdmin ? 'portal-logs-admin-heading' : 'portal-logs-student-heading'}`}>
+                        <div>
+                            <p className="portal-dashboard-breadcrumb">
+                                Portal {isAdmin ? 'Admin' : 'Mahasiswa'} <span>/</span> Laporan
+                            </p>
+                            <h1>Laporan</h1>
+                            <p>{isAdmin
+                                ? 'Memantau seluruh laporan kegiatan mahasiswa KKN.'
+                                : 'Catat dan kelola laporan kegiatan harian Anda dengan alur stepper berjenjang.'}
+                            </p>
+                        </div>
+                    </header>
+
                     {/* Filter Bar */}
                     <div className="portal-filter-panel mb-6 rounded-lg bg-white p-4 shadow-sm">
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
@@ -125,7 +123,7 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                     value={masterId}
                                     onChange={(e) => setMasterId(e.target.value)}
                                 >
-                                    <option value="">Semua Master Kegiatan</option>
+                                    <option value="">Semua Jadwal Kegiatan</option>
                                     {masterKegiatans?.map((kegiatan) => (
                                         <option key={kegiatan.id} value={kegiatan.id}>
                                             {kegiatan.kode_kegiatan} - {kegiatan.nama_kegiatan}
