@@ -50,17 +50,12 @@ export default function Login({ status }) {
                                     src="/images/itenas-wordmark.svg"
                                     alt="Institut Teknologi Nasional"
                                 />
-                                <span>PORTAL KKN RESIK</span>
                             </div>
 
                             <header className="login-heading">
                                 <h1>
                                     Selamat Datang di Portal KKN ITENAS RESIK 2026
                                 </h1>
-                                <p>
-                                    Masukkan NIM atau email admin dan password
-                                    untuk melanjutkan aktivitas KKN Anda.
-                                </p>
                             </header>
 
                             {status && (
@@ -263,11 +258,6 @@ export default function Login({ status }) {
                             </form>
 
                             <div className="login-footer">
-                                <p>
-                                    Gunakan akun yang telah terdaftar
-                                    untuk mengakses sistem.
-                                </p>
-
                                 <span>
                                     © 2026 KKN Tematik. All rights reserved.
                                 </span>

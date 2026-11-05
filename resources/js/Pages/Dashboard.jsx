@@ -30,10 +30,9 @@ export default function Dashboard({ summary = { totalKegiatan: 0, totalDisetujui
                                 Portal {isAdmin ? 'Admin' : 'Mahasiswa'} <span>/</span> Dashboard
                             </p>
                             <h1>Dashboard</h1>
-                            <p>
-                                {isAdmin
-                                    ? 'Pantau laporan kegiatan dan progres mahasiswa KKN.'
-                                    : 'Pantau aktivitas lapangan, logbook, dan progres KKN Anda.'}
+                            <p>{isAdmin
+                                ? 'Pantau laporan kegiatan dan progres mahasiswa KKN.'
+                                : 'Pantau aktivitas lapangan, logbook, dan progres KKN Anda.'}
                             </p>
                         </div>
                     </header>

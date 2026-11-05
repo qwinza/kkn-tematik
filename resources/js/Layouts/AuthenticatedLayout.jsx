@@ -44,8 +44,11 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
             href: route('master-kegiatan.index'),
             active: route().current('master-kegiatan.*'),
         },
-        { label: 'Absensi', disabled: true },
-        { label: 'Analitik', disabled: true },
+        {
+            label: 'Analitik',
+            href: route('admin.analytics'),
+            active: route().current('admin.analytics'),
+        },
     ];
 
     const [showingNavigationDropdown, setShowingNavigationDropdown] =
