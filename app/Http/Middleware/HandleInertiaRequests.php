@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\LogKegiatan;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -32,8 +33,32 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $request->user() ? [
+                    ...$request->user()->toArray(),
+                    'is_admin' => $request->user()->isAdmin(),
+                    'is_mahasiswa' => $request->user()->isMahasiswa(),
+                ] : null,
             ],
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
+                'status' => fn () => $request->session()->get('status'),
+            ],
+            'activityNotifications' => fn () => $request->user()?->isMahasiswa() && $request->user()->peserta
+                ? LogKegiatan::query()
+                    ->where('peserta_id', $request->user()->peserta->id)
+                    ->whereIn('status', ['disetujui', 'ditolak'])
+                    ->with('masterKegiatan:id,nama_kegiatan')
+                    ->latest('updated_at')
+                    ->limit(5)
+                    ->get(['id', 'master_kegiatan_id', 'status', 'updated_at'])
+                    ->map(fn (LogKegiatan $log): array => [
+                        'id' => $log->id,
+                        'status' => $log->status,
+                        'kegiatan' => $log->masterKegiatan?->nama_kegiatan ?? 'Log kegiatan',
+                        'updated_at' => $log->updated_at?->toDateTimeString(),
+                    ])
+                : [],
         ];
     }
 }

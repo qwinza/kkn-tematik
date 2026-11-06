@@ -1,0 +1,54 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Peserta extends Model
+{
+    use HasFactory;
+
+    /**
+     * The attributes that aren't mass assignable.
+     *
+     * @var list<string>
+     */
+    protected $guarded = ['id'];
+
+    /**
+     * Relasi ke akun User.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Relasi ke master program studi.
+     */
+    public function prodi(): BelongsTo
+    {
+        return $this->belongsTo(Prodi::class, 'kode_prodi', 'kode_prodi');
+    }
+
+    /**
+     * Relasi ke riwayat log kegiatan peserta.
+     */
+    public function logKegiatans(): HasMany
+    {
+        return $this->hasMany(LogKegiatan::class);
+    }
+
+    /**
+     * Relasi ke rencana kehadiran peserta.
+     *
+     * @return HasMany<RencanaKehadiran, $this>
+     */
+    public function rencanaKehadirans(): HasMany
+    {
+        return $this->hasMany(RencanaKehadiran::class);
+    }
+}
