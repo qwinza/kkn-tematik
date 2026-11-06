@@ -33,6 +33,25 @@ class MahasiswaMonitoringTest extends TestCase
         );
     }
 
+    public function test_admin_can_open_student_details_using_an_encrypted_route_key(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $student = User::factory()->mahasiswa()->create();
+        $peserta = Peserta::factory()->create(['user_id' => $student->id]);
+        $url = route('admin.mahasiswa.show', $peserta);
+
+        $this->assertSame(0, preg_match('#/admin/mahasiswa/\\d+$#', (string) parse_url($url, PHP_URL_PATH)));
+
+        $this->actingAs($admin)
+            ->get($url)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Mahasiswa/Show')
+                ->where('mahasiswa.id', $peserta->id)
+                ->has('mahasiswa.route_key')
+            );
+    }
+
     /**
      * 2. Guest tidak dapat mengakses halaman monitoring dan diredirect ke login.
      */

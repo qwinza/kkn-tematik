@@ -199,7 +199,7 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
                                                         <Link
                                                             href={route(
                                                                 'admin.mahasiswa.show',
-                                                                mhs.id
+                                                                mhs.route_key
                                                             )}
                                                             className="portal-admin-students-detail"
                                                         >

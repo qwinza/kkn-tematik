@@ -56,7 +56,7 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
         });
         if (!confirmed) return;
 
-        router.post(route(`log-kegiatan.${action}`, item.id), {}, {
+        router.post(route(`log-kegiatan.${action}`, item.route_key), {}, {
             preserveScroll: true,
             onStart: () => setProcessingId(item.id),
             onFinish: () => setProcessingId(null),
@@ -73,19 +73,19 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
 
     return (
         <AuthenticatedLayout>
-            <Head title="Laporan" />
+            <Head title="Kegiatan" />
 
             <div className={`portal-logs-page py-8${isAdmin ? ' portal-logs-admin' : ' portal-logs-student'}`}>
                 <div className="portal-logs-content mx-auto max-w-7xl sm:px-6 lg:px-8">
                     <header className={`portal-dashboard-page-heading ${isAdmin ? 'portal-logs-admin-heading' : 'portal-logs-student-heading'}`}>
                         <div>
                             <p className="portal-dashboard-breadcrumb">
-                                Portal {isAdmin ? 'Admin' : 'Mahasiswa'} <span>/</span> Laporan
+                                Portal {isAdmin ? 'Admin' : 'Mahasiswa'} <span>/</span> Kegiatan
                             </p>
-                            <h1>Laporan</h1>
+                            <h1>Kegiatan</h1>
                             <p>{isAdmin
-                                ? 'Memantau seluruh laporan kegiatan mahasiswa KKN.'
-                                : 'Catat dan kelola laporan kegiatan harian Anda dengan alur stepper berjenjang.'}
+                                ? 'Memantau kegiatan mahasiswa KKN yang telah diajukan.'
+                                : 'Lihat dan kelola catatan kegiatan KKN Anda.'}
                             </p>
                         </div>
                     </header>
@@ -97,7 +97,7 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                 <TextInput
                                     type="text"
                                     className="w-full text-sm"
-                                    placeholder={isAdmin ? "Cari deskripsi, nama/NIM peserta..." : "Cari deskripsi kegiatan/luaran..."}
+                                    placeholder={isAdmin ? 'Cari rincian kegiatan, nama/NIM mahasiswa...' : 'Cari rincian kegiatan atau luaran...'}
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                 />
@@ -110,7 +110,7 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                     onChange={(e) => setStatus(e.target.value)}
                                 >
                                     <option value="">Semua Status</option>
-                                    {!isAdmin && <option value="draft">Draft (Belum Selesai)</option>}
+                                    {!isAdmin && <option value="                                    Draf">Draf (Belum Selesai)</option>}
                                     <option value="menunggu">Menunggu</option>
                                     <option value="disetujui">Disetujui</option>
                                     <option value="ditolak">Ditolak</option>
@@ -123,7 +123,7 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                     value={masterId}
                                     onChange={(e) => setMasterId(e.target.value)}
                                 >
-                                    <option value="">Semua Jadwal Kegiatan</option>
+                                    <option value="">Semua Kegiatan</option>
                                     {masterKegiatans?.map((kegiatan) => (
                                         <option key={kegiatan.id} value={kegiatan.id}>
                                             {kegiatan.kode_kegiatan} - {kegiatan.nama_kegiatan}
@@ -135,7 +135,7 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                             <div className="flex gap-2">
                                 {isFiltered && (
                                     <SecondaryButton type="button" onClick={handleReset}>
-                                        Reset
+                                        Atur Ulang
                                     </SecondaryButton>
                                 )}
                             </div>
@@ -153,7 +153,7 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                         <SortableHeading label="Kegiatan" column="kegiatan" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
                                         <SortableHeading label="Waktu & Lokasi" column="tanggal_kehadiran" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
                                         <SortableHeading label="Status" column="status" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
-                                        <SortableHeading label="Tahap Stepper" column="current_step" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
+                                        <SortableHeading label="Tahap pengisian" column="current_step" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
                                         <th scope="col" className="px-6 py-3 text-right">Aksi</th>
                                     </tr>
                                 </thead>
@@ -210,19 +210,19 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                                         </span>
                                                     ) : (
                                                         <span className="inline-flex rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-semibold text-yellow-800">
-                                                            Draft
+                                                            Draf
                                                         </span>
                                                     )}
                                                 </td>
                                                 <td className="whitespace-nowrap px-6 py-4">
                                                     <span className="inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
-                                                        Step {item.current_step} dari 7
+                                                        Tahap {item.current_step} dari 7
                                                     </span>
                                                 </td>
                                                 <td className="whitespace-nowrap px-6 py-4 text-right">
                                                     <div className="inline-flex items-center gap-2">
                                                         <Link
-                                                            href={route('log-kegiatan.show', item.id)}
+                                                            href={route('log-kegiatan.show', item.route_key)}
                                                             title="Lihat detail"
                                                             aria-label={`Lihat detail log ${item.id}`}
                                                             className={isAdmin

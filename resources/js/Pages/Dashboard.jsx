@@ -9,13 +9,13 @@ export default function Dashboard({ summary = { totalKegiatan: 0, totalDisetujui
         : 0;
     const shortcuts = isAdmin
         ? [
-            { label: 'Laporan', href: route('log-kegiatan.index'), icon: 'report' },
+            { label: 'Kegiatan', href: route('log-kegiatan.index'), icon: 'report' },
             { label: 'Mahasiswa', href: route('admin.mahasiswa.index'), icon: 'students' },
             { label: 'Jadwal Kegiatan', href: route('master-kegiatan.index'), icon: 'schedule' },
         ]
         : [
-            { label: 'Riwayat', href: route('log-kegiatan.index'), icon: 'history' },
-            { label: 'Presensi', href: route('log-kegiatan.create'), icon: 'attendance' },
+            { label: 'Tambah Kegiatan', href: route('log-kegiatan.create'), icon: 'attendance' },
+            { label: 'Kegiatan', href: route('log-kegiatan.index'), icon: 'history' },
         ];
 
     return (
@@ -31,8 +31,8 @@ export default function Dashboard({ summary = { totalKegiatan: 0, totalDisetujui
                             </p>
                             <h1>Dashboard</h1>
                             <p>{isAdmin
-                                ? 'Pantau laporan kegiatan dan progres mahasiswa KKN.'
-                                : 'Pantau aktivitas lapangan, logbook, dan progres KKN Anda.'}
+                                ? 'Pantau kegiatan dan perkembangan mahasiswa KKN.'
+                                : 'Pantau aktivitas lapangan dan perkembangan KKN Anda.'}
                             </p>
                         </div>
                     </header>
@@ -43,7 +43,7 @@ export default function Dashboard({ summary = { totalKegiatan: 0, totalDisetujui
                             <h2>Selamat Datang, {auth.user.name}!</h2>
                             <span>
                                 {isAdmin
-                                    ? 'Tinjau laporan dan pantau perkembangan kegiatan mahasiswa.'
+                                    ? 'Tinjau kegiatan dan pantau perkembangan mahasiswa.'
                                     : 'Setiap kegiatan yang Anda catat membantu memantau progres program.'}
                             </span>
                         </div>
@@ -57,15 +57,15 @@ export default function Dashboard({ summary = { totalKegiatan: 0, totalDisetujui
                     <section className="portal-dashboard-overview">
                         <article className="portal-stat-card portal-stat-card-orange">
                             <span className="portal-stat-icon" aria-hidden="true">▤</span>
-                            <p>{isAdmin ? 'Total Laporan' : 'Total Kegiatan'}</p>
+                            <p>Total Kegiatan</p>
                             <strong>{summary.totalKegiatan}</strong>
-                            <small>{isAdmin ? 'laporan tercatat' : 'kegiatan tercatat'}</small>
+                            <small>kegiatan tercatat</small>
                         </article>
                         <article className="portal-stat-card portal-stat-card-success">
                             <span className="portal-stat-icon" aria-hidden="true">✓</span>
                             <p>Disetujui</p>
                             <strong>{summary.totalDisetujui}</strong>
-                            <small>laporan terverifikasi</small>
+                            <small>kegiatan terverifikasi</small>
                         </article>
                         <article className="portal-dashboard-quick-card">
                             <div className="portal-dashboard-panel-kicker">AKSES CEPAT</div>
@@ -88,17 +88,17 @@ export default function Dashboard({ summary = { totalKegiatan: 0, totalDisetujui
                         <article className="portal-dashboard-panel portal-dashboard-activity">
                             <div>
                                 <p className="portal-dashboard-panel-kicker">AKTIVITAS</p>
-                                <h2>{isAdmin ? 'Laporan Kegiatan' : 'Log Kegiatan'}</h2>
+                                <h2>Kegiatan</h2>
                             </div>
                             {summary.totalKegiatan > 0 ? (
                                 <p>
-                                    Terdapat {summary.totalKegiatan} {isAdmin ? 'laporan' : 'kegiatan'} tercatat.
+                                    Terdapat {summary.totalKegiatan} kegiatan tercatat.
                                 </p>
                             ) : (
-                                <p>Belum ada {isAdmin ? 'laporan' : 'log kegiatan'} yang tercatat.</p>
+                                <p>Belum ada kegiatan yang tercatat.</p>
                             )}
                             <Link href={route('log-kegiatan.index')}>
-                                {isAdmin ? 'Buka daftar laporan' : 'Lihat riwayat log'}
+                                Lihat kegiatan
                                 <span aria-hidden="true"> →</span>
                             </Link>
                         </article>
@@ -115,10 +115,10 @@ export default function Dashboard({ summary = { totalKegiatan: 0, totalDisetujui
                                 <span style={{ width: `${approvalRate}%` }} />
                             </div>
                             <p>
-                                {summary.totalDisetujui} dari {summary.totalKegiatan} laporan disetujui
+                                {summary.totalDisetujui} dari {summary.totalKegiatan} kegiatan disetujui
                             </p>
                             <Link href={route('log-kegiatan.index')}>
-                                Lihat laporan <span aria-hidden="true"> →</span>
+                                Lihat kegiatan <span aria-hidden="true"> →</span>
                             </Link>
                         </article>
                     </section>

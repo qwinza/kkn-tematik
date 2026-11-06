@@ -213,7 +213,7 @@ class LogKegiatanController extends Controller
             }
 
             return redirect()->route('log-kegiatan.edit', [
-                'log_kegiatan' => $logKegiatan->id,
+                'log_kegiatan' => $logKegiatan,
                 'step' => 2,
             ]);
         }
@@ -243,7 +243,7 @@ class LogKegiatanController extends Controller
             }
 
             return redirect()->route('log-kegiatan.edit', [
-                'log_kegiatan' => $logKegiatan->id,
+                'log_kegiatan' => $logKegiatan,
                 'step' => 3,
             ]);
         }
@@ -270,7 +270,7 @@ class LogKegiatanController extends Controller
             }
 
             return redirect()->route('log-kegiatan.edit', [
-                'log_kegiatan' => $logKegiatan->id,
+                'log_kegiatan' => $logKegiatan,
                 'step' => 4,
             ]);
         }
@@ -300,7 +300,7 @@ class LogKegiatanController extends Controller
             }
 
             return redirect()->route('log-kegiatan.edit', [
-                'log_kegiatan' => $logKegiatan->id,
+                'log_kegiatan' => $logKegiatan,
                 'step' => 5,
             ]);
         }
@@ -330,7 +330,7 @@ class LogKegiatanController extends Controller
             }
 
             return redirect()->route('log-kegiatan.edit', [
-                'log_kegiatan' => $logKegiatan->id,
+                'log_kegiatan' => $logKegiatan,
                 'step' => 6,
             ]);
         }
@@ -363,7 +363,7 @@ class LogKegiatanController extends Controller
             }
 
             return redirect()->route('log-kegiatan.edit', [
-                'log_kegiatan' => $logKegiatan->id,
+                'log_kegiatan' => $logKegiatan,
                 'step' => 7,
             ]);
         }
@@ -426,7 +426,7 @@ class LogKegiatanController extends Controller
             ]);
 
             return redirect()->route('log-kegiatan.edit', [
-                'log_kegiatan' => $logKegiatan->id,
+                'log_kegiatan' => $logKegiatan,
                 'step' => 2,
             ])->with('success', 'Step 1 berhasil disimpan.');
         }
@@ -444,7 +444,7 @@ class LogKegiatanController extends Controller
         ]);
 
         return redirect()->route('log-kegiatan.edit', [
-            'log_kegiatan' => $newLog->id,
+            'log_kegiatan' => $newLog,
             'step' => 2,
         ])->with('success', 'Draft Step 1 berhasil dibuat.');
     }
@@ -469,7 +469,7 @@ class LogKegiatanController extends Controller
         $logKegiatan->update($payload);
 
         return redirect()->route('log-kegiatan.edit', [
-            'log_kegiatan' => $logKegiatan->id,
+            'log_kegiatan' => $logKegiatan,
             'step' => 3,
         ])->with('success', 'Step 2 dokumentasi berhasil disimpan.');
     }

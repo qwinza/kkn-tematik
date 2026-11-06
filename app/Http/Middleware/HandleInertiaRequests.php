@@ -54,6 +54,7 @@ class HandleInertiaRequests extends Middleware
                     ->get(['id', 'master_kegiatan_id', 'status', 'updated_at'])
                     ->map(fn (LogKegiatan $log): array => [
                         'id' => $log->id,
+                        'route_key' => $log->getRouteKey(),
                         'status' => $log->status,
                         'kegiatan' => $log->masterKegiatan?->nama_kegiatan ?? 'Log kegiatan',
                         'updated_at' => $log->updated_at?->toDateTimeString(),

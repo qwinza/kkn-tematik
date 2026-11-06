@@ -9,7 +9,9 @@ use App\Models\Prodi;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -116,8 +118,8 @@ class LogKegiatanStepperTest extends TestCase
             'status' => 'draft',
         ]);
 
-        $log = LogKegiatan::first();
-        $response->assertRedirect(route('log-kegiatan.edit', ['log_kegiatan' => $log->id, 'step' => 2]));
+        $log = LogKegiatan::query()->firstOrFail();
+        $this->assertRedirectsToEncryptedLogEdit($response, $log, 2);
     }
 
     public function test_activity_form_only_lists_activities_from_participant_prodi(): void
@@ -165,7 +167,7 @@ class LogKegiatanStepperTest extends TestCase
         }
         $this->assertEquals(3, $log->current_step);
 
-        $response->assertRedirect(route('log-kegiatan.edit', ['log_kegiatan' => $log->id, 'step' => 3]));
+        $this->assertRedirectsToEncryptedLogEdit($response, $log, 3);
     }
 
     public function test_mahasiswa_can_save_step_3_as_draft(): void
@@ -294,7 +296,7 @@ class LogKegiatanStepperTest extends TestCase
             'jam_selesai' => '12:00',
         ]);
 
-        $response->assertRedirect(route('log-kegiatan.edit', ['log_kegiatan' => $log->id, 'step' => 3]));
+        $this->assertRedirectsToEncryptedLogEdit($response, $log, 3);
         $this->assertDatabaseHas('log_kegiatans', [
             'id' => $log->id,
             'status' => 'ditolak',
@@ -441,22 +443,24 @@ class LogKegiatanStepperTest extends TestCase
         $peserta = Peserta::factory()->create(['user_id' => $student->id]);
         $log = LogKegiatan::factory()->draft(4)->create(['peserta_id' => $peserta->id]);
 
-        $this->actingAs($student)->post(route('log-kegiatan.save-step', $log), [
+        $response = $this->actingAs($student)->post(route('log-kegiatan.save-step', $log), [
             'step' => 5,
             'foto_kegiatan' => [
                 UploadedFile::fake()->image('foto-satu.jpg'),
                 UploadedFile::fake()->image('foto-dua.jpg'),
             ],
-        ])->assertRedirect(route('log-kegiatan.edit', ['log_kegiatan' => $log->id, 'step' => 6]));
+        ]);
+        $this->assertRedirectsToEncryptedLogEdit($response, $log, 6);
 
-        $this->actingAs($student)->post(route('log-kegiatan.save-step', $log), [
+        $response = $this->actingAs($student)->post(route('log-kegiatan.save-step', $log), [
             'step' => 6,
             'deskripsi_luaran' => 'Dokumentasi hasil kegiatan bersama warga desa.',
             'file_luaran' => [
                 UploadedFile::fake()->create('luaran-satu.pdf', 500, 'application/pdf'),
                 UploadedFile::fake()->create('luaran-dua.pdf', 500, 'application/pdf'),
             ],
-        ])->assertRedirect(route('log-kegiatan.edit', ['log_kegiatan' => $log->id, 'step' => 7]));
+        ]);
+        $this->assertRedirectsToEncryptedLogEdit($response, $log, 7);
 
         $this->assertSame(2, $log->fotoKegiatanFiles()->count());
         $this->assertSame(2, $log->fileLuaranFiles()->count());
@@ -549,5 +553,76 @@ class LogKegiatanStepperTest extends TestCase
             'status' => 'menunggu',
             'current_step' => 7,
         ]);
+    }
+
+    public function test_log_details_and_stepper_use_encrypted_route_keys(): void
+    {
+        Storage::fake('public');
+
+        $student = User::factory()->mahasiswa()->create();
+        $peserta = Peserta::factory()->create(['user_id' => $student->id]);
+        $log = LogKegiatan::factory()->draft(4)->create(['peserta_id' => $peserta->id]);
+        $file = $log->files()->create([
+            'jenis_file' => 'file_luaran',
+            'file_path' => 'kegiatan/luaran/laporan.pdf',
+            'nama_file_asli' => 'laporan.pdf',
+            'ukuran_file' => 7,
+        ]);
+        Storage::disk('public')->put($file->file_path, 'content');
+        $admin = User::factory()->admin()->create();
+        $editUrl = route('log-kegiatan.edit', ['log_kegiatan' => $log, 'step' => 4]);
+        $showUrl = route('log-kegiatan.show', $log);
+        $fileUrl = $file->url;
+
+        $this->assertSame(0, preg_match('#/log-kegiatan/\\d+(?:/|$)#', (string) parse_url($editUrl, PHP_URL_PATH)));
+        $this->assertSame(0, preg_match('#/log-kegiatan/\\d+(?:/|$)#', (string) parse_url($showUrl, PHP_URL_PATH)));
+        $this->assertSame(0, preg_match('#/log-kegiatan/\\d+/files/\\d+$#', (string) parse_url($fileUrl, PHP_URL_PATH)));
+
+        $this->actingAs($student)
+            ->get($editUrl)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('LogKegiatan/Stepper')
+                ->where('log.id', $log->id)
+                ->has('log.route_key')
+            );
+
+        $this->actingAs($admin)
+            ->get($showUrl)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('LogKegiatan/Show')
+                ->where('log.id', $log->id)
+                ->has('log.route_key')
+            );
+
+        $this->actingAs($admin)->get($fileUrl)->assertOk();
+    }
+
+    public function test_plain_numeric_log_route_key_returns_not_found(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $student = User::factory()->mahasiswa()->create();
+        $peserta = Peserta::factory()->create(['user_id' => $student->id]);
+        $log = LogKegiatan::factory()->draft()->create(['peserta_id' => $peserta->id]);
+
+        $this->actingAs($admin)
+            ->get('/log-kegiatan/'.$log->id)
+            ->assertNotFound();
+    }
+
+    private function assertRedirectsToEncryptedLogEdit(TestResponse $response, LogKegiatan $log, int $step): void
+    {
+        $response->assertRedirect();
+        $location = (string) $response->headers->get('Location');
+        $path = (string) parse_url($location, PHP_URL_PATH);
+        $matches = [];
+
+        $this->assertSame(1, preg_match('#\A/log-kegiatan/([A-Za-z0-9_-]+)/edit\z#', $path, $matches));
+        $encryptedKey = strtr($matches[1], '-_', '+/');
+        $encryptedKey .= str_repeat('=', (4 - strlen($encryptedKey) % 4) % 4);
+
+        $this->assertSame((string) $log->getKey(), Crypt::decryptString($encryptedKey));
+        $this->assertSame("step={$step}", parse_url($location, PHP_URL_QUERY));
     }
 }

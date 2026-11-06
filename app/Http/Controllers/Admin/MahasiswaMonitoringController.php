@@ -131,6 +131,7 @@ class MahasiswaMonitoringController extends Controller
 
         return [
             'id' => $peserta->id,
+            'route_key' => $peserta->getRouteKey(),
             'user_id' => $peserta->user_id,
             'nama_lengkap' => $peserta->nama_lengkap,
             'nim' => $peserta->nim,

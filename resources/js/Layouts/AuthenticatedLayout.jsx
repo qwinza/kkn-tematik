@@ -35,7 +35,7 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
             active: route().current('admin.mahasiswa.*'),
         },
         {
-            label: 'Laporan',
+            label: 'Kegiatan',
             href: route('log-kegiatan.index'),
             active: route().current('log-kegiatan.*'),
         },
@@ -114,23 +114,20 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                                     </NavLink>
 
                                     <NavLink
+                                        href={route('log-kegiatan.create')}
+                                        active={route().current('log-kegiatan.create') || route().current('log-kegiatan.edit')}
+                                    >
+                                        Tambah Kegiatan
+                                    </NavLink>
+
+                                    <NavLink
                                         href={route('log-kegiatan.index')}
                                         active={
                                             route().current('log-kegiatan.index') ||
                                             route().current('log-kegiatan.show')
                                         }
                                     >
-                                        Jadwal Kegiatan
-                                    </NavLink>
-
-                                    <NavLink
-                                        href={route('log-kegiatan.create')}
-                                        active={
-                                            route().current('log-kegiatan.create') ||
-                                            route().current('log-kegiatan.edit')
-                                        }
-                                    >
-                                        Dokumentasi&amp; Luaran
+                                        Kegiatan
                                     </NavLink>
 
                                     {user?.is_mahasiswa && (
@@ -178,7 +175,7 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                                                     {activityNotifications.map((notification) => (
                                                         <Link
                                                             key={notification.id}
-                                                            href={route('log-kegiatan.show', notification.id)}
+                                                            href={route('log-kegiatan.show', notification.route_key)}
                                                             onClick={() => setShowingNotifications(false)}
                                                             className="block border-b px-4 py-3 hover:bg-gray-50"
                                                         >
@@ -354,13 +351,16 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                                     Dashboard
                                 </ResponsiveNavLink>
                                 <ResponsiveNavLink
-                                    href={route('log-kegiatan.index')}
-                                    active={route().current('log-kegiatan.*')}
+                                    href={route('log-kegiatan.create')}
+                                    active={route().current('log-kegiatan.create') || route().current('log-kegiatan.edit')}
                                 >
-                                    Jadwal Kegiatan
+                                    Tambah Kegiatan
                                 </ResponsiveNavLink>
-                                <ResponsiveNavLink href={route('log-kegiatan.create')} active={route().current('log-kegiatan.create') || route().current('log-kegiatan.edit')}>
-                                    Dokumentasi &amp; Luaran
+                                <ResponsiveNavLink
+                                    href={route('log-kegiatan.index')}
+                                    active={route().current('log-kegiatan.index') || route().current('log-kegiatan.show')}
+                                >
+                                    Kegiatan
                                 </ResponsiveNavLink>
                             </>
                         )}
