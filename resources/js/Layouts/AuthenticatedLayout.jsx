@@ -132,10 +132,10 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
 
                                     {user?.is_mahasiswa && (
                                         <NavLink
-                                            href={route('mahasiswa.rencana-kehadiran.index')}
-                                            active={route().current('mahasiswa.rencana-kehadiran.*')}
+                                            href={route('mahasiswa.schedule.index')}
+                                            active={route().current('mahasiswa.schedule.*')}
                                         >
-                                            Rencana Kehadiran
+                                            Jadwal Kegiatan
                                         </NavLink>
                                     )}
                                 </div>
@@ -366,10 +366,10 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                         )}
                         {user?.is_mahasiswa && (
                             <ResponsiveNavLink
-                                href={route('mahasiswa.rencana-kehadiran.index')}
-                                active={route().current('mahasiswa.rencana-kehadiran.*')}
+                                href={route('mahasiswa.schedule.index')}
+                                active={route().current('mahasiswa.schedule.*')}
                             >
-                                Rencana Kehadiran
+                                Jadwal Kegiatan
                             </ResponsiveNavLink>
                         )}
                     </div>

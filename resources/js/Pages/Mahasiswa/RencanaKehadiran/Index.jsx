@@ -23,7 +23,7 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        post(route('mahasiswa.rencana-kehadiran.store'), {
+        post(route('mahasiswa.schedule.store'), {
             onSuccess: () => {
                 reset();
             },
@@ -65,7 +65,7 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
             header={
                 <div>
                     <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                        Rencana Kehadiran Mahasiswa
+                        Jadwal Kegiatan
                     </h2>
                     <p className="text-xs text-gray-500 mt-1">
                         Pencatatan rencana tanggal dan sesi kehadiran kegiatan KKN Tematik
@@ -73,7 +73,7 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
                 </div>
             }
         >
-            <Head title="Rencana Kehadiran Mahasiswa" />
+            <Head title="Jadwal Kegiatan" />
 
             <div className="py-8">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
@@ -156,11 +156,11 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
                         </div>
                     </div>
 
-                    {/* Section B: Formulir Rencana Kehadiran */}
+                    {/* Section B: Atur Jadwal Kehadiran */}
                     <div className="overflow-hidden rounded-lg bg-white shadow-sm">
                         <div className="border-b border-gray-100 bg-gray-50 px-6 py-4">
                             <h3 className="text-base font-semibold leading-6 text-gray-900">
-                                Formulir Rencana Kehadiran
+                                Atur Jadwal Kehadiran
                             </h3>
                             <p className="mt-0.5 text-xs text-gray-500">
                                 Pilih tanggal dan sesi kehadiran yang akan dihadiri
@@ -238,14 +238,14 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
                         </form>
                     </div>
 
-                    {/* Section C: Riwayat Rencana Kehadiran */}
+                    {/* Section C: Rencana yang Sudah Dijadwalkan */}
                     <div className="overflow-hidden rounded-lg bg-white shadow-sm">
                         <div className="border-b border-gray-100 bg-gray-50 px-6 py-4">
                             <h3 className="text-base font-semibold leading-6 text-gray-900">
-                                Riwayat Rencana Kehadiran
+                                Rencana yang Sudah Dijadwalkan
                             </h3>
                             <p className="mt-0.5 text-xs text-gray-500">
-                                Daftar rencana kehadiran yang telah Anda jadwalkan
+                                Daftar tanggal dan sesi kegiatan yang telah Anda rencanakan.
                             </p>
                         </div>
 
