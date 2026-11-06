@@ -884,6 +884,78 @@
     padding-top: 20px;
 }
 
+.portal-master-kegiatan-page {
+    min-height: calc(100vh - 64px);
+    padding: 24px 24px 48px;
+    background: #f4f5f7;
+}
+
+.portal-master-kegiatan-content {
+    display: grid;
+    width: min(100%, 1280px);
+    gap: 18px;
+    margin: 0 auto;
+}
+
+.portal-master-kegiatan-heading {
+    align-items: flex-end;
+    margin-bottom: 0;
+}
+
+.portal-master-kegiatan-heading > button {
+    min-height: 40px;
+    flex: 0 0 auto;
+}
+
+.portal-master-kegiatan-filter {
+    margin-bottom: 24px;
+}
+
+.portal-logs-student {
+    min-height: calc(100vh - 64px);
+    padding: 24px 24px 48px;
+    background: #f4f5f7;
+}
+
+.portal-logs-admin {
+    min-height: calc(100vh - 64px);
+    padding: 24px 24px 48px;
+    background: #f4f5f7;
+}
+
+.portal-logs-student .portal-logs-content {
+    display: grid;
+    gap: 18px;
+}
+
+.portal-logs-admin .portal-logs-content {
+    display: grid;
+    gap: 18px;
+}
+
+.portal-logs-student-heading {
+    margin-bottom: 0;
+}
+
+.portal-logs-admin-heading {
+    margin-bottom: 0;
+}
+
+.portal-logs-admin .portal-filter-panel {
+    margin-bottom: 24px;
+}
+
+.portal-logs-student .portal-filter-panel,
+.portal-logs-student .portal-table-shell,
+.portal-logs-admin .portal-filter-panel,
+.portal-logs-admin .portal-table-shell {
+    border-radius: 14px;
+}
+
+.portal-logs-student .portal-data-table tbody tr:hover {
+    background: #fffaf4;
+}
+
 .portal-logs-content,
 .portal-log-detail-content {
     max-width: 1280px;
@@ -2402,8 +2474,488 @@
     font-size: 10px;
 }
 
+.portal-admin-students-heading {
+    align-items: flex-end;
+    margin-bottom: 0;
+}
+
+.portal-admin-students-count {
+    flex: 0 0 auto;
+    color: #75808b;
+    font-size: 12px;
+}
+
+.portal-admin-students-count strong {
+    color: #28313d;
+    font-weight: 750;
+}
+
+.portal-admin-students {
+    min-height: calc(100vh - 64px);
+    padding: 24px 24px 48px;
+    background: #f4f5f7;
+}
+
+.portal-admin-students-content {
+    display: grid;
+    width: min(100%, 1280px);
+    gap: 18px;
+    margin: 0 auto;
+}
+
+.portal-admin-students-filter,
+.portal-admin-students-table-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #e8ebee;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 5px 20px rgb(30 41 59 / 4%);
+}
+
+.portal-admin-students-filter {
+    padding: 18px;
+}
+
+.portal-admin-students-filter-fields {
+    display: grid;
+    grid-template-columns: minmax(280px, 420px) minmax(280px, 400px) auto;
+    align-items: center;
+    gap: 18px;
+}
+
+.portal-admin-students-search {
+    min-width: 0;
+}
+
+.portal-admin-students-program-filter {
+    width: 100%;
+    min-width: 0;
+}
+
+.portal-admin-students-filter label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    clip-path: inset(50%);
+}
+
+.portal-admin-students-input {
+    display: block;
+    width: 100%;
+    min-height: 42px;
+    margin: 0;
+    padding: 0 12px;
+    border: 1px solid #dfe4e8;
+    border-radius: 9px;
+    background: #fff;
+    color: #303a45;
+    font: inherit;
+    font-size: 12px;
+    box-shadow: 0 2px 7px rgb(15 23 42 / 3%);
+}
+
+.portal-admin-students-input:focus {
+    border-color: #ed922e;
+    outline: 0;
+    box-shadow: 0 0 0 3px rgb(237 146 46 / 13%);
+}
+
+.portal-admin-students-reset-wrap {
+    flex: 0 0 auto;
+}
+
+.portal-admin-students-reset {
+    min-height: 42px;
+    padding: 0 14px;
+    border: 1px solid #f1d1b0;
+    border-radius: 9px;
+    background: #fffaf4;
+    color: #c96d17;
+    font-size: 11px;
+    font-weight: 700;
+    transition: background 150ms ease;
+}
+
+.portal-admin-students-reset:hover {
+    background: #fff0df;
+}
+
+.portal-admin-students-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.portal-admin-students-table thead {
+    background: #f8f9fa;
+}
+
+.portal-admin-students-table th {
+    height: 48px;
+    padding: 0 16px;
+    border-bottom: 1px solid #e6e9ec;
+    color: #687481;
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.portal-admin-students-table th:first-child,
+.portal-admin-students-number {
+    padding-left: 20px;
+}
+
+.portal-admin-students-table th button {
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+}
+
+.portal-admin-students-table th button:hover {
+    color: #d97716;
+}
+
+.portal-admin-students-table td {
+    height: 64px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e9ecef;
+    color: #34404b;
+    font-size: 12px;
+}
+
+.portal-admin-students-row {
+    transition: background 150ms ease;
+}
+
+.portal-admin-students-row:hover {
+    background: #fbfcfd;
+}
+
+.portal-admin-students-row:last-child td {
+    border-bottom: 0;
+}
+
+.portal-admin-students-number {
+    color: #77828d !important;
+}
+
+.portal-admin-students-name {
+    color: #293440;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.portal-admin-students-email {
+    margin-top: 3px;
+    color: #89939d;
+    font-size: 10px;
+}
+
+.portal-admin-students-nim {
+    color: #596571 !important;
+    font-variant-numeric: tabular-nums;
+}
+
+.portal-admin-students-faculty span {
+    display: inline-flex;
+    min-width: 34px;
+    min-height: 23px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 9px;
+    border-radius: 999px;
+    background: #edf4ff;
+    color: #3877cf;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.portal-admin-students-detail {
+    display: inline-flex;
+    min-height: 30px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px;
+    border-radius: 7px;
+    background: #fff0df;
+    color: #ca7017;
+    font-size: 10px;
+    font-weight: 750;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.portal-admin-students-detail:hover {
+    background: #ffe6c7;
+}
+
+.portal-admin-students-empty {
+    height: 100px !important;
+    color: #7a8590 !important;
+    text-align: center;
+}
+
+.portal-admin-students-pagination {
+    display: flex;
+    min-height: 54px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 10px 16px;
+    border-top: 1px solid #e9ecef;
+    color: #76818c;
+    font-size: 10px;
+}
+
+.portal-admin-students-pagination-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.portal-admin-students-pagination-links a,
+.portal-admin-students-pagination-links span {
+    display: inline-flex;
+    min-width: 28px;
+    min-height: 27px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 7px;
+    border: 1px solid #e3e7eb;
+    border-radius: 6px;
+    background: #fff;
+    color: #687481;
+    font-size: 10px;
+    text-decoration: none;
+}
+
+.portal-admin-students-pagination-links a:hover,
+.portal-admin-students-pagination-links a.is-active {
+    border-color: #f1d1b0;
+    background: #fff0df;
+    color: #ca7017;
+}
+
+.portal-admin-students-pagination-links span.is-disabled {
+    color: #b2bac2;
+}
+
+.portal-analytics-page {
+    min-height: calc(100vh - 64px);
+    padding: 24px 24px 48px;
+    background: #f4f5f7;
+}
+
+.portal-analytics-heading {
+    align-items: flex-end;
+    margin-bottom: 0;
+}
+
+.portal-analytics-content {
+    display: grid;
+    width: min(100%, 1280px);
+    gap: 18px;
+    margin: 0 auto;
+}
+
+.portal-analytics-semester {
+    display: inline-flex;
+    min-height: 36px;
+    align-items: center;
+    padding: 0 13px;
+    border: 1px solid #e7e9ec;
+    border-radius: 9px;
+    background: #fff;
+    color: #34404d;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.portal-analytics-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.portal-analytics-card,
+.portal-analytics-panel {
+    min-width: 0;
+    border: 1px solid #e9ebee;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 5px 18px rgb(30 41 59 / 4%);
+}
+
+.portal-analytics-card {
+    display: grid;
+    min-height: 142px;
+    align-content: start;
+    justify-items: start;
+    gap: 5px;
+    padding: 15px;
+}
+
+.portal-analytics-icon {
+    display: grid;
+    width: 35px;
+    height: 35px;
+    margin-bottom: 5px;
+    place-items: center;
+    border-radius: 10px;
+    background: #fff0df;
+    color: #f07f1d;
+}
+
+.portal-analytics-icon.reports {
+    background: #e8f1ff;
+    color: #3478ef;
+}
+
+.portal-analytics-icon.approved {
+    background: #e8f6ec;
+    color: #1ca35b;
+}
+
+.portal-analytics-icon.waiting {
+    background: #fff4d9;
+    color: #c87b00;
+}
+
+.portal-analytics-icon svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.7;
+}
+
+.portal-analytics-card p {
+    margin: 0;
+    color: #727e8a;
+    font-size: 11px;
+}
+
+.portal-analytics-card strong {
+    color: #25303b;
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.portal-analytics-card small {
+    color: #87919c;
+    font-size: 10px;
+}
+
+.portal-analytics-card:nth-child(2) small {
+    color: #3478ef;
+}
+
+.portal-analytics-card:nth-child(3) small {
+    color: #1ca35b;
+}
+
+.portal-analytics-card:nth-child(4) small {
+    color: #e87516;
+}
+
+.portal-analytics-charts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.portal-analytics-panel {
+    min-height: 165px;
+    padding: 17px 16px;
+}
+
+.portal-analytics-kicker {
+    margin: 0 0 7px;
+    color: #ed7f1c;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.11em;
+}
+
+.portal-analytics-panel h2 {
+    margin: 0 0 14px;
+    color: #26313d;
+    font-size: 14px;
+    font-weight: 750;
+}
+
+.portal-analytics-rows {
+    display: grid;
+    gap: 11px;
+}
+
+.portal-analytics-row {
+    display: grid;
+    grid-template-columns: 100px minmax(0, 1fr) 31px;
+    align-items: center;
+    gap: 9px;
+    color: #334155;
+    font-size: 9px;
+}
+
+.portal-analytics-row-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.portal-analytics-row strong {
+    text-align: right;
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.portal-analytics-track {
+    display: block;
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #edf0f2;
+}
+
+.portal-analytics-track span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: #f18725;
+}
+
+.portal-analytics-track.approved span {
+    background: #22a45b;
+}
+
+.portal-analytics-track.waiting span {
+    background: #f18725;
+}
+
+.portal-analytics-track.rejected span {
+    background: #c81e1e;
+}
+
+.portal-analytics-empty {
+    margin: 17px 0 0;
+    color: #75808b;
+    font-size: 12px;
+}
+
 @media (max-width: 900px) {
     .portal-dashboard-overview {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .portal-analytics-summary {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
@@ -2413,6 +2965,25 @@
 }
 
 @media (max-width: 639px) {
+    .portal-master-kegiatan-page {
+        padding: 18px 16px 32px;
+    }
+
+    .portal-master-kegiatan-heading {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .portal-master-kegiatan-heading > button {
+        width: 100%;
+    }
+
+    .portal-logs-student,
+    .portal-logs-admin {
+        padding: 18px 16px 32px;
+    }
+
     .portal-dashboard {
         padding-top: 18px;
     }
@@ -2447,11 +3018,49 @@
         grid-template-columns: 1fr;
     }
 
+    .portal-analytics-page {
+        padding: 18px 16px 32px;
+    }
+
+    .portal-analytics-semester {
+        width: max-content;
+    }
+
+    .portal-analytics-content {
+        padding: 18px 16px 32px;
+    }
+
+    .portal-analytics-charts {
+        grid-template-columns: 1fr;
+    }
+
     .portal-dashboard-quick-card {
         grid-column: auto;
     }
 
     .portal-dashboard-panel {
         min-height: 145px;
+    }
+
+    .portal-admin-students {
+        padding: 20px 16px 32px;
+    }
+
+    .portal-admin-students-count {
+        margin-top: 4px;
+    }
+
+    .portal-admin-students-filter-fields {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 13px;
+    }
+
+    .portal-admin-students-program-filter {
+        width: 100%;
+    }
+
+    .portal-admin-students-pagination {
+        align-items: flex-start;
+        flex-direction: column;
     }
 }
