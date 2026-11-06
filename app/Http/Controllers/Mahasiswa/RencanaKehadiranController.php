@@ -90,7 +90,12 @@ class RencanaKehadiranController extends Controller
             'jam_kehadiran' => $validated['jam_kehadiran'],
         ]);
 
-        return redirect()->route('mahasiswa.rencana-kehadiran.index')
+        $redirectRoute = request()->routeIs('mahasiswa.schedule.store')
+            ? 'mahasiswa.schedule.index'
+            : 'mahasiswa.rencana-kehadiran.index';
+
+        return redirect()
+            ->route($redirectRoute)
             ->with('success', 'Rencana kehadiran berhasil disimpan.');
     }
 }

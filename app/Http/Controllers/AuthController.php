@@ -144,6 +144,10 @@ class AuthController extends Controller
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
+        if ($user->must_change_password) {
+            return redirect()->route('password.first-login.edit');
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

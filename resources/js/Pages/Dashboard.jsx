@@ -16,6 +16,7 @@ export default function Dashboard({ summary = { totalKegiatan: 0, totalDisetujui
         : [
             { label: 'Tambah Kegiatan', href: route('log-kegiatan.create'), icon: 'attendance' },
             { label: 'Kegiatan', href: route('log-kegiatan.index'), icon: 'history' },
+            { label: 'Jadwal Kegiatan', href: route('mahasiswa.schedule.index'), icon: 'schedule' },
         ];
 
     return (
