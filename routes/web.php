@@ -15,6 +15,7 @@ Route::get('/', function () {
 
 Route::get('/dashboard', function (Request $request) {
     $user = $request->user();
+
     $pesertaId = $user?->peserta?->id;
     $logs = LogKegiatan::query()
         ->when(! $user?->isAdmin(), fn ($query) => $query->where('peserta_id', $pesertaId ?? 0));
