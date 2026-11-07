@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
-import { Head, useForm } from '@inertiajs/react';
+import SweetAlertNotifications from '@/Components/SweetAlertNotifications';
+import { Head, Link, useForm } from '@inertiajs/react';
 
 export default function Login({ status }) {
     const [showPassword, setShowPassword] = useState(false);
@@ -30,6 +31,7 @@ export default function Login({ status }) {
     return (
         <>
             <Head title="Masuk" />
+            <SweetAlertNotifications />
 
             <main className="login-page">
                 <img
@@ -74,7 +76,7 @@ export default function Login({ status }) {
                                 {/* IDENTIFIER */}
                                 <div className="login-field">
                                     <label htmlFor="identifier">
-                                        NIM / Email Admin
+                                        NIM
                                     </label>
 
                                     <div
@@ -256,6 +258,11 @@ export default function Login({ status }) {
                                     )}
                                 </button>
                             </form>
+
+                            <p className="login-register-link">
+                                Belum punya akun?{' '}
+                                <Link href={route('register')}>Daftar</Link>
+                            </p>
 
                             <div className="login-footer">
                                 <span>

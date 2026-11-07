@@ -1,3 +1,5 @@
+import SweetAlertNotifications from '@/Components/SweetAlertNotifications';
+import confirmWithSweetAlert from '@/Components/confirmWithSweetAlert';
 import { Head, useForm } from '@inertiajs/react';
 
 export default function FirstLoginPassword() {
@@ -7,14 +9,25 @@ export default function FirstLoginPassword() {
         password_confirmation: '',
     });
 
-    const submit = (event) => {
+    const submit = async (event) => {
         event.preventDefault();
+
+        const confirmed = await confirmWithSweetAlert({
+            title: 'Ganti password sekarang?',
+            text: 'Password baru akan digunakan untuk masuk ke akun Anda.',
+            icon: 'question',
+            confirmButtonText: 'Ya, ganti password',
+        });
+
+        if (!confirmed) return;
+
         form.put('/first-login/password');
     };
 
     return (
         <>
             <Head title="Ganti Password Pertama Kali" />
+            <SweetAlertNotifications />
 
             <main className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-10">
                 <section className="w-full max-w-md rounded-2xl bg-white p-6 shadow-sm sm:p-8">

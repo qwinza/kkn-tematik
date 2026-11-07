@@ -11,10 +11,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
 class MahasiswaManagementController extends Controller
 {
-    private const DEFAULT_PASSWORD = 'password12345';
+    private const DEFAULT_PASSWORD = 'password123';
 
     private function getMahasiswa(Peserta $peserta): User
     {
@@ -94,6 +95,7 @@ class MahasiswaManagementController extends Controller
                 Rule::unique('users', 'email')->ignore($user->id),
             ],
             'kode_prodi' => ['required', 'exists:prodi,kode_prodi'],
+            'password' => ['nullable', Password::defaults(), 'confirmed'],
         ]);
 
         DB::transaction(function () use ($validated, $peserta, $user): void {
@@ -105,6 +107,13 @@ class MahasiswaManagementController extends Controller
                 'email' => $validated['email'] ?: null,
             ]);
 
+            if (! empty($validated['password'])) {
+                $user->update([
+                    'password' => Hash::make($validated['password']),
+                    'must_change_password' => true,
+                ]);
+            }
+
             $peserta->update([
                 'nama_lengkap' => $validated['nama_lengkap'],
                 'nim' => $validated['nim'],
@@ -113,7 +122,12 @@ class MahasiswaManagementController extends Controller
             ]);
         });
 
-        return back()->with('success', 'Data mahasiswa berhasil diperbarui.');
+        return back()->with(
+            'success',
+            empty($validated['password'])
+                ? 'Data mahasiswa berhasil diperbarui.'
+                : 'Data mahasiswa berhasil diperbarui. Password baru wajib diganti mahasiswa saat login berikutnya.'
+        );
     }
 
     /**

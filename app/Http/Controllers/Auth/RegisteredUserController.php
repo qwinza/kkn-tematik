@@ -3,14 +3,12 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Prodi;
 use App\Models\User;
-use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -21,32 +19,53 @@ class RegisteredUserController extends Controller
      */
     public function create(): Response
     {
-        return Inertia::render('Auth/Register');
+        return Inertia::render('Auth/Register', [
+            'prodis' => Prodi::query()
+                ->orderBy('nama_prodi')
+                ->get(['kode_prodi', 'nama_prodi', 'fakultas']),
+        ]);
     }
 
     /**
      * Handle an incoming registration request.
-     *
-     * @throws ValidationException
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        $validated = $request->validate([
+            'nama_lengkap' => ['required', 'string', 'max:255'],
+            'nim' => [
+                'required',
+                'string',
+                'max:255',
+                'regex:/^[0-9]+$/',
+                'unique:users,nim',
+                'unique:pesertas,nim',
+            ],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email'],
+            'kode_prodi' => ['required', 'exists:prodi,kode_prodi'],
         ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+        DB::transaction(function () use ($validated): void {
+            $prodi = Prodi::query()->findOrFail($validated['kode_prodi']);
+            $user = User::create([
+                'name' => $validated['nama_lengkap'],
+                'nim' => $validated['nim'],
+                'email' => $validated['email'],
+                'role' => 'mahasiswa',
+                'password' => Hash::make('password123'),
+                'must_change_password' => false,
+            ]);
 
-        event(new Registered($user));
+            $user->peserta()->create([
+                'nama_lengkap' => $validated['nama_lengkap'],
+                'nim' => $validated['nim'],
+                'kode_prodi' => $prodi->kode_prodi,
+                'program_studi' => $prodi->nama_prodi,
+            ]);
+        });
 
-        Auth::login($user);
-
-        return redirect(route('dashboard', absolute: false));
+        return redirect()
+            ->route('login')
+            ->with('success', 'Pendaftaran berhasil. Password sementara Anda adalah password123. Silakan masuk kembali menggunakan NRP, lalu ubah password melalui menu Profil.');
     }
 }

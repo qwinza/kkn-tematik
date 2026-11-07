@@ -1,120 +1,158 @@
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import TextInput from '@/Components/TextInput';
-import GuestLayout from '@/Layouts/GuestLayout';
+import SweetAlertNotifications from '@/Components/SweetAlertNotifications';
 import { Head, Link, useForm } from '@inertiajs/react';
 
-export default function Register() {
-    const { data, setData, post, processing, errors, reset } = useForm({
-        name: '',
+export default function Register({ prodis }) {
+    const { data, setData, post, processing, errors } = useForm({
+        nama_lengkap: '',
+        nim: '',
         email: '',
-        password: '',
-        password_confirmation: '',
+        kode_prodi: '',
     });
 
-    const submit = (e) => {
-        e.preventDefault();
+    function submit(event) {
+        event.preventDefault();
+        post(route('register'));
+    }
 
-        post(route('register'), {
-            onFinish: () => reset('password', 'password_confirmation'),
-        });
-    };
+    const fields = [
+        {
+            id: 'nim',
+            label: 'NRP',
+            type: 'text',
+            placeholder: 'Masukkan NRP',
+            inputMode: 'numeric',
+            autoComplete: 'username',
+            icon: <rect x="4" y="4" width="16" height="16" rx="2" />,
+        },
+        {
+            id: 'nama_lengkap',
+            label: 'Nama Lengkap',
+            type: 'text',
+            placeholder: 'Masukkan nama lengkap',
+            autoComplete: 'name',
+            icon: <><circle cx="12" cy="8" r="3" /><path d="M5 20a7 7 0 0 1 14 0" /></>,
+        },
+        {
+            id: 'email',
+            label: 'Email',
+            type: 'email',
+            placeholder: 'Masukkan email aktif',
+            autoComplete: 'email',
+            icon: <><rect x="3.5" y="5" width="17" height="14" rx="2" /><path d="m4.5 7 7.5 6 7.5-6" /></>,
+        },
+    ];
 
     return (
-        <GuestLayout>
-            <Head title="Register" />
+        <>
+            <Head title="Daftar Mahasiswa" />
+            <SweetAlertNotifications />
 
-            <form onSubmit={submit}>
-                <div>
-                    <InputLabel htmlFor="name" value="Name" />
+            <main className="login-page">
+                <img
+                    className="login-emblem-watermark"
+                    src="/images/itenas-emblem.svg"
+                    alt=""
+                    aria-hidden="true"
+                />
+                <section className="login-card" aria-label="Daftar akun mahasiswa">
+                    <div className="login-form-side">
+                        <div className="login-form-wrapper">
+                            <div className="login-mobile-brand">
+                                <img
+                                    className="login-itenas-wordmark"
+                                    src="/images/itenas-wordmark.svg"
+                                    alt="Institut Teknologi Nasional"
+                                />
+                            </div>
 
-                    <TextInput
-                        id="name"
-                        name="name"
-                        value={data.name}
-                        className="mt-1 block w-full"
-                        autoComplete="name"
-                        isFocused={true}
-                        onChange={(e) => setData('name', e.target.value)}
-                        required
-                    />
+                            <header className="login-heading">
+                                <h1>Daftar Akun Mahasiswa</h1>
+                                <p>Lengkapi identitas mahasiswa untuk membuat akun.</p>
+                            </header>
 
-                    <InputError message={errors.name} className="mt-2" />
-                </div>
+                            <form className="login-form" onSubmit={submit}>
+                                {fields.map((field) => (
+                                    <div className="login-field" key={field.id}>
+                                        <label htmlFor={field.id}>{field.label}</label>
+                                        <div className={`login-input-wrapper ${errors[field.id] ? 'has-error' : ''}`}>
+                                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                                {field.icon}
+                                            </svg>
+                                            <input
+                                                id={field.id}
+                                                name={field.id}
+                                                type={field.type}
+                                                inputMode={field.inputMode}
+                                                value={data[field.id]}
+                                                placeholder={field.placeholder}
+                                                autoComplete={field.autoComplete}
+                                                aria-invalid={Boolean(errors[field.id])}
+                                                onChange={(event) => setData(field.id, event.target.value)}
+                                            />
+                                        </div>
+                                        {errors[field.id] && (
+                                            <div className="login-error" id={`${field.id}-error`}>
+                                                {errors[field.id]}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
 
-                <div className="mt-4">
-                    <InputLabel htmlFor="email" value="Email" />
+                                <div className="login-field">
+                                    <label htmlFor="kode_prodi">Program Studi</label>
+                                    <div className={`login-input-wrapper ${errors.kode_prodi ? 'has-error' : ''}`}>
+                                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                            <path d="M3 9 12 4l9 5-9 5-9-5Z" />
+                                            <path d="M7 11.5V16l5 3 5-3v-4.5" />
+                                        </svg>
+                                        <select
+                                            id="kode_prodi"
+                                            name="kode_prodi"
+                                            value={data.kode_prodi}
+                                            aria-invalid={Boolean(errors.kode_prodi)}
+                                            onChange={(event) => setData('kode_prodi', event.target.value)}
+                                            required
+                                        >
+                                            <option value="" disabled>Pilih program studi</option>
+                                            {prodis.map((prodi) => (
+                                                <option key={prodi.kode_prodi} value={prodi.kode_prodi}>
+                                                    {prodi.nama_prodi} ({prodi.fakultas})
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                            <path d="m7 10 5 5 5-5" />
+                                        </svg>
+                                    </div>
+                                    {errors.kode_prodi && (
+                                        <div className="login-error" id="kode_prodi-error">
+                                            {errors.kode_prodi}
+                                        </div>
+                                    )}
+                                </div>
 
-                    <TextInput
-                        id="email"
-                        type="email"
-                        name="email"
-                        value={data.email}
-                        className="mt-1 block w-full"
-                        autoComplete="username"
-                        onChange={(e) => setData('email', e.target.value)}
-                        required
-                    />
+                                <button
+                                    className="login-submit"
+                                    type="submit"
+                                    disabled={processing || prodis.length === 0}
+                                    aria-busy={processing}
+                                >
+                                    {processing ? 'Memproses...' : 'Buat Akun'}
+                                </button>
+                            </form>
 
-                    <InputError message={errors.email} className="mt-2" />
-                </div>
+                            <p className="login-register-link">
+                                Sudah punya akun?{' '}
+                                <Link href={route('login')}>Masuk</Link>
+                            </p>
 
-                <div className="mt-4">
-                    <InputLabel htmlFor="password" value="Password" />
-
-                    <TextInput
-                        id="password"
-                        type="password"
-                        name="password"
-                        value={data.password}
-                        className="mt-1 block w-full"
-                        autoComplete="new-password"
-                        onChange={(e) => setData('password', e.target.value)}
-                        required
-                    />
-
-                    <InputError message={errors.password} className="mt-2" />
-                </div>
-
-                <div className="mt-4">
-                    <InputLabel
-                        htmlFor="password_confirmation"
-                        value="Confirm Password"
-                    />
-
-                    <TextInput
-                        id="password_confirmation"
-                        type="password"
-                        name="password_confirmation"
-                        value={data.password_confirmation}
-                        className="mt-1 block w-full"
-                        autoComplete="new-password"
-                        onChange={(e) =>
-                            setData('password_confirmation', e.target.value)
-                        }
-                        required
-                    />
-
-                    <InputError
-                        message={errors.password_confirmation}
-                        className="mt-2"
-                    />
-                </div>
-
-                <div className="mt-4 flex items-center justify-end">
-                    <Link
-                        href={route('login')}
-                        className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                    >
-                        Already registered?
-                    </Link>
-
-                    <PrimaryButton className="ms-4" disabled={processing}>
-                        Register
-                    </PrimaryButton>
-                </div>
-            </form>
-        </GuestLayout>
+                            <div className="login-footer">
+                                <span>© 2026 KKN Tematik. All rights reserved.</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </>
     );
 }

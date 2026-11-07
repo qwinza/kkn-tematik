@@ -1,6 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import SortableHeading from '@/Components/SortableHeading';
-import DangerButton from '@/Components/DangerButton';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import Modal from '@/Components/Modal';
@@ -20,6 +19,7 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
     mode: 'create',
     item: null,
     });
+    const [openActionMenu, setOpenActionMenu] = useState(null);
 
     const {
         data,
@@ -35,6 +35,8 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
         nim: '',
         email: '',
         kode_prodi: '',
+        password: '',
+        password_confirmation: '',
     });
 
     useEffect(() => () => clearTimeout(filterTimer.current), []);
@@ -93,6 +95,8 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
             nim: item.nim || item.user?.nim || '',
             email: item.user?.email || '',
             kode_prodi: item.kode_prodi || '',
+            password: '',
+            password_confirmation: '',
         });
 
         setModalState({
@@ -113,8 +117,19 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
         clearErrors();
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+
+        const confirmed = await confirmWithSweetAlert({
+            title: modalState.mode === 'create' ? 'Tambah mahasiswa?' : 'Simpan perubahan?',
+            text: modalState.mode === 'create'
+                ? 'Data mahasiswa dan akun login akan dibuat.'
+                : 'Perubahan data mahasiswa akan disimpan.',
+            icon: 'question',
+            confirmButtonText: modalState.mode === 'create' ? 'Ya, tambah' : 'Ya, simpan',
+        });
+
+        if (!confirmed) return;
 
         if (modalState.mode === 'create') {
             post(route('admin.mahasiswa.store'), {
@@ -135,7 +150,7 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
     const handleResetPassword = async (item) => {
         const confirmed = await confirmWithSweetAlert({
             title: 'Reset password mahasiswa?',
-            text: `Password akun ${item.nama_lengkap} akan direset ke password12345.`,
+            text: `Password akun ${item.nama_lengkap} akan direset ke password123.`,
             confirmButtonText: 'Ya, reset password',
         });
 
@@ -320,37 +335,47 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
                                                         </span>
                                                     </td>
                                                     <td className="portal-admin-students-actions">
-                                                        <div className="flex flex-wrap items-center gap-2">
-                                                            <Link
-                                                                href={route('admin.mahasiswa.show', mhs.route_key)}
-                                                                className="portal-admin-students-detail"
-                                                            >
-                                                                Detail
-                                                            </Link>
-
-                                                            <SecondaryButton
+                                                        <div className="portal-admin-students-action-menu">
+                                                            <button
                                                                 type="button"
-                                                                onClick={() => openEditModal(mhs)}
-                                                                className="text-xs"
+                                                                className="portal-admin-students-menu-toggle"
+                                                                aria-label={`Buka aksi untuk ${mhs.nama_lengkap}`}
+                                                                aria-haspopup="menu"
+                                                                aria-expanded={openActionMenu === mhs.id}
+                                                                onClick={() => setOpenActionMenu(openActionMenu === mhs.id ? null : mhs.id)}
                                                             >
-                                                                Edit
-                                                            </SecondaryButton>
-
-                                                            <SecondaryButton
-                                                                type="button"
-                                                                onClick={() => handleResetPassword(mhs)}
-                                                                className="text-xs"
-                                                            >
-                                                                Reset Password
-                                                            </SecondaryButton>
-
-                                                            <DangerButton
-                                                                type="button"
-                                                                onClick={() => handleDelete(mhs)}
-                                                                className="text-xs"
-                                                            >
-                                                                Hapus
-                                                            </DangerButton>
+                                                                <svg viewBox="0 0 20 20" aria-hidden="true" className="portal-admin-students-menu-icon">
+                                                                    <path d="M3 5h14M3 10h14M3 15h14" />
+                                                                </svg>
+                                                            </button>
+                                                            {openActionMenu === mhs.id && (
+                                                                <div className="portal-admin-students-menu" role="menu">
+                                                                    <Link
+                                                                        href={route('admin.mahasiswa.show', mhs.route_key)}
+                                                                        className="portal-admin-students-menu-item"
+                                                                        role="menuitem"
+                                                                        onClick={() => setOpenActionMenu(null)}
+                                                                    >Detail</Link>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="portal-admin-students-menu-item"
+                                                                        role="menuitem"
+                                                                        onClick={() => {
+                                                                            setOpenActionMenu(null);
+                                                                            openEditModal(mhs);
+                                                                        }}
+                                                                    >Edit</button>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="portal-admin-students-menu-item is-danger"
+                                                                        role="menuitem"
+                                                                        onClick={() => {
+                                                                            setOpenActionMenu(null);
+                                                                            handleDelete(mhs);
+                                                                        }}
+                                                                    >Hapus</button>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -435,9 +460,17 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
                             : 'Perbarui identitas dan program studi mahasiswa.'}
                     </p>
 
+                    {modalState.mode === 'edit' && (
+                        <div className="mt-4 flex justify-end">
+                            <SecondaryButton type="button" onClick={() => handleResetPassword(modalState.item)}>
+                                Reset Password
+                            </SecondaryButton>
+                        </div>
+                    )}
+
                     {modalState.mode === 'create' && (
                         <div className="mt-4 rounded-md bg-blue-50 p-3 text-sm text-blue-800">
-                            Password awal akun baru adalah password12345.
+                            Password awal akun baru adalah password123.
                             Mahasiswa wajib menggantinya saat login pertama.
                         </div>
                     )}
@@ -499,6 +532,36 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
                             </select>
                             <InputError message={errors.kode_prodi} className="mt-1" />
                         </div>
+
+                        {modalState.mode === 'edit' && (
+                            <>
+                                <div>
+                                    <InputLabel htmlFor="password" value="Password Baru (Opsional)" />
+                                    <TextInput
+                                        id="password"
+                                        type="password"
+                                        autoComplete="new-password"
+                                        className="mt-1 block w-full"
+                                        value={data.password}
+                                        onChange={(e) => setData('password', e.target.value)}
+                                    />
+                                    <InputError message={errors.password} className="mt-1" />
+                                </div>
+
+                                <div>
+                                    <InputLabel htmlFor="password_confirmation" value="Konfirmasi Password Baru" />
+                                    <TextInput
+                                        id="password_confirmation"
+                                        type="password"
+                                        autoComplete="new-password"
+                                        className="mt-1 block w-full"
+                                        value={data.password_confirmation}
+                                        onChange={(e) => setData('password_confirmation', e.target.value)}
+                                    />
+                                    <InputError message={errors.password_confirmation} className="mt-1" />
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     <div className="mt-6 flex justify-end gap-3">

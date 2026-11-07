@@ -427,4 +427,43 @@ class MahasiswaMonitoringTest extends TestCase
         $this->assertSame($prodi->kode_prodi, $peserta->kode_prodi);
         $this->assertSame('Teknik Informatika', $peserta->program_studi);
     }
+
+    public function test_admin_can_set_a_student_password_without_exposing_the_hash(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $prodi = Prodi::factory()->create();
+        $student = User::factory()->mahasiswa()->create([
+            'name' => 'Mahasiswa Contoh',
+            'nim' => '202600000003',
+            'email' => 'mahasiswa@example.com',
+            'must_change_password' => false,
+        ]);
+        $peserta = Peserta::factory()->create([
+            'user_id' => $student->id,
+            'nama_lengkap' => 'Mahasiswa Contoh',
+            'nim' => '202600000003',
+            'kode_prodi' => $prodi->kode_prodi,
+            'program_studi' => $prodi->nama_prodi,
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.mahasiswa.update', $peserta), [
+                'nama_lengkap' => 'Mahasiswa Contoh',
+                'nim' => '202600000003',
+                'email' => 'mahasiswa@example.com',
+                'kode_prodi' => $prodi->kode_prodi,
+                'password' => 'PasswordAdmin123!',
+                'password_confirmation' => 'PasswordAdmin123!',
+            ])
+            ->assertSessionHas('success');
+
+        $this->assertTrue(Hash::check('PasswordAdmin123!', $student->fresh()->password));
+        $this->assertTrue($student->fresh()->must_change_password);
+
+        $this->actingAs($admin)
+            ->get(route('admin.mahasiswa.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->missing('mahasiswas.data.0.user.password')
+            );
+    }
 }
