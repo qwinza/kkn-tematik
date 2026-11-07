@@ -15,9 +15,6 @@ Route::get('/', function () {
 
 Route::get('/dashboard', function (Request $request) {
     $user = $request->user();
-    if ($user?->isAdmin() && ! $user->hasVerifiedEmail()) {
-    return redirect()->route('verification.notice');
-    }
     $pesertaId = $user?->peserta?->id;
     $logs = LogKegiatan::query()
         ->when(! $user?->isAdmin(), fn ($query) => $query->where('peserta_id', $pesertaId ?? 0));
