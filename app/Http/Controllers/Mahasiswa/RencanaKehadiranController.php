@@ -53,6 +53,7 @@ class RencanaKehadiranController extends Controller
         ];
 
         $rencanaKehadirans = $peserta->rencanaKehadirans()
+            ->with('logKegiatans.masterKegiatan')
             ->orderByDesc('tanggal_rencana')
             ->orderByDesc('id')
             ->paginate(10)

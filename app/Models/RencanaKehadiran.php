@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class RencanaKehadiran extends Model
 {
@@ -37,5 +38,15 @@ class RencanaKehadiran extends Model
     public function peserta(): BelongsTo
     {
         return $this->belongsTo(Peserta::class);
+    }
+
+    /**
+     * Log kegiatan yang memakai sesi kehadiran ini.
+     *
+     * @return HasMany<LogKegiatan, $this>
+     */
+    public function logKegiatans(): HasMany
+    {
+        return $this->hasMany(LogKegiatan::class);
     }
 }

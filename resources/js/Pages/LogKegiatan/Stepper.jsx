@@ -2,10 +2,10 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
-export default function LogKegiatanStepper({ log, currentStep = 1, student, masterKegiatans = [], prodis = [] }) {
+export default function LogKegiatanStepper({ log, currentStep = 1, student, masterKegiatans = [], prodis = [], rencanaKehadirans = [] }) {
     const [activeStep, setActiveStep] = useState(currentStep || 1);
     const [currentLogId, setCurrentLogId] = useState(log?.id || null);
     const [currentLogRouteKey, setCurrentLogRouteKey] = useState(log?.route_key || null);
@@ -14,15 +14,6 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
 
     const [geoLoading, setGeoLoading] = useState(false);
     const [geoMessage, setGeoMessage] = useState(null);
-
-    // Initial Date handling
-    const initialDate = log?.tanggal_kehadiran || new Date().toISOString().slice(0, 10);
-
-    const getDayName = (dateStr) => {
-        if (!dateStr) return '';
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('id-ID', { weekday: 'long' });
-    };
 
     // Main Stepper Form state
     const form = useForm({
@@ -38,10 +29,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
         kode_prodi: student?.kode_prodi || log?.peserta?.kode_prodi || '',
 
         // Step 2: Schedule
-        tanggal_kehadiran: initialDate,
-        day: getDayName(initialDate),
-        jam_mulai: log?.jam_mulai || '08:00',
-        jam_selesai: log?.jam_selesai || '12:00',
+        rencana_kehadiran_id: log?.rencana_kehadiran_id || '',
 
         // Step 3: Activity
         master_kegiatan_id: log?.master_kegiatan_id || '',
@@ -77,15 +65,6 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
             form.setData('log_id', log.id);
         }
     }, [log?.id, log?.route_key]);
-
-    // Update Day automatically when date changes
-    const handleDateChange = (dateVal) => {
-        form.setData((prev) => ({
-            ...prev,
-            tanggal_kehadiran: dateVal,
-            day: getDayName(dateVal),
-        }));
-    };
 
     const filteredActivities = masterKegiatans;
 
@@ -186,8 +165,8 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                 return;
             }
         } else if (activeStep === 2) {
-            if (!form.data.tanggal_kehadiran || !form.data.jam_mulai || !form.data.jam_selesai) {
-                setStepValidationError('Tanggal kehadiran, jam mulai, dan jam selesai wajib diisi.');
+            if (!form.data.rencana_kehadiran_id) {
+                setStepValidationError('Pilih jadwal kehadiran yang sudah diatur.');
                 return;
             }
         } else if (activeStep === 3) {
@@ -252,6 +231,9 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
 
     const currentActivityObj = masterKegiatans.find((k) => k.id === Number(form.data.master_kegiatan_id)) || log?.master_kegiatan;
     const selectedProdi = prodis.find((prodi) => prodi.kode_prodi === form.data.kode_prodi);
+    const selectedRencanaKehadiran = rencanaKehadirans.find(
+        (rencana) => Number(rencana.id) === Number(form.data.rencana_kehadiran_id)
+    );
     const pageTitle = log ? 'Ubah Kegiatan' : 'Tambah Kegiatan';
 
     return (
@@ -440,56 +422,50 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                                     </p>
                                 </div>
 
-                                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                <div className="space-y-5">
                                     <div>
-                                        <InputLabel htmlFor="tanggal_kehadiran" value="Tanggal kegiatan" className="text-xs font-semibold text-gray-700" />
-                                        <TextInput
-                                            id="tanggal_kehadiran"
-                                            type="date"
+                                        <InputLabel htmlFor="rencana_kehadiran_id" value="Jadwal kehadiran" className="text-xs font-semibold text-gray-700" />
+                                        <select
+                                            id="rencana_kehadiran_id"
                                             className="mt-1.5 block w-full rounded-xl border-gray-200 text-sm focus:border-emerald-600 focus:ring-emerald-600"
-                                            value={form.data.tanggal_kehadiran}
-                                            onChange={(e) => handleDateChange(e.target.value)}
+                                            value={form.data.rencana_kehadiran_id}
+                                            onChange={(event) => form.setData('rencana_kehadiran_id', event.target.value)}
                                             required
-                                        />
-                                        <InputError message={form.errors.tanggal_kehadiran} className="mt-1" />
+                                        >
+                                            <option value="">Pilih jadwal yang sudah diatur</option>
+                                            {rencanaKehadirans.map((rencana) => (
+                                                <option key={rencana.id} value={rencana.id}>
+                                                    {rencana.tanggal_rencana.slice(0, 10)} - {rencana.jam_kehadiran}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <InputError message={form.errors.rencana_kehadiran_id} className="mt-1" />
                                     </div>
 
-                                    <div>
-                                        <InputLabel htmlFor="day" value="Hari" className="text-xs font-semibold text-gray-700" />
-                                        <TextInput
-                                            id="day"
-                                            type="text"
-                                            className="mt-1.5 block w-full rounded-xl border-gray-200 text-sm bg-gray-50"
-                                            value={form.data.day}
-                                            readOnly
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <InputLabel htmlFor="jam_mulai" value="Waktu mulai" className="text-xs font-semibold text-gray-700" />
-                                        <TextInput
-                                            id="jam_mulai"
-                                            type="time"
-                                            className="mt-1.5 block w-full rounded-xl border-gray-200 text-sm focus:border-emerald-600 focus:ring-emerald-600"
-                                            value={form.data.jam_mulai}
-                                            onChange={(e) => form.setData('jam_mulai', e.target.value)}
-                                            required
-                                        />
-                                        <InputError message={form.errors.jam_mulai} className="mt-1" />
-                                    </div>
-
-                                    <div>
-                                        <InputLabel htmlFor="jam_selesai" value="Waktu selesai" className="text-xs font-semibold text-gray-700" />
-                                        <TextInput
-                                            id="jam_selesai"
-                                            type="time"
-                                            className="mt-1.5 block w-full rounded-xl border-gray-200 text-sm focus:border-emerald-600 focus:ring-emerald-600"
-                                            value={form.data.jam_selesai}
-                                            onChange={(e) => form.setData('jam_selesai', e.target.value)}
-                                            required
-                                        />
-                                        <InputError message={form.errors.jam_selesai} className="mt-1" />
-                                    </div>
+                                    {selectedRencanaKehadiran ? (
+                                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                            <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                                                <span className="block text-xs font-semibold uppercase text-gray-500">Tanggal</span>
+                                                <span className="mt-1 block text-sm font-medium text-gray-900">
+                                                    {selectedRencanaKehadiran.tanggal_rencana.slice(0, 10)}
+                                                </span>
+                                            </div>
+                                            <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                                                <span className="block text-xs font-semibold uppercase text-gray-500">Sesi</span>
+                                                <span className="mt-1 block text-sm font-medium text-gray-900">
+                                                    {selectedRencanaKehadiran.jam_kehadiran}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-gray-600">
+                                            Belum ada jadwal kehadiran.{' '}
+                                            <Link href={route('mahasiswa.schedule.index')} className="font-semibold text-emerald-700 underline">
+                                                Atur jadwal kehadiran
+                                            </Link>
+                                            {' '}terlebih dahulu.
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -802,8 +778,8 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                                     <div className="rounded-xl border border-gray-100 bg-[#f9fafb] p-4">
                                         <div className="font-bold text-gray-800 mb-2">2. Jadwal</div>
                                         <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                                            <div><strong>Tanggal:</strong> {form.data.tanggal_kehadiran} ({form.data.day})</div>
-                                            <div><strong>Waktu:</strong> {form.data.jam_mulai} - {form.data.jam_selesai}</div>
+                                            <div><strong>Tanggal:</strong> {selectedRencanaKehadiran?.tanggal_rencana.slice(0, 10) ?? '-'}</div>
+                                            <div><strong>Sesi:</strong> {selectedRencanaKehadiran?.jam_kehadiran ?? '-'}</div>
                                         </div>
                                     </div>
 

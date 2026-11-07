@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\ApprovedLogKegiatanExport;
+use App\Http\Controllers\Mahasiswa\RencanaKehadiranController;
 use App\Http\Requests\LogKegiatanStep1Request;
 use App\Http\Requests\LogKegiatanStep2Request;
 use App\Http\Requests\LogKegiatanStep3Request;
@@ -11,6 +13,7 @@ use App\Models\MasterKegiatan;
 use App\Models\Peserta;
 use App\Models\Prodi;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -19,6 +22,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class LogKegiatanController extends Controller
@@ -30,52 +34,12 @@ class LogKegiatanController extends Controller
     {
         $user = $request->user();
         $isAdmin = $user?->isAdmin() ?? false;
-        $filters = $request->validate([
-            'search' => ['nullable', 'string', 'max:255'],
-            'status' => ['nullable', Rule::in($isAdmin
-                ? ['menunggu', 'disetujui', 'ditolak']
-                : ['draft', 'menunggu', 'disetujui', 'ditolak'])],
-            'master_kegiatan_id' => ['nullable', 'integer', 'exists:master_kegiatans,id'],
-            'sort' => ['nullable', Rule::in(['mahasiswa', 'kegiatan', 'tanggal_kehadiran', 'status', 'current_step'])],
-            'direction' => ['nullable', Rule::in(['asc', 'desc'])],
-        ]);
+        $filters = $this->validateLogFilters($request, $isAdmin);
 
-        $search = $filters['search'] ?? '';
-        $status = $filters['status'] ?? '';
-        $masterId = $filters['master_kegiatan_id'] ?? null;
         $sort = $filters['sort'] ?? 'tanggal_kehadiran';
         $direction = $filters['direction'] ?? 'desc';
 
-        $query = LogKegiatan::query()
-            ->with(['masterKegiatan', 'peserta.user'])
-            ->when(! $isAdmin, function ($q) use ($user) {
-                $pesertaId = $user?->peserta?->id ?? 0;
-                $q->where('peserta_id', $pesertaId);
-            })
-            ->when($isAdmin, fn ($q) => $q->whereIn('status', ['menunggu', 'disetujui', 'ditolak']))
-            ->when($status !== '', function ($q) use ($status) {
-                $q->where('status', $status);
-            })
-            ->when($masterId, function ($q) use ($masterId) {
-                $q->where('master_kegiatan_id', $masterId);
-            })
-            ->when($search !== '', function ($q) use ($search, $isAdmin) {
-                $q->where(function ($sub) use ($search, $isAdmin) {
-                    $sub->where('deskripsi_kegiatan', 'like', "%{$search}%")
-                        ->orWhere('deskripsi_luaran', 'like', "%{$search}%")
-                        ->orWhereHas('masterKegiatan', function ($mq) use ($search) {
-                            $mq->where('nama_kegiatan', 'like', "%{$search}%")
-                                ->orWhere('kode_kegiatan', 'like', "%{$search}%");
-                        });
-
-                    if ($isAdmin) {
-                        $sub->orWhereHas('peserta', function ($pq) use ($search) {
-                            $pq->where('nama_lengkap', 'like', "%{$search}%")
-                                ->orWhere('nim', 'like', "%{$search}%");
-                        });
-                    }
-                });
-            });
+        $query = $this->filteredLogsQuery($filters, $isAdmin);
 
         if ($sort === 'mahasiswa') {
             $query->orderBy(Peserta::query()
@@ -90,23 +54,136 @@ class LogKegiatanController extends Controller
         }
 
         $logs = $query->paginate(10)->withQueryString();
+        $pendingCount = $isAdmin
+            ? $this->filteredLogsQuery($filters, true, 'menunggu')->count()
+            : 0;
         $masterKegiatans = MasterKegiatan::query()
             ->when(! $isAdmin, fn ($query) => $query->where('kode_prodi', $user?->peserta?->kode_prodi))
             ->orderBy('nama_kegiatan')
             ->get(['id', 'kode_kegiatan', 'nama_kegiatan', 'kategori', 'kode_prodi']);
+        $prodis = $isAdmin
+            ? Prodi::query()->orderBy('nama_prodi')->get(['kode_prodi', 'nama_prodi'])
+            : [];
 
         return Inertia::render('LogKegiatan/Index', [
             'logs' => $logs,
             'masterKegiatans' => $masterKegiatans,
+            'prodis' => $prodis,
             'filters' => [
-                'search' => $search,
-                'status' => $status,
-                'master_kegiatan_id' => $masterId,
+                'search' => $filters['search'] ?? '',
+                'status' => $filters['status'] ?? '',
+                'master_kegiatan_id' => $filters['master_kegiatan_id'] ?? null,
+                'kode_prodi' => $filters['kode_prodi'] ?? '',
+                'tanggal' => $filters['tanggal'] ?? '',
+                'sesi' => $filters['sesi'] ?? '',
                 'sort' => $sort,
                 'direction' => $direction,
             ],
             'isAdmin' => $isAdmin,
+            'sessions' => RencanaKehadiranController::VALID_SESSIONS,
+            'pendingCount' => $pendingCount,
         ]);
+    }
+
+    public function export(Request $request): BinaryFileResponse
+    {
+        abort_unless($request->user()?->isAdmin(), 403);
+
+        $filters = $this->validateLogFilters($request, true);
+        $query = $this->filteredLogsQuery($filters, true, 'disetujui')
+            ->orderByDesc('tanggal_kehadiran')
+            ->orderByDesc('id');
+
+        return Excel::download(
+            new ApprovedLogKegiatanExport($query),
+            'laporan-kegiatan-disetujui-'.now()->format('Ymd-His').'.xlsx'
+        );
+    }
+
+    public function approveAll(Request $request): RedirectResponse
+    {
+        abort_unless($request->user()?->isAdmin(), 403);
+
+        $filters = $this->validateLogFilters($request, true);
+        $approvedCount = $this->filteredLogsQuery($filters, true, 'menunggu')
+            ->update([
+                'status' => 'disetujui',
+                'updated_at' => now(),
+            ]);
+
+        if ($approvedCount === 0) {
+            return back()->with('error', 'Tidak ada laporan menunggu yang cocok dengan filter aktif.');
+        }
+
+        return back()->with('success', "{$approvedCount} laporan kegiatan berhasil disetujui.");
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validateLogFilters(Request $request, bool $isAdmin): array
+    {
+        return $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', Rule::in($isAdmin
+                ? ['menunggu', 'disetujui', 'ditolak']
+                : ['draft', 'menunggu', 'disetujui', 'ditolak'])],
+            'master_kegiatan_id' => ['nullable', 'integer', 'exists:master_kegiatans,id'],
+            'kode_prodi' => ['nullable', 'string', 'exists:prodi,kode_prodi'],
+            'tanggal' => ['nullable', 'date'],
+            'sesi' => ['nullable', Rule::in(RencanaKehadiranController::VALID_SESSIONS)],
+            'sort' => ['nullable', Rule::in(['mahasiswa', 'kegiatan', 'tanggal_kehadiran', 'status', 'current_step'])],
+            'direction' => ['nullable', Rule::in(['asc', 'desc'])],
+        ]);
+    }
+
+    private function filteredLogsQuery(array $filters, bool $isAdmin, ?string $forcedStatus = null): Builder
+    {
+        $search = $filters['search'] ?? '';
+
+        return LogKegiatan::query()
+            ->with(['masterKegiatan', 'peserta.user', 'peserta.prodi', 'rencanaKehadiran'])
+            ->when(! $isAdmin, function (Builder $query) {
+                $query->where('peserta_id', auth()->user()?->peserta?->id ?? 0);
+            })
+            ->when($isAdmin, fn (Builder $query) => $query->whereIn('status', ['menunggu', 'disetujui', 'ditolak']))
+            ->when($forcedStatus !== null, fn (Builder $query) => $query->where('status', $forcedStatus))
+            ->when($forcedStatus === null && ($filters['status'] ?? '') !== '', fn (Builder $query) => $query->where('status', $filters['status']))
+            ->when(
+                $forcedStatus !== null
+                && ($filters['status'] ?? '') !== ''
+                && $filters['status'] !== $forcedStatus,
+                fn (Builder $query) => $query->whereRaw('1 = 0')
+            )
+            ->when(($filters['master_kegiatan_id'] ?? null) !== null, fn (Builder $query) => $query->where('master_kegiatan_id', $filters['master_kegiatan_id']))
+            ->when(($filters['kode_prodi'] ?? '') !== '', function (Builder $query) use ($filters): void {
+                $kodeProdi = $filters['kode_prodi'];
+                $namaProdi = Prodi::query()->where('kode_prodi', $kodeProdi)->value('nama_prodi');
+
+                $query->whereHas('peserta', function (Builder $pesertaQuery) use ($kodeProdi, $namaProdi): void {
+                    $pesertaQuery->where('kode_prodi', $kodeProdi)
+                        ->orWhere('program_studi', $namaProdi);
+                });
+            })
+            ->when(($filters['tanggal'] ?? '') !== '', fn (Builder $query) => $query->whereDate('tanggal_kehadiran', $filters['tanggal']))
+            ->when(($filters['sesi'] ?? '') !== '', fn (Builder $query) => $query->where('jam_kehadiran', $filters['sesi']))
+            ->when($search !== '', function (Builder $query) use ($search, $isAdmin): void {
+                $query->where(function (Builder $subquery) use ($search, $isAdmin): void {
+                    $subquery->where('deskripsi_kegiatan', 'like', "%{$search}%")
+                        ->orWhere('deskripsi_luaran', 'like', "%{$search}%")
+                        ->orWhereHas('masterKegiatan', function (Builder $masterQuery) use ($search): void {
+                            $masterQuery->where('nama_kegiatan', 'like', "%{$search}%")
+                                ->orWhere('kode_kegiatan', 'like', "%{$search}%");
+                        });
+
+                    if ($isAdmin) {
+                        $subquery->orWhereHas('peserta', function (Builder $pesertaQuery) use ($search): void {
+                            $pesertaQuery->where('nama_lengkap', 'like', "%{$search}%")
+                                ->orWhere('nim', 'like', "%{$search}%");
+                        });
+                    }
+                });
+            });
     }
 
     /**
@@ -143,6 +220,10 @@ class LogKegiatanController extends Controller
             'student' => $student,
             'masterKegiatans' => $masterKegiatans,
             'prodis' => Prodi::query()->orderBy('nama_prodi')->get(['kode_prodi', 'nama_prodi']),
+            'rencanaKehadirans' => $peserta->rencanaKehadirans()
+                ->orderByDesc('tanggal_rencana')
+                ->orderByDesc('id')
+                ->get(['id', 'tanggal_rencana', 'jam_kehadiran']),
         ]);
     }
 
@@ -220,21 +301,50 @@ class LogKegiatanController extends Controller
 
         // STEP 2: SCHEDULE
         if ($step === 2) {
-            $validated = $request->validate([
-                'tanggal_kehadiran' => ['required', 'date'],
-                'jam_mulai' => ['required', 'string', 'max:10'],
-                'jam_selesai' => ['required', 'string', 'max:10'],
-            ], [
-                'tanggal_kehadiran.required' => 'Tanggal kehadiran wajib diisi.',
-                'jam_mulai.required' => 'Jam mulai wajib diisi.',
-                'jam_selesai.required' => 'Jam selesai wajib diisi.',
-            ]);
+            if ($request->exists('rencana_kehadiran_id')) {
+                $validated = $request->validate([
+                    'rencana_kehadiran_id' => [
+                        'required',
+                        'integer',
+                        Rule::exists('rencana_kehadirans', 'id')
+                            ->where(fn ($query) => $query->where('peserta_id', $peserta->id)),
+                    ],
+                ], [
+                    'rencana_kehadiran_id.required' => 'Pilih jadwal kehadiran terlebih dahulu.',
+                    'rencana_kehadiran_id.exists' => 'Jadwal kehadiran tidak ditemukan untuk akun Anda.',
+                ]);
+
+                $rencanaKehadiran = $peserta->rencanaKehadirans()
+                    ->findOrFail($validated['rencana_kehadiran_id']);
+                $scheduleData = [
+                    'rencana_kehadiran_id' => $rencanaKehadiran->id,
+                    'tanggal_kehadiran' => $rencanaKehadiran->tanggal_rencana->toDateString(),
+                    'jam_mulai' => substr($rencanaKehadiran->jam_kehadiran, 0, 5),
+                    'jam_selesai' => substr($rencanaKehadiran->jam_kehadiran, 8, 5),
+                    'jam_kehadiran' => $rencanaKehadiran->jam_kehadiran,
+                ];
+            } else {
+                $validated = $request->validate([
+                    'tanggal_kehadiran' => ['required', 'date'],
+                    'jam_mulai' => ['required', 'string', 'max:10'],
+                    'jam_selesai' => ['required', 'string', 'max:10'],
+                ], [
+                    'tanggal_kehadiran.required' => 'Tanggal kehadiran wajib diisi.',
+                    'jam_mulai.required' => 'Jam mulai wajib diisi.',
+                    'jam_selesai.required' => 'Jam selesai wajib diisi.',
+                ]);
+
+                $scheduleData = [
+                    'rencana_kehadiran_id' => $logKegiatan->rencana_kehadiran_id,
+                    'tanggal_kehadiran' => $validated['tanggal_kehadiran'],
+                    'jam_mulai' => $validated['jam_mulai'],
+                    'jam_selesai' => $validated['jam_selesai'],
+                    'jam_kehadiran' => "{$validated['jam_mulai']} - {$validated['jam_selesai']}",
+                ];
+            }
 
             $logKegiatan->update([
-                'tanggal_kehadiran' => $validated['tanggal_kehadiran'],
-                'jam_mulai' => $validated['jam_mulai'],
-                'jam_selesai' => $validated['jam_selesai'],
-                'jam_kehadiran' => "{$validated['jam_mulai']} - {$validated['jam_selesai']}",
+                ...$scheduleData,
                 'current_step' => max($logKegiatan->current_step, 3),
             ]);
 
@@ -527,7 +637,7 @@ class LogKegiatanController extends Controller
                 ->with('error', 'Laporan yang sudah dikirim tidak dapat diedit.');
         }
 
-        $logKegiatan->load(['masterKegiatan', 'peserta.prodi', 'files']);
+        $logKegiatan->load(['masterKegiatan', 'peserta.prodi', 'files', 'rencanaKehadiran']);
         $peserta = $logKegiatan->peserta ?? $user->peserta;
         $masterKegiatans = MasterKegiatan::query()
             ->where('kode_prodi', $peserta?->kode_prodi)
@@ -550,7 +660,36 @@ class LogKegiatanController extends Controller
             'student' => $student,
             'masterKegiatans' => $masterKegiatans,
             'prodis' => Prodi::query()->orderBy('nama_prodi')->get(['kode_prodi', 'nama_prodi']),
+            'rencanaKehadirans' => $peserta
+                ? $peserta->rencanaKehadirans()
+                    ->orderByDesc('tanggal_rencana')
+                    ->orderByDesc('id')
+                    ->get(['id', 'tanggal_rencana', 'jam_kehadiran'])
+                : [],
         ]);
+    }
+
+    public function destroy(Request $request, LogKegiatan $logKegiatan): RedirectResponse
+    {
+        $user = $request->user();
+
+        if (! $user?->isMahasiswa()) {
+            abort(403, 'Hanya mahasiswa yang dapat menghapus draft kegiatan.');
+        }
+
+        $this->authorizeOwner($user, $logKegiatan);
+
+        if (! $logKegiatan->isDraft()) {
+            abort(403, 'Hanya kegiatan berstatus draft yang dapat dihapus.');
+        }
+
+        $logKegiatan->loadMissing('files');
+        Storage::disk('public')->delete($logKegiatan->files->pluck('file_path')->all());
+        $logKegiatan->delete();
+
+        return redirect()
+            ->route('log-kegiatan.index')
+            ->with('success', 'Draft kegiatan berhasil dihapus.');
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Mahasiswa;
 
+use App\Models\LogKegiatan;
 use App\Models\Peserta;
 use App\Models\Prodi;
 use App\Models\RencanaKehadiran;
@@ -314,6 +315,28 @@ class RencanaKehadiranTest extends TestCase
             ->where('rencanaKehadirans.data.0.peserta_id', $pesertaA->id)
             ->where('rencanaKehadirans.data.1.peserta_id', $pesertaA->id)
         );
+    }
+
+    public function test_attendance_history_includes_related_activity_logs(): void
+    {
+        [$user, $peserta] = $this->createMahasiswaPeserta();
+        $rencana = RencanaKehadiran::create([
+            'peserta_id' => $peserta->id,
+            'tanggal_rencana' => Carbon::today()->addDay()->toDateString(),
+            'jam_kehadiran' => '07:00 - 10:00 (Pagi)',
+        ]);
+        $log = LogKegiatan::factory()->draft()->create([
+            'peserta_id' => $peserta->id,
+            'rencana_kehadiran_id' => $rencana->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('mahasiswa.schedule.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Mahasiswa/RencanaKehadiran/Index')
+                ->where('rencanaKehadirans.data.0.log_kegiatans.0.id', $log->id)
+                ->where('rencanaKehadirans.data.0.log_kegiatans.0.status', 'draft')
+            );
     }
 
     /**

@@ -135,7 +135,7 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                                             href={route('mahasiswa.schedule.index')}
                                             active={route().current('mahasiswa.schedule.*')}
                                         >
-                                            Jadwal Kegiatan
+                                            Riwayat Kehadiran
                                         </NavLink>
                                     )}
                                 </div>
@@ -369,7 +369,7 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                                 href={route('mahasiswa.schedule.index')}
                                 active={route().current('mahasiswa.schedule.*')}
                             >
-                                Jadwal Kegiatan
+                                Riwayat Kehadiran
                             </ResponsiveNavLink>
                         )}
                     </div>

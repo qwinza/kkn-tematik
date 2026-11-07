@@ -65,7 +65,7 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
             header={
                 <div>
                     <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                        Jadwal Kegiatan
+                        Riwayat Kehadiran
                     </h2>
                     <p className="text-xs text-gray-500 mt-1">
                         Pencatatan rencana tanggal dan sesi kehadiran kegiatan KKN Tematik
@@ -73,7 +73,7 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
                 </div>
             }
         >
-            <Head title="Jadwal Kegiatan" />
+            <Head title="Riwayat Kehadiran" />
 
             <div className="py-8">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
@@ -238,14 +238,14 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
                         </form>
                     </div>
 
-                    {/* Section C: Rencana yang Sudah Dijadwalkan */}
+                    {/* Section C: Riwayat Kehadiran */}
                     <div className="overflow-hidden rounded-lg bg-white shadow-sm">
                         <div className="border-b border-gray-100 bg-gray-50 px-6 py-4">
                             <h3 className="text-base font-semibold leading-6 text-gray-900">
-                                Rencana yang Sudah Dijadwalkan
+                                Riwayat Kehadiran
                             </h3>
                             <p className="mt-0.5 text-xs text-gray-500">
-                                Daftar tanggal dan sesi kegiatan yang telah Anda rencanakan.
+                                Jadwal kehadiran Anda dan log kegiatan yang terkait.
                             </p>
                         </div>
 
@@ -277,6 +277,12 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
                                         >
                                             Tanggal Dibuat
                                         </th>
+                                        <th
+                                            scope="col"
+                                            className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+                                        >
+                                            Log Kegiatan
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 bg-white">
@@ -307,13 +313,33 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
                                                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                                                         {formatDateTime(item.created_at)}
                                                     </td>
+                                                    <td className="px-6 py-4 text-sm text-gray-700">
+                                                        {item.log_kegiatans?.length ? (
+                                                            <div className="flex flex-col gap-2">
+                                                                {item.log_kegiatans.map((log) => (
+                                                                    <Link
+                                                                        key={log.id}
+                                                                        href={route('log-kegiatan.show', log.route_key)}
+                                                                        className="font-medium text-emerald-700 hover:underline"
+                                                                    >
+                                                                        {log.master_kegiatan?.nama_kegiatan || 'Lihat log kegiatan'}
+                                                                        <span className="ml-2 text-xs text-gray-500">
+                                                                            ({log.status})
+                                                                        </span>
+                                                                    </Link>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-gray-500">Belum ada log kegiatan</span>
+                                                        )}
+                                                    </td>
                                                 </tr>
                                             );
                                         })
                                     ) : (
                                         <tr>
                                             <td
-                                                colSpan={4}
+                                                colSpan={5}
                                                 className="px-6 py-12 text-center text-sm text-gray-500"
                                             >
                                                 <div className="flex flex-col items-center justify-center space-y-2">

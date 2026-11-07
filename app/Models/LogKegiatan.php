@@ -66,6 +66,11 @@ class LogKegiatan extends Model
         return $this->belongsTo(Peserta::class);
     }
 
+    public function rencanaKehadiran(): BelongsTo
+    {
+        return $this->belongsTo(RencanaKehadiran::class);
+    }
+
     /**
      * Relasi ke jenis/master kegiatan yang dilakukan.
      */
