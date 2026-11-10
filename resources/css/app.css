@@ -613,7 +613,7 @@
 }
 
 .portal-navbar-brand img {
-    max-height: 38px;
+    max-height: 62px;
 }
 
 .portal-navigation {
@@ -1582,8 +1582,8 @@
 
 .portal-brand-wordmark {
     display: block;
-    width: 82px;
-    height: 28px;
+    width: 128px;
+    height: 60px;
     object-fit: contain;
 }
 
@@ -2126,8 +2126,8 @@
     }
 
     .portal-brand-wordmark {
-        width: 72px;
-        height: 26px;
+        width: 100px;
+        height: 48px;
     }
 
     .portal-brand-program strong {

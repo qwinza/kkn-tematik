@@ -251,20 +251,6 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                         </p>
                     </div>
 
-                    <div className="mb-10 rounded-2xl border border-[#fef3c7] bg-[#fffbeb] p-4 text-[#92400e] shadow-xs flex items-start gap-3.5">
-                        <div className="mt-0.5 shrink-0 rounded-full bg-[#fde68a] p-1 text-[#b45309]">
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                        </div>
-                        <div className="text-sm">
-                            <span className="font-bold block text-[#78350f]">Verifikasi Kehadiran</span>
-                            <span className="text-[#92400e]">
-                                Formulir ini mencatat kegiatan. Admin akan memeriksa dan memverifikasi kehadiran Anda.
-                            </span>
-                        </div>
-                    </div>
-
                     {/* Stepper Progress Bar */}
                     <div className="portal-stepper-progress mb-10">
                         <div className="relative flex items-center justify-between">

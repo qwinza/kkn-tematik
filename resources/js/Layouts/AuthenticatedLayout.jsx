@@ -66,15 +66,10 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                                 <Link href="/">
                                     <img
                                         className="portal-brand-wordmark"
-                                        src="/images/itenas-wordmark.svg"
-                                        alt="ITENAS"
+                                        src="/images/itenasresik.jpeg"
+                                        alt="ITENAS RESIK"
                                     />
                                 </Link>
-                                <span className="portal-brand-divider" />
-                                <span className="portal-brand-program">
-                                    <strong>KKN RESIK</strong>
-                                    <small>2026</small>
-                                </span>
                             </div>
 
                         </div>

@@ -60,8 +60,8 @@ export default function Register({ prodis }) {
                             <div className="login-mobile-brand">
                                 <img
                                     className="login-itenas-wordmark"
-                                    src="/images/itenas-wordmark.svg"
-                                    alt="Institut Teknologi Nasional"
+                                    src="/images/itenasresik.jpeg"
+                                    alt="ITENAS RESIK"
                                 />
                             </div>
 
