@@ -9,14 +9,11 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 
 class MahasiswaManagementController extends Controller
 {
-    private const DEFAULT_PASSWORD = 'password123';
-
     private function getMahasiswa(Peserta $peserta): User
     {
         $user = $peserta->user;
@@ -53,8 +50,8 @@ class MahasiswaManagementController extends Controller
                 'nim' => $validated['nim'],
                 'email' => $validated['email'] ?: null,
                 'role' => 'mahasiswa',
-                'password' => Hash::make(self::DEFAULT_PASSWORD),
-                'must_change_password' => true,
+                'password' => Str::random(64),
+                'must_change_password' => false,
             ]);
 
             $user->peserta()->create([
@@ -65,10 +62,7 @@ class MahasiswaManagementController extends Controller
             ]);
         });
 
-        return back()->with(
-            'success',
-            'Mahasiswa berhasil ditambahkan. Password awal: '.self::DEFAULT_PASSWORD
-        );
+        return back()->with('success', 'Mahasiswa berhasil ditambahkan. Login mahasiswa menggunakan PIN kampus.');
     }
 
     /**
@@ -95,7 +89,6 @@ class MahasiswaManagementController extends Controller
                 Rule::unique('users', 'email')->ignore($user->id),
             ],
             'kode_prodi' => ['required', 'exists:prodi,kode_prodi'],
-            'password' => ['nullable', Password::defaults(), 'confirmed'],
         ]);
 
         DB::transaction(function () use ($validated, $peserta, $user): void {
@@ -107,13 +100,6 @@ class MahasiswaManagementController extends Controller
                 'email' => $validated['email'] ?: null,
             ]);
 
-            if (! empty($validated['password'])) {
-                $user->update([
-                    'password' => Hash::make($validated['password']),
-                    'must_change_password' => true,
-                ]);
-            }
-
             $peserta->update([
                 'nama_lengkap' => $validated['nama_lengkap'],
                 'nim' => $validated['nim'],
@@ -122,30 +108,7 @@ class MahasiswaManagementController extends Controller
             ]);
         });
 
-        return back()->with(
-            'success',
-            empty($validated['password'])
-                ? 'Data mahasiswa berhasil diperbarui.'
-                : 'Data mahasiswa berhasil diperbarui. Password baru wajib diganti mahasiswa saat login berikutnya.'
-        );
-    }
-
-    /**
-     * Reset password mahasiswa.
-     */
-    public function resetPassword(Peserta $peserta): RedirectResponse
-    {
-        $user = $this->getMahasiswa($peserta);
-
-        $user->update([
-            'password' => Hash::make(self::DEFAULT_PASSWORD),
-            'must_change_password' => true,
-        ]);
-
-        return back()->with(
-            'success',
-            'Password berhasil direset ke password awal. Mahasiswa wajib menggantinya saat login.'
-        );
+        return back()->with('success', 'Data mahasiswa berhasil diperbarui.');
     }
 
     /**

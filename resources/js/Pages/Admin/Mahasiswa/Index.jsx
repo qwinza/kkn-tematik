@@ -35,8 +35,6 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
         nim: '',
         email: '',
         kode_prodi: '',
-        password: '',
-        password_confirmation: '',
     });
 
     useEffect(() => () => clearTimeout(filterTimer.current), []);
@@ -95,8 +93,6 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
             nim: item.nim || item.user?.nim || '',
             email: item.user?.email || '',
             kode_prodi: item.kode_prodi || '',
-            password: '',
-            password_confirmation: '',
         });
 
         setModalState({
@@ -145,22 +141,6 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
                 }
             );
         }
-    };
-
-    const handleResetPassword = async (item) => {
-        const confirmed = await confirmWithSweetAlert({
-            title: 'Reset password mahasiswa?',
-            text: `Password akun ${item.nama_lengkap} akan direset ke password123.`,
-            confirmButtonText: 'Ya, reset password',
-        });
-
-        if (!confirmed) return;
-
-        router.post(
-            route('admin.mahasiswa.reset-password', item.route_key),
-            {},
-            { preserveScroll: true }
-        );
     };
 
     const handleDelete = async (item) => {
@@ -460,21 +440,6 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
                             : 'Perbarui identitas dan program studi mahasiswa.'}
                     </p>
 
-                    {modalState.mode === 'edit' && (
-                        <div className="mt-4 flex justify-end">
-                            <SecondaryButton type="button" onClick={() => handleResetPassword(modalState.item)}>
-                                Reset Password
-                            </SecondaryButton>
-                        </div>
-                    )}
-
-                    {modalState.mode === 'create' && (
-                        <div className="mt-4 rounded-md bg-blue-50 p-3 text-sm text-blue-800">
-                            Password awal akun baru adalah password123.
-                            Mahasiswa wajib menggantinya saat login pertama.
-                        </div>
-                    )}
-
                     <div className="mt-6 space-y-4">
                         <div>
                             <InputLabel htmlFor="nama_lengkap" value="Nama Lengkap" />
@@ -533,35 +498,6 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
                             <InputError message={errors.kode_prodi} className="mt-1" />
                         </div>
 
-                        {modalState.mode === 'edit' && (
-                            <>
-                                <div>
-                                    <InputLabel htmlFor="password" value="Password Baru (Opsional)" />
-                                    <TextInput
-                                        id="password"
-                                        type="password"
-                                        autoComplete="new-password"
-                                        className="mt-1 block w-full"
-                                        value={data.password}
-                                        onChange={(e) => setData('password', e.target.value)}
-                                    />
-                                    <InputError message={errors.password} className="mt-1" />
-                                </div>
-
-                                <div>
-                                    <InputLabel htmlFor="password_confirmation" value="Konfirmasi Password Baru" />
-                                    <TextInput
-                                        id="password_confirmation"
-                                        type="password"
-                                        autoComplete="new-password"
-                                        className="mt-1 block w-full"
-                                        value={data.password_confirmation}
-                                        onChange={(e) => setData('password_confirmation', e.target.value)}
-                                    />
-                                    <InputError message={errors.password_confirmation} className="mt-1" />
-                                </div>
-                            </>
-                        )}
                     </div>
 
                     <div className="mt-6 flex justify-end gap-3">

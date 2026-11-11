@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\Admin\MahasiswaMonitoringController;
 use App\Http\Controllers\Admin\MahasiswaManagementController;
+use App\Http\Controllers\Admin\MahasiswaMonitoringController;
 use App\Models\LogKegiatan;
 use App\Models\Peserta;
 use Illuminate\Support\Facades\DB;
@@ -40,7 +40,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     })->name('analytics');
 
     Route::get('/mahasiswa', [MahasiswaMonitoringController::class, 'index'])
-    ->name('mahasiswa.index');
+        ->name('mahasiswa.index');
 
     // CRUD Mahasiswa
     Route::post('/mahasiswa', [MahasiswaManagementController::class, 'store'])
@@ -48,9 +48,6 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     Route::put('/mahasiswa/{peserta}', [MahasiswaManagementController::class, 'update'])
         ->name('mahasiswa.update');
-
-    Route::post('/mahasiswa/{peserta}/reset-password', [MahasiswaManagementController::class, 'resetPassword'])
-        ->name('mahasiswa.reset-password');
 
     Route::delete('/mahasiswa/{peserta}', [MahasiswaManagementController::class, 'destroy'])
         ->name('mahasiswa.destroy');

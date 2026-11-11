@@ -46,7 +46,7 @@ export default function Login({ status }) {
                 >
                     <div className="login-form-side">
                         <div className="login-form-wrapper">
-                            <div className="login-mobile-brand">
+                            <div className="login-mobile-brand size-md">
                                 <img
                                     className="login-itenas-wordmark"
                                     src="/images/itenasresik.jpeg"
@@ -135,7 +135,7 @@ export default function Login({ status }) {
                                 <div className="login-field">
                                     <div className="login-label-row">
                                         <label htmlFor="password">
-                                            Password
+                                            PIN Kampus
                                         </label>
                                     </div>
 
@@ -168,7 +168,7 @@ export default function Login({ status }) {
                                                     : 'password'
                                             }
                                             value={data.password}
-                                            placeholder="Masukkan password"
+                                            placeholder="Masukkan PIN kampus"
                                             autoComplete="current-password"
                                             aria-invalid={Boolean(errors.password)}
                                             aria-describedby={
@@ -258,11 +258,6 @@ export default function Login({ status }) {
                                     )}
                                 </button>
                             </form>
-
-                            <p className="login-register-link">
-                                Belum punya akun?{' '}
-                                <Link href={route('register')}>Daftar</Link>
-                            </p>
 
                             <div className="login-footer">
                                 <span>

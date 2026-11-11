@@ -7,6 +7,7 @@ use App\Models\Prodi;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -398,6 +399,13 @@ class MahasiswaMonitoringTest extends TestCase
 
         $nim = '152024038';
         $password = 'password123';
+        config([
+            'services.campus_auth.endpoint' => 'https://campus.example.test/login',
+            'services.campus_auth.api_key' => 'test-api-key',
+        ]);
+        Http::fake([
+            'campus.example.test/login' => Http::response(['status' => 'success']),
+        ]);
 
         $user = User::create([
             'name' => 'Aa Faris Ahmad Shidiq',
@@ -428,7 +436,7 @@ class MahasiswaMonitoringTest extends TestCase
         $this->assertSame('Teknik Informatika', $peserta->program_studi);
     }
 
-    public function test_admin_can_set_a_student_password_without_exposing_the_hash(): void
+    public function test_admin_cannot_set_a_local_student_password(): void
     {
         $admin = User::factory()->admin()->create();
         $prodi = Prodi::factory()->create();
@@ -457,8 +465,8 @@ class MahasiswaMonitoringTest extends TestCase
             ])
             ->assertSessionHas('success');
 
-        $this->assertTrue(Hash::check('PasswordAdmin123!', $student->fresh()->password));
-        $this->assertTrue($student->fresh()->must_change_password);
+        $this->assertTrue(Hash::check('password', $student->fresh()->password));
+        $this->assertFalse($student->fresh()->must_change_password);
 
         $this->actingAs($admin)
             ->get(route('admin.mahasiswa.index'))

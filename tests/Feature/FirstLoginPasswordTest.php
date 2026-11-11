@@ -12,7 +12,7 @@ class FirstLoginPasswordTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_student_with_temporary_password_is_redirected_to_first_login_password_page(): void
+    public function test_student_with_legacy_password_flag_can_access_dashboard(): void
     {
         $user = User::factory()->create([
             'name' => 'Mahasiswa Dummy',
@@ -24,7 +24,7 @@ class FirstLoginPasswordTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('dashboard'))
-            ->assertRedirect(route('password.first-login.edit'));
+            ->assertOk();
 
         $this->actingAs($user)
             ->get(route('password.first-login.edit'))
@@ -83,7 +83,8 @@ class FirstLoginPasswordTest extends TestCase
 
         $this->assertTrue($user->fresh()->must_change_password);
     }
-     public function test_student_without_email_can_access_dashboard_after_changing_password(): void
+
+    public function test_student_without_email_can_access_dashboard_after_changing_password(): void
     {
         $user = User::factory()->create([
             'email' => null,
