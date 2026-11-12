@@ -36,4 +36,12 @@ class Prodi extends Model
     {
         return $this->hasMany(MasterKegiatan::class, 'kode_prodi', 'kode_prodi');
     }
+    public function dppProfiles(): HasMany
+    {
+        return $this->hasMany(
+            DppProfile::class,
+            'kode_prodi',
+            'kode_prodi'
+        );
+    }
 }

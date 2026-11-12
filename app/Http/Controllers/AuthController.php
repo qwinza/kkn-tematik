@@ -51,7 +51,7 @@ class AuthController extends Controller
 
         // 1. Cek apakah input adalah email. Jika ya, autentikasi sebagai Admin (Database Lokal).
         if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
-            return $this->handleAdminLogin($request, $identifier, $password);
+            return $this->handleStaffLogin($request, $identifier, $password);
         }
 
         // 2. Jika input berupa angka/NIM, lakukan simulasi hit API kampus ITENAS.
@@ -78,13 +78,19 @@ class AuthController extends Controller
     }
 
     /**
-     * Logika autentikasi Admin menggunakan database lokal.
+     * Autentikasi Superadmin dan DPP menggunakan database lokal.
      *
      * @throws ValidationException
      */
-    protected function handleAdminLogin(Request $request, string $email, string $password): RedirectResponse
-    {
-        if (! Auth::attempt(['email' => $email, 'password' => $password], $request->boolean('remember'))) {
+    protected function handleStaffLogin(
+        Request $request,
+        string $email,
+        string $password
+    ): RedirectResponse {
+        if (! Auth::attempt(
+            ['email' => $email, 'password' => $password],
+            $request->boolean('remember')
+        )) {
             $this->hitRateLimiter($email, $request->ip());
 
             throw ValidationException::withMessages([
@@ -96,13 +102,23 @@ class AuthController extends Controller
         /** @var User $user */
         $user = Auth::user();
 
-        if (! $user->isAdmin()) {
+        if (! $user->isAdmin() && ! $user->isDpp()) {
             Auth::logout();
             $this->hitRateLimiter($email, $request->ip());
 
             throw ValidationException::withMessages([
-                'identifier' => 'Akses ditolak. Email hanya diperuntukkan untuk akun Admin.',
-                'email' => 'Akses ditolak. Email hanya diperuntukkan untuk akun Admin.',
+                'identifier' => 'Akses ditolak. Akun ini tidak diperuntukkan untuk login melalui email.',
+                'email' => 'Akses ditolak. Akun ini tidak diperuntukkan untuk login melalui email.',
+            ]);
+        }
+
+        if ($user->isDpp() && ! $user->dppProfile()->exists()) {
+            Auth::logout();
+            $this->hitRateLimiter($email, $request->ip());
+
+            throw ValidationException::withMessages([
+                'identifier' => 'Profil DPP belum dikaitkan dengan program studi.',
+                'email' => 'Profil DPP belum dikaitkan dengan program studi.',
             ]);
         }
 

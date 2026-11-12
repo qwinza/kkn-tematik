@@ -61,11 +61,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/log-kegiatan/{log_kegiatan}/reject', [LogKegiatanController::class, 'reject'])->name('log-kegiatan.reject');
     Route::delete('/log-kegiatan/{log_kegiatan}', [LogKegiatanController::class, 'destroy'])->name('log-kegiatan.destroy');
     Route::get('/log-kegiatan/export', [LogKegiatanController::class, 'export'])
-        ->middleware('admin')
-        ->name('log-kegiatan.export');
+    ->name('log-kegiatan.export');
+
     Route::post('/log-kegiatan/approve-all', [LogKegiatanController::class, 'approveAll'])
-        ->middleware('admin')
-        ->name('log-kegiatan.approve-all');
+    ->name('log-kegiatan.approve-all');
     Route::post('/log-kegiatan/step-1', [LogKegiatanController::class, 'saveStep1'])->name('log-kegiatan.step-1');
     Route::post('/log-kegiatan/{log_kegiatan}/step-1', [LogKegiatanController::class, 'saveStep1'])->name('log-kegiatan.step-1.update');
     Route::post('/log-kegiatan/{log_kegiatan}/step-2', [LogKegiatanController::class, 'saveStep2'])->name('log-kegiatan.step-2');
