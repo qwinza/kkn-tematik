@@ -17,6 +17,13 @@ class MahasiswaMonitoringController extends Controller
      */
     public function index(Request $request): Response
     {
+        $user = $request->user();
+        $isAdmin = $user?->isAdmin() ?? false;
+        $isDosen = $user?->isDosen() ?? false;
+        $dosenProdiName = $isDosen ? $user->prodi?->nama_prodi : null;
+
+        abort_unless($isAdmin || ($isDosen && $user->prodi()->exists()), 403);
+
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
             'kode_prodi' => ['nullable', 'string', 'exists:prodi,kode_prodi'],
@@ -24,8 +31,16 @@ class MahasiswaMonitoringController extends Controller
             'direction' => ['nullable', Rule::in(['asc', 'desc'])],
         ]);
 
+        if ($isDosen) {
+            $filters['kode_prodi'] = $user->kode_prodi;
+        }
+
         $query = Peserta::query()
             ->with(['user', 'prodi'])
+            ->when($isDosen, fn ($query) => $query->where(function ($prodiQuery) use ($user, $dosenProdiName): void {
+                $prodiQuery->where('kode_prodi', $user->kode_prodi)
+                    ->orWhere('program_studi', $dosenProdiName);
+            }))
             ->whereHas('user', function ($q) {
                 $q->where('role', 'mahasiswa');
             });
@@ -56,9 +71,13 @@ class MahasiswaMonitoringController extends Controller
             });
         }
 
-        $totalCount = Peserta::whereHas('user', function ($q) {
-            $q->where('role', 'mahasiswa');
-        })->count();
+        $totalCount = Peserta::query()
+            ->whereHas('user', fn ($q) => $q->where('role', 'mahasiswa'))
+            ->when($isDosen, fn ($query) => $query->where(function ($prodiQuery) use ($user, $dosenProdiName): void {
+                $prodiQuery->where('kode_prodi', $user->kode_prodi)
+                    ->orWhere('program_studi', $dosenProdiName);
+            }))
+            ->count();
 
         $sort = $filters['sort'] ?? 'id';
         $direction = $filters['direction'] ?? 'desc';
@@ -82,8 +101,9 @@ class MahasiswaMonitoringController extends Controller
             ->withQueryString()
             ->through(fn (Peserta $peserta) => $this->transformPeserta($peserta));
 
-        $prodis = Prodi::orderBy('nama_prodi')
-            ->get(['kode_prodi', 'nama_prodi', 'fakultas']);
+        $prodis = $isDosen
+            ? $user->prodi()->get(['kode_prodi', 'nama_prodi', 'fakultas'])
+            : Prodi::orderBy('nama_prodi')->get(['kode_prodi', 'nama_prodi', 'fakultas']);
 
         return Inertia::render('Admin/Mahasiswa/Index', [
             'mahasiswas' => $mahasiswas,
@@ -94,14 +114,23 @@ class MahasiswaMonitoringController extends Controller
                 'direction' => $direction,
             ],
             'totalCount' => $totalCount,
+            'canManage' => $isAdmin,
+            'portalRole' => $isDosen ? 'Dosen Pembimbing' : 'Admin',
+            'routePrefix' => $isDosen ? 'dosen.mahasiswa' : 'admin.mahasiswa',
         ]);
     }
 
     /**
      * Menampilkan detail profil mahasiswa secara individual.
      */
-    public function show(Peserta $peserta): Response
+    public function show(Request $request, Peserta $peserta): Response
     {
+        $user = $request->user();
+        $isAdmin = $user?->isAdmin() ?? false;
+        $isDosen = $user?->isDosen() ?? false;
+
+        abort_unless($isAdmin || $isDosen, 403);
+
         $peserta->load(['user', 'prodi']);
 
         // Pastikan hanya profil mahasiswa yang dapat diakses
@@ -109,8 +138,17 @@ class MahasiswaMonitoringController extends Controller
             abort(404, 'Data mahasiswa tidak ditemukan.');
         }
 
+        $dosenProdiName = $isDosen ? $user->prodi?->nama_prodi : null;
+
+        if ($isDosen && $peserta->kode_prodi !== $user->kode_prodi && $peserta->program_studi !== $dosenProdiName) {
+            abort(404, 'Data mahasiswa tidak ditemukan.');
+        }
+
         return Inertia::render('Admin/Mahasiswa/Show', [
             'mahasiswa' => $this->transformPeserta($peserta),
+            'canManage' => $isAdmin,
+            'portalRole' => $isDosen ? 'Dosen Pembimbing' : 'Admin',
+            'routePrefix' => $isDosen ? 'dosen.mahasiswa' : 'admin.mahasiswa',
         ]);
     }
 

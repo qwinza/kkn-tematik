@@ -35,11 +35,25 @@ class LogKegiatanStep1Request extends FormRequest
      */
     public function rules(): array
     {
+        /** @var LogKegiatan|null $logKegiatan */
+        $logKegiatan = $this->route('log_kegiatan');
+        $currentMasterKegiatanId = $logKegiatan instanceof LogKegiatan
+            ? $logKegiatan->master_kegiatan_id
+            : null;
+
         return [
             'master_kegiatan_id' => [
                 'required',
-                Rule::exists('master_kegiatans', 'id')
-                    ->where(fn ($query) => $query->where('kode_prodi', $this->user()?->peserta?->kode_prodi ?? '')),
+                Rule::exists('master_kegiatans', 'id')->where(function ($query) use ($currentMasterKegiatanId): void {
+                    $query->where('kode_prodi', $this->user()?->peserta?->kode_prodi ?? '')
+                        ->where(function ($query) use ($currentMasterKegiatanId): void {
+                            $query->where('is_active', true);
+
+                            if ($currentMasterKegiatanId !== null) {
+                                $query->orWhere('id', $currentMasterKegiatanId);
+                            }
+                        });
+                }),
             ],
             'tanggal_kehadiran' => ['required', 'date'],
             'jam_kehadiran' => [

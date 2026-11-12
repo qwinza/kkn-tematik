@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 
-export default function Show({ mahasiswa }) {
+export default function Show({ mahasiswa, portalRole = 'Admin', routePrefix = 'admin.mahasiswa' }) {
     const prodiNama =
         mahasiswa.prodi?.nama_prodi || mahasiswa.program_studi || '-';
     const fakultas = mahasiswa.prodi?.fakultas || '-';
@@ -28,14 +28,14 @@ export default function Show({ mahasiswa }) {
                             Detail Mahasiswa
                         </h2>
                         <p className="text-xs text-gray-500 mt-0.5">
-                            Informasi identitas dan profil akademik mahasiswa KKN
+                            Portal {portalRole} / Informasi identitas dan profil akademik mahasiswa KKN
                         </p>
                     </div>
                     <Link
-                        href={route('admin.mahasiswa.index')}
+                        href={route(`${routePrefix}.index`)}
                         className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                     >
-                        &larr; Kembali ke Daftar
+                        &larr; Kembali ke Mahasiswa
                     </Link>
                 </div>
             }
@@ -137,7 +137,7 @@ export default function Show({ mahasiswa }) {
                         {/* Footer Card */}
                         <div className="border-t border-gray-100 bg-gray-50 px-6 py-4 flex justify-end">
                             <Link
-                                href={route('admin.mahasiswa.index')}
+                                href={route(`${routePrefix}.index`)}
                                 className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                             >
                                 &larr; Kembali ke Daftar Mahasiswa

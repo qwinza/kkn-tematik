@@ -93,20 +93,21 @@ class MasterKegiatanController extends Controller
     }
 
     /**
-     * Hapus data master kegiatan.
+     * Ubah status aktif master kegiatan tanpa menghapus riwayatnya.
      */
-    public function destroy(Request $request, MasterKegiatan $masterKegiatan): RedirectResponse
+    public function updateStatus(Request $request, MasterKegiatan $masterKegiatan): RedirectResponse
     {
         if (! $request->user()?->isAdmin()) {
-            abort(403, 'Hanya admin yang berhak menghapus master kegiatan.');
+            abort(403, 'Hanya admin yang berhak mengubah status jadwal kegiatan.');
         }
 
-        if ($masterKegiatan->logKegiatans()->exists()) {
-            return redirect()->back()->with('error', 'Master kegiatan tidak dapat dihapus karena sudah memiliki relasi log kegiatan.');
-        }
+        $validated = $request->validate([
+            'is_active' => ['required', 'boolean'],
+        ]);
 
-        $masterKegiatan->delete();
+        $masterKegiatan->update(['is_active' => $validated['is_active']]);
+        $status = $masterKegiatan->is_active ? 'diaktifkan' : 'dinonaktifkan';
 
-        return redirect()->back()->with('success', 'Master kegiatan berhasil dihapus.');
+        return redirect()->back()->with('success', "Jadwal kegiatan berhasil {$status}.");
     }
 }

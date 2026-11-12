@@ -32,7 +32,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Handle proses login dengan pemisahan autentikasi Admin dan Mahasiswa.
+     * Handle proses login untuk akun Admin, Dosen, dan Mahasiswa.
      *
      * @throws ValidationException
      */
@@ -49,12 +49,12 @@ class AuthController extends Controller
 
         $this->ensureIsNotRateLimited($identifier, $request->ip());
 
-        // 1. Cek apakah input adalah email. Jika ya, autentikasi sebagai Admin (Database Lokal).
+        // Akun staf lokal menggunakan email.
         if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
             return $this->handleAdminLogin($request, $identifier, $password);
         }
 
-        // 2. Jika input berupa angka/NIM, lakukan simulasi hit API kampus ITENAS.
+        // Akun dosen lokal dan akun mahasiswa kampus sama-sama menggunakan NIM.
         if (preg_match('/^[0-9]+$/', $identifier)) {
             return $this->handleMahasiswaLogin($request, $identifier, $password);
         }
@@ -62,8 +62,8 @@ class AuthController extends Controller
         $this->hitRateLimiter($identifier, $request->ip());
 
         throw ValidationException::withMessages([
-            'identifier' => 'Format login tidak valid. Masukkan Email untuk Admin atau NIM untuk Mahasiswa.',
-            'email' => 'Format login tidak valid. Masukkan Email untuk Admin atau NIM untuk Mahasiswa.',
+            'identifier' => 'Masukkan NIM atau email akun staf yang terdaftar.',
+            'email' => 'Masukkan NIM atau email akun staf yang terdaftar.',
         ]);
     }
 
@@ -96,13 +96,13 @@ class AuthController extends Controller
         /** @var User $user */
         $user = Auth::user();
 
-        if (! $user->isAdmin()) {
+        if (! $user->isAdmin() && (! $user->isDosen() || ! $user->prodi()->exists())) {
             Auth::logout();
             $this->hitRateLimiter($email, $request->ip());
 
             throw ValidationException::withMessages([
-                'identifier' => 'Akses ditolak. Email hanya diperuntukkan untuk akun Admin.',
-                'email' => 'Akses ditolak. Email hanya diperuntukkan untuk akun Admin.',
+                'identifier' => 'Akses ditolak. Email hanya diperuntukkan untuk akun Admin atau Dosen dengan program studi terdaftar.',
+                'email' => 'Akses ditolak. Email hanya diperuntukkan untuk akun Admin atau Dosen dengan program studi terdaftar.',
             ]);
         }
 
@@ -119,6 +119,28 @@ class AuthController extends Controller
      */
     protected function handleMahasiswaLogin(Request $request, string $nim, string $password): RedirectResponse
     {
+        $dosen = User::query()
+            ->where('nim', $nim)
+            ->where('role', 'dosen')
+            ->first();
+
+        if ($dosen) {
+            if (Hash::check($password, $dosen->password) && $dosen->prodi()->exists()) {
+                $this->clearRateLimiter($nim, $request->ip());
+                Auth::login($dosen, $request->boolean('remember'));
+                $request->session()->regenerate();
+
+                return redirect()->intended(route('dashboard', absolute: false));
+            }
+
+            $this->hitRateLimiter($nim, $request->ip());
+
+            throw ValidationException::withMessages([
+                'identifier' => trans('auth.failed'),
+                'email' => trans('auth.failed'),
+            ]);
+        }
+
         $peserta = Peserta::query()
             ->where('nim', $nim)
             ->whereHas('user', fn ($query) => $query->where('role', 'mahasiswa'))
