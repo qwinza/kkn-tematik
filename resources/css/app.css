@@ -2564,6 +2564,161 @@
     background: #2f6fed;
 }
 
+.portal-dashboard-progress-track.is-approved span {
+    background: #22a45b;
+}
+
+.portal-dashboard-progress-track.is-waiting span {
+    background: #f18725;
+}
+
+.portal-dashboard-progress-track.is-rejected span {
+    background: #c81e1e;
+}
+
+.portal-master-kegiatan-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 5px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.portal-master-kegiatan-status::before {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+    content: '';
+}
+
+.portal-master-kegiatan-status.is-active {
+    background: #e8f6ec;
+    color: #16834b;
+}
+
+.portal-master-kegiatan-status.is-inactive {
+    background: #fef0ef;
+    color: #b42318;
+}
+
+.portal-master-kegiatan-page .portal-master-kegiatan-toggle {
+    min-height: 34px;
+    justify-content: center;
+    padding: 0 12px;
+    border-radius: 8px;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-transform: none;
+}
+
+.portal-master-kegiatan-page .portal-master-kegiatan-toggle.is-disable {
+    border-color: #f2c5c2 !important;
+    background: #fff !important;
+    color: #b42318 !important;
+}
+
+.portal-master-kegiatan-page .portal-master-kegiatan-toggle.is-disable:hover {
+    border-color: #d92d20 !important;
+    background: #fef0ef !important;
+}
+
+.portal-master-kegiatan-page .portal-master-kegiatan-toggle.is-enable {
+    border-color: #16834b !important;
+    background: #16834b !important;
+    color: #fff !important;
+}
+
+.portal-master-kegiatan-page .portal-master-kegiatan-toggle.is-enable:hover {
+    border-color: #116b3c !important;
+    background: #116b3c !important;
+}
+
+.portal-dashboard-analytics-panel {
+    gap: 11px;
+}
+
+.portal-dashboard-analytics-card-heading {
+    display: grid;
+    gap: 6px;
+}
+
+.portal-dashboard-analytics-card-heading .portal-dashboard-panel-kicker {
+    margin: 0;
+}
+
+.portal-dashboard-panel.portal-dashboard-analytics-panel > .portal-dashboard-analytics-empty {
+    margin: 0;
+}
+
+.portal-dashboard-analytics-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.portal-dashboard-analytics-title h2 {
+    margin: 0;
+    color: #2e3742;
+    font-size: 14px;
+    font-weight: 750;
+}
+
+.portal-dashboard-analytics-title strong {
+    flex: 0 0 auto;
+    color: #25303b;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.portal-dashboard-analytics-panel h3 {
+    margin: 0 0 14px;
+    color: #2e3742;
+    font-size: 14px;
+    font-weight: 750;
+}
+
+.portal-dashboard-analytics-rows {
+    display: grid;
+    gap: 10px;
+}
+
+.portal-dashboard-analytics-row {
+    display: grid;
+    grid-template-columns: minmax(70px, 1fr) minmax(0, 1.4fr) 30px;
+    align-items: center;
+    gap: 7px;
+    color: #334155;
+    font-size: 9px;
+}
+
+.portal-dashboard-analytics-row > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.portal-dashboard-analytics-row > strong {
+    text-align: right;
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.portal-dashboard-analytics-row .portal-dashboard-progress-track {
+    height: 8px;
+    margin: 0;
+}
+
+.portal-dashboard-analytics-empty {
+    margin: 17px 0 0;
+    color: #75808b;
+    font-size: 12px;
+}
+
 .portal-admin-students-heading {
     align-items: flex-end;
     margin-bottom: 0;
@@ -2903,223 +3058,15 @@
     color: #b2bac2;
 }
 
-.portal-analytics-page {
-    min-height: calc(100vh - 64px);
-    padding: 24px 24px 48px;
-    background: #f4f5f7;
-}
-
-.portal-analytics-heading {
-    align-items: flex-end;
-    margin-bottom: 0;
-}
-
-.portal-analytics-content {
-    display: grid;
-    width: min(100%, 1280px);
-    gap: 18px;
-    margin: 0 auto;
-}
-
-.portal-analytics-semester {
-    display: inline-flex;
-    min-height: 36px;
-    align-items: center;
-    padding: 0 13px;
-    border: 1px solid #e7e9ec;
-    border-radius: 9px;
-    background: #fff;
-    color: #34404d;
-    font-size: 11px;
-    font-weight: 600;
-}
-
-.portal-analytics-summary {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 14px;
-}
-
-.portal-analytics-card,
-.portal-analytics-panel {
-    min-width: 0;
-    border: 1px solid #e9ebee;
-    border-radius: 14px;
-    background: #fff;
-    box-shadow: 0 5px 18px rgb(30 41 59 / 4%);
-}
-
-.portal-analytics-card {
-    display: grid;
-    min-height: 142px;
-    align-content: start;
-    justify-items: start;
-    gap: 5px;
-    padding: 15px;
-}
-
-.portal-analytics-icon {
-    display: grid;
-    width: 35px;
-    height: 35px;
-    margin-bottom: 5px;
-    place-items: center;
-    border-radius: 10px;
-    background: #fff0df;
-    color: #f07f1d;
-}
-
-.portal-analytics-icon.reports {
-    background: #e8f1ff;
-    color: #3478ef;
-}
-
-.portal-analytics-icon.approved {
-    background: #e8f6ec;
-    color: #1ca35b;
-}
-
-.portal-analytics-icon.waiting {
-    background: #fff4d9;
-    color: #c87b00;
-}
-
-.portal-analytics-icon svg {
-    width: 18px;
-    height: 18px;
-    stroke: currentColor;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    stroke-width: 1.7;
-}
-
-.portal-analytics-card p {
-    margin: 0;
-    color: #727e8a;
-    font-size: 11px;
-}
-
-.portal-analytics-card strong {
-    color: #25303b;
-    font-size: 26px;
-    font-weight: 800;
-    line-height: 1;
-}
-
-.portal-analytics-card small {
-    color: #87919c;
-    font-size: 10px;
-}
-
-.portal-analytics-card:nth-child(2) small {
-    color: #3478ef;
-}
-
-.portal-analytics-card:nth-child(3) small {
-    color: #1ca35b;
-}
-
-.portal-analytics-card:nth-child(4) small {
-    color: #e87516;
-}
-
-.portal-analytics-charts {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 14px;
-}
-
-.portal-analytics-panel {
-    min-height: 165px;
-    padding: 17px 16px;
-}
-
-.portal-analytics-kicker {
-    margin: 0 0 7px;
-    color: #ed7f1c;
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: 0.11em;
-}
-
-.portal-analytics-panel h2 {
-    margin: 0 0 14px;
-    color: #26313d;
-    font-size: 14px;
-    font-weight: 750;
-}
-
-.portal-analytics-rows {
-    display: grid;
-    gap: 11px;
-}
-
-.portal-analytics-row {
-    display: grid;
-    grid-template-columns: 100px minmax(0, 1fr) 31px;
-    align-items: center;
-    gap: 9px;
-    color: #334155;
-    font-size: 9px;
-}
-
-.portal-analytics-row-label {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.portal-analytics-row strong {
-    text-align: right;
-    font-size: 9px;
-    font-weight: 700;
-}
-
-.portal-analytics-track {
-    display: block;
-    height: 8px;
-    overflow: hidden;
-    border-radius: 999px;
-    background: #edf0f2;
-}
-
-.portal-analytics-track span {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: #f18725;
-}
-
-.portal-analytics-track.approved span {
-    background: #22a45b;
-}
-
-.portal-analytics-track.waiting span {
-    background: #f18725;
-}
-
-.portal-analytics-track.rejected span {
-    background: #c81e1e;
-}
-
-.portal-analytics-empty {
-    margin: 17px 0 0;
-    color: #75808b;
-    font-size: 12px;
-}
-
 @media (max-width: 900px) {
     .portal-dashboard-overview {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .portal-analytics-summary {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .portal-dashboard-quick-card {
         grid-column: 1 / -1;
     }
+
 }
 
 @media (max-width: 639px) {
@@ -3173,22 +3120,6 @@
 
     .portal-dashboard-overview,
     .portal-dashboard-bottom {
-        grid-template-columns: 1fr;
-    }
-
-    .portal-analytics-page {
-        padding: 18px 16px 32px;
-    }
-
-    .portal-analytics-semester {
-        width: max-content;
-    }
-
-    .portal-analytics-content {
-        padding: 18px 16px 32px;
-    }
-
-    .portal-analytics-charts {
         grid-template-columns: 1fr;
     }
 

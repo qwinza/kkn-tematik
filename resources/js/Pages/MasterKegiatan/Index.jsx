@@ -1,4 +1,3 @@
-import DangerButton from '@/Components/DangerButton';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import Modal from '@/Components/Modal';
@@ -16,7 +15,6 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
     const [kodeProdi, setKodeProdi] = useState(filters?.kode_prodi || '');
     const filterTimer = useRef(null);
     const [modalState, setModalState] = useState({ isOpen: false, mode: 'create', item: null });
-    const [deleteItem, setDeleteItem] = useState(null);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         kode_kegiatan: '',
@@ -87,15 +85,22 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
         }
     };
 
-    const handleDelete = async (item) => {
+    const handleToggleStatus = async (item) => {
+        const isActivating = !item.is_active;
         const confirmed = await confirmWithSweetAlert({
-            title: 'Hapus jadwal kegiatan?',
-            text: `Data ${item.nama_kegiatan} (${item.kode_kegiatan}) akan dihapus.`,
-            confirmButtonText: 'Ya, hapus',
+            title: `${isActivating ? 'Aktifkan' : 'Nonaktifkan'} jadwal kegiatan?`,
+            text: isActivating
+                ? `${item.nama_kegiatan} (${item.kode_kegiatan}) akan tersedia kembali untuk mahasiswa.`
+                : `${item.nama_kegiatan} (${item.kode_kegiatan}) tidak akan tersedia untuk pilihan kegiatan baru. Riwayat yang sudah ada tetap tersimpan.`,
+            confirmButtonText: isActivating ? 'Ya, aktifkan' : 'Ya, nonaktifkan',
         });
-        if (!confirmed) return;
+        if (!confirmed) {
+            return;
+        }
 
-        router.delete(route('master-kegiatan.destroy', item.id));
+        router.patch(route('master-kegiatan.status', item.id), {
+            is_active: isActivating,
+        }, { preserveScroll: true });
     };
 
     return (
@@ -199,7 +204,10 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
                                                     {item.kode_kegiatan}
                                                 </td>
                                                 <td className="px-6 py-4 font-medium text-gray-800">
-                                                    {item.nama_kegiatan}
+                                                    <div>{item.nama_kegiatan}</div>
+                                                    <span className={`portal-master-kegiatan-status${item.is_active ? ' is-active' : ' is-inactive'}`}>
+                                                        {item.is_active ? 'Aktif' : 'Nonaktif'}
+                                                    </span>
                                                 </td>
                                                 <td className="whitespace-nowrap px-6 py-4">
                                                     <span className="inline-flex rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-800">
@@ -218,12 +226,21 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
                                                         >
                                                             Edit
                                                         </SecondaryButton>
-                                                        <DangerButton
-                                                            onClick={() => handleDelete(item)}
-                                                            className="text-xs"
-                                                        >
-                                                            Hapus
-                                                        </DangerButton>
+                                                        {item.is_active ? (
+                                                            <SecondaryButton
+                                                                onClick={() => handleToggleStatus(item)}
+                                                                className="portal-master-kegiatan-toggle is-disable"
+                                                            >
+                                                                Nonaktifkan
+                                                            </SecondaryButton>
+                                                        ) : (
+                                                            <PrimaryButton
+                                                                onClick={() => handleToggleStatus(item)}
+                                                                className="portal-master-kegiatan-toggle is-enable"
+                                                            >
+                                                                Aktifkan
+                                                            </PrimaryButton>
+                                                        )}
                                                     </td>
                                                 )}
                                             </tr>
@@ -352,25 +369,6 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
                 </form>
             </Modal>
 
-            {/* Modal Konfirmasi Hapus */}
-            <Modal show={Boolean(deleteItem)} onClose={() => setDeleteItem(null)}>
-                <div className="p-6">
-                    <h3 className="text-lg font-medium text-gray-900">
-                        Konfirmasi Hapus
-                    </h3>
-                    <p className="mt-2 text-sm text-gray-600">
-                        Apakah Anda yakin ingin menghapus jadwal kegiatan <strong>{deleteItem?.nama_kegiatan}</strong> ({deleteItem?.kode_kegiatan})?
-                    </p>
-                    <div className="mt-6 flex justify-end gap-3">
-                        <SecondaryButton onClick={() => setDeleteItem(null)}>
-                            Batal
-                        </SecondaryButton>
-                        <DangerButton onClick={handleDelete}>
-                            Ya, Hapus
-                        </DangerButton>
-                    </div>
-                </div>
-            </Modal>
         </AuthenticatedLayout>
     );
 }

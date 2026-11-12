@@ -10,7 +10,7 @@ import confirmWithSweetAlert from '@/Components/confirmWithSweetAlert';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
-export default function Index({ mahasiswas, prodis, filters, totalCount }) {
+export default function Index({ mahasiswas, prodis, filters, totalCount, canManage = true, portalRole = 'Admin', routePrefix = 'admin.mahasiswa' }) {
     const [search, setSearch] = useState(filters.search || '');
     const [kodeProdi, setKodeProdi] = useState(filters.kode_prodi || '');
     const filterTimer = useRef(null);
@@ -42,7 +42,7 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
     const applyFilters = (nextSearch, nextKodeProdi, delay = 300) => {
         clearTimeout(filterTimer.current);
         filterTimer.current = setTimeout(() => {
-            router.get(route('admin.mahasiswa.index'), {
+            router.get(route(`${routePrefix}.index`), {
                 search: nextSearch || undefined,
                 kode_prodi: nextKodeProdi || undefined,
                 sort: filters.sort,
@@ -55,7 +55,7 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
         clearTimeout(filterTimer.current);
         const direction = filters.sort === column && filters.direction === 'asc' ? 'desc' : 'asc';
 
-        router.get(route('admin.mahasiswa.index'), {
+        router.get(route(`${routePrefix}.index`), {
             search: search || undefined,
             kode_prodi: kodeProdi || undefined,
             sort: column,
@@ -67,13 +67,13 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
         clearTimeout(filterTimer.current);
         setSearch('');
         setKodeProdi('');
-        router.get(route('admin.mahasiswa.index'), {
+        router.get(route(`${routePrefix}.index`), {
             sort: filters.sort,
             direction: filters.direction,
         }, { preserveState: true, preserveScroll: true, replace: true });
     };
 
-    const isFiltered = Boolean(search || kodeProdi);
+    const isFiltered = Boolean(search || (canManage && kodeProdi));
     const openCreateModal = () => {
         reset();
         clearErrors();
@@ -128,13 +128,13 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
         if (!confirmed) return;
 
         if (modalState.mode === 'create') {
-            post(route('admin.mahasiswa.store'), {
+            post(route(`${routePrefix}.store`), {
                 preserveScroll: true,
                 onSuccess: closeModal,
             });
         } else {
             put(
-                route('admin.mahasiswa.update', modalState.item.route_key),
+                route(`${routePrefix}.update`, modalState.item.route_key),
                 {
                     preserveScroll: true,
                     onSuccess: closeModal,
@@ -153,34 +153,39 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
         if (!confirmed) return;
 
         router.delete(
-            route('admin.mahasiswa.destroy', item.route_key),
+            route(`${routePrefix}.destroy`, item.route_key),
             { preserveScroll: true }
         );
     };
 
     return (
         <AuthenticatedLayout>
-            <Head title="Mahasiswa" />
+            <Head title={canManage ? 'Mahasiswa' : 'Mahasiswa Bimbingan'} />
 
             <div className="portal-admin-students">
                 <div className="portal-admin-students-content">
                     <header className="portal-dashboard-page-heading portal-admin-students-heading">
                         <div>
                             <p className="portal-dashboard-breadcrumb">
-                                Portal Admin <span>/</span> Mahasiswa
+                                Portal {portalRole} <span>/</span> {canManage ? 'Mahasiswa' : 'Mahasiswa Bimbingan'}
                             </p>
-                            <h1>Mahasiswa</h1>
-                            <p>Kelola data peserta dan program studi mahasiswa KKN.</p>
+                            <h1>{canManage ? 'Mahasiswa' : 'Mahasiswa Bimbingan'}</h1>
+                            <p>{canManage
+                                ? 'Kelola data peserta dan program studi mahasiswa KKN.'
+                                : 'Pantau mahasiswa KKN pada program studi bimbingan Anda.'}
+                            </p>
                         </div>
 
                         <div className="flex items-center gap-3">
                             <span className="portal-admin-students-count">
-                                Total Mahasiswa Terdaftar: <strong>{totalCount}</strong>
+                                {canManage ? 'Total Mahasiswa Terdaftar:' : 'Mahasiswa Bimbingan:'} <strong>{totalCount}</strong>
                             </span>
 
-                            <PrimaryButton onClick={openCreateModal}>
-                                + Tambah Mahasiswa
-                            </PrimaryButton>
+                            {canManage && (
+                                <PrimaryButton onClick={openCreateModal}>
+                                    + Tambah Mahasiswa
+                                </PrimaryButton>
+                            )}
                         </div>
                     </header>
 
@@ -208,31 +213,28 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
                                 />
                             </div>
 
-                            {/* Dropdown Program Studi */}
-                            <div className="portal-admin-students-program-filter">
-                                <label
-                                    htmlFor="kode_prodi"
-                                >
-                                    Filter Program Studi
-                                </label>
-                                <select
-                                    id="kode_prodi"
-                                    value={kodeProdi}
-                                    onChange={(e) => {
-                                        const value = e.target.value;
-                                        setKodeProdi(value);
-                                        applyFilters(search, value, 0);
-                                    }}
-                                    className="portal-admin-students-input"
-                                >
-                                    <option value="">Semua Program Studi</option>
-                                    {prodis.map((prodi) => (
-                                        <option key={prodi.kode_prodi} value={prodi.kode_prodi}>
-                                            {prodi.nama_prodi} ({prodi.fakultas})
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                            {canManage && (
+                                <div className="portal-admin-students-program-filter">
+                                    <label htmlFor="kode_prodi">Filter Program Studi</label>
+                                    <select
+                                        id="kode_prodi"
+                                        value={kodeProdi}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setKodeProdi(value);
+                                            applyFilters(search, value, 0);
+                                        }}
+                                        className="portal-admin-students-input"
+                                    >
+                                        <option value="">Semua Program Studi</option>
+                                        {prodis.map((prodi) => (
+                                            <option key={prodi.kode_prodi} value={prodi.kode_prodi}>
+                                                {prodi.nama_prodi} ({prodi.fakultas})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
 
                             {isFiltered && (
                                 <div className="portal-admin-students-reset-wrap">
@@ -315,6 +317,7 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
                                                         </span>
                                                     </td>
                                                     <td className="portal-admin-students-actions">
+                                                        {canManage ? (
                                                         <div className="portal-admin-students-action-menu">
                                                             <button
                                                                 type="button"
@@ -331,7 +334,7 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
                                                             {openActionMenu === mhs.id && (
                                                                 <div className="portal-admin-students-menu" role="menu">
                                                                     <Link
-                                                                        href={route('admin.mahasiswa.show', mhs.route_key)}
+                                                                        href={route(`${routePrefix}.show`, mhs.route_key)}
                                                                         className="portal-admin-students-menu-item"
                                                                         role="menuitem"
                                                                         onClick={() => setOpenActionMenu(null)}
@@ -357,6 +360,14 @@ export default function Index({ mahasiswas, prodis, filters, totalCount }) {
                                                                 </div>
                                                             )}
                                                         </div>
+                                                        ) : (
+                                                            <Link
+                                                                href={route(`${routePrefix}.show`, mhs.route_key)}
+                                                                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-700 shadow-sm hover:bg-gray-50"
+                                                            >
+                                                                Lihat Detail
+                                                            </Link>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             );

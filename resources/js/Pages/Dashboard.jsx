@@ -3,9 +3,13 @@ import { Head, Link, usePage } from '@inertiajs/react';
 
 export default function Dashboard({
     summary = { totalKegiatan: 0, totalDisetujui: 0, totalLapangan: 0, totalKampus: 0, totalJamDisetujui: 0 },
+    analytics = null,
+    managedProdi = null,
 }) {
     const { auth } = usePage().props;
     const isAdmin = auth.user.is_admin;
+    const isDosen = auth.user.is_dosen;
+    const isSupervisor = isAdmin || isDosen;
     const approvalRate = summary.totalKegiatan > 0
         ? Math.round((summary.totalDisetujui / summary.totalKegiatan) * 100)
         : 0;
@@ -14,6 +18,13 @@ export default function Dashboard({
         : 0);
     const lapanganRate = locationRate(summary.totalLapangan ?? 0);
     const kampusRate = locationRate(summary.totalKampus ?? 0);
+    const analyticsReportStatuses = [
+        { label: 'Disetujui', key: 'totalLaporanDisetujui', color: 'approved' },
+        { label: 'Menunggu', key: 'totalLaporanMenunggu', color: 'waiting' },
+        { label: 'Ditolak', key: 'totalLaporanDitolak', color: 'rejected' },
+    ];
+    const analyticsFacultyMax = Math.max(...(analytics?.mahasiswaPerFakultas ?? []).map((faculty) => faculty.total), 1);
+    const percentageOf = (value, total) => (total > 0 ? Math.round((value / total) * 100) : 0);
     const totalJam = Number(summary.totalJamDisetujui ?? 0);
     const totalJamLabel = Number.isInteger(totalJam) ? totalJam : totalJam.toFixed(1);
     const shortcuts = isAdmin
@@ -22,7 +33,11 @@ export default function Dashboard({
             { label: 'Mahasiswa', href: route('admin.mahasiswa.index'), icon: 'students' },
             { label: 'Jadwal Kegiatan', href: route('master-kegiatan.index'), icon: 'schedule' },
         ]
-        : [
+        : isDosen
+            ? [
+                { label: 'Mahasiswa Bimbingan', href: route('dosen.mahasiswa.index'), icon: 'students' },
+            ]
+            : [
             { label: 'Tambah Kegiatan', href: route('log-kegiatan.create'), icon: 'attendance' },
             { label: 'Kegiatan', href: route('log-kegiatan.index'), icon: 'history' },
             { label: 'Jadwal Kegiatan', href: route('mahasiswa.schedule.index'), icon: 'schedule' },
@@ -37,12 +52,14 @@ export default function Dashboard({
                     <header className="portal-dashboard-page-heading">
                         <div>
                             <p className="portal-dashboard-breadcrumb">
-                                Portal {isAdmin ? 'Admin' : 'Mahasiswa'} <span>/</span> Dashboard
+                                Portal {isAdmin ? 'Admin' : isDosen ? 'Dosen Pembimbing' : 'Mahasiswa'} <span>/</span> Dashboard
                             </p>
                             <h1>Dashboard</h1>
                             <p>{isAdmin
                                 ? 'Pantau kegiatan dan perkembangan mahasiswa KKN.'
-                                : 'Pantau aktivitas lapangan dan perkembangan KKN Anda.'}
+                                : isDosen
+                                    ? `Pantau mahasiswa bimbingan${managedProdi ? ` Program Studi ${managedProdi}` : ''}.`
+                                    : 'Pantau aktivitas lapangan dan perkembangan KKN Anda.'}
                             </p>
                         </div>
                     </header>
@@ -54,13 +71,15 @@ export default function Dashboard({
                             <span>
                                 {isAdmin
                                     ? 'Tinjau kegiatan dan pantau perkembangan mahasiswa.'
-                                    : 'Setiap kegiatan yang Anda catat membantu memantau progres program.'}
+                                    : isDosen
+                                        ? 'Pantau perkembangan mahasiswa sesuai program studi bimbingan Anda.'
+                                        : 'Setiap kegiatan yang Anda catat membantu memantau progres program.'}
                             </span>
                         </div>
                         <aside className="portal-dashboard-identity">
-                            <span>{isAdmin ? 'AKUN' : 'NRP / NIM'}</span>
-                            <strong>{isAdmin ? 'Admin KKN' : auth.user.nim || 'Mahasiswa'}</strong>
-                            <small>{isAdmin ? 'Administrator' : 'Mahasiswa KKN 2026'}</small>
+                            <span>{isSupervisor ? 'AKUN' : 'NRP / NIM'}</span>
+                            <strong>{isAdmin ? 'Admin KKN' : isDosen ? managedProdi || 'Dosen KKN' : auth.user.nim || 'Mahasiswa'}</strong>
+                            <small>{isAdmin ? 'Administrator' : isDosen ? 'Dosen Pembimbing' : 'Mahasiswa KKN 2026'}</small>
                         </aside>
                     </section>
 
@@ -86,7 +105,7 @@ export default function Dashboard({
                         <article className="portal-dashboard-quick-card">
                             <div className="portal-dashboard-panel-kicker">AKSES CEPAT</div>
                             <h2>Menu</h2>
-                            <p>Buka halaman yang sering Anda perlukan.</p>
+                            <p>{isDosen ? 'Lihat mahasiswa pada program studi Anda.' : 'Buka halaman yang sering Anda perlukan.'}</p>
                             <div className="portal-dashboard-quick-links">
                                 {shortcuts.map((shortcut) => (
                                     <Link key={shortcut.label} href={shortcut.href}>
@@ -113,13 +132,43 @@ export default function Dashboard({
                             ) : (
                                 <p>Belum ada kegiatan yang tercatat.</p>
                             )}
-                            <Link href={route('log-kegiatan.index')}>
-                                Lihat kegiatan
+                            <Link href={isDosen ? route('dosen.mahasiswa.index') : route('log-kegiatan.index')}>
+                                {isDosen ? 'Lihat mahasiswa' : 'Lihat kegiatan'}
                                 <span aria-hidden="true"> →</span>
                             </Link>
                         </article>
 
-                        <article className="portal-dashboard-panel portal-dashboard-approval">
+                        {isSupervisor ? (
+                            <article className="portal-dashboard-panel portal-dashboard-analytics-panel">
+                                <div className="portal-dashboard-analytics-card-heading">
+                                    <p className="portal-dashboard-panel-kicker">SEBARAN</p>
+                                    <div className="portal-dashboard-analytics-title">
+                                        <h2>Mahasiswa per Fakultas</h2>
+                                        <strong>{analytics?.totalMahasiswa ?? 0}</strong>
+                                    </div>
+                                </div>
+                                {!analytics || analytics.mahasiswaPerFakultas.length === 0 ? (
+                                    <p className="portal-dashboard-analytics-empty">Belum ada data mahasiswa.</p>
+                                ) : (
+                                    <div className="portal-dashboard-analytics-rows">
+                                        {analytics.mahasiswaPerFakultas.map((faculty) => {
+                                            const percentage = percentageOf(faculty.total, analytics.totalMahasiswa);
+
+                                            return (
+                                                <div className="portal-dashboard-analytics-row" key={faculty.fakultas}>
+                                                    <span>{faculty.fakultas} ({faculty.total})</span>
+                                                    <div className="portal-dashboard-progress-track">
+                                                        <span style={{ width: `${percentageOf(faculty.total, analyticsFacultyMax)}%` }} />
+                                                    </div>
+                                                    <strong>{percentage}%</strong>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </article>
+                        ) : (
+                            <article className="portal-dashboard-panel portal-dashboard-approval">
                             <div className="portal-dashboard-approval-heading">
                                 <div>
                                     <p className="portal-dashboard-panel-kicker">PROGRES</p>
@@ -136,9 +185,41 @@ export default function Dashboard({
                             <Link href={route('log-kegiatan.index')}>
                                 Lihat kegiatan <span aria-hidden="true"> →</span>
                             </Link>
-                        </article>
+                            </article>
+                        )}
 
-                        <article className="portal-dashboard-panel portal-dashboard-location">
+                        {isSupervisor ? (
+                            <article className="portal-dashboard-panel portal-dashboard-analytics-panel">
+                                <div className="portal-dashboard-analytics-card-heading">
+                                    <p className="portal-dashboard-panel-kicker">VERIFIKASI</p>
+                                    <div className="portal-dashboard-analytics-title">
+                                        <h2>Status Laporan</h2>
+                                        <strong>{analytics?.totalLaporan ?? 0}</strong>
+                                    </div>
+                                </div>
+                                {!analytics || analytics.totalLaporan === 0 ? (
+                                    <p className="portal-dashboard-analytics-empty">Belum ada laporan terkirim.</p>
+                                ) : (
+                                    <div className="portal-dashboard-analytics-rows">
+                                        {analyticsReportStatuses.map((status) => {
+                                            const total = analytics[status.key];
+                                            const percentage = percentageOf(total, analytics.totalLaporan);
+
+                                            return (
+                                                <div className="portal-dashboard-analytics-row" key={status.key}>
+                                                    <span>{status.label} ({total})</span>
+                                                    <div className={`portal-dashboard-progress-track is-${status.color}`}>
+                                                        <span style={{ width: `${percentage}%` }} />
+                                                    </div>
+                                                    <strong>{percentage}%</strong>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </article>
+                        ) : (
+                            <article className="portal-dashboard-panel portal-dashboard-location">
                             <div>
                                 <p className="portal-dashboard-panel-kicker">LOKASI</p>
                                 <h2>Sebaran Lokasi</h2>
@@ -165,7 +246,8 @@ export default function Dashboard({
                                     <small>{summary.totalKampus ?? 0} kegiatan</small>
                                 </div>
                             </div>
-                        </article>
+                            </article>
+                        )}
                     </section>
                 </div>
             </div>

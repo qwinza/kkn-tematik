@@ -18,6 +18,13 @@ class MasterKegiatan extends Model
      */
     protected $guarded = ['id'];
 
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
+    }
+
     public function prodi(): BelongsTo
     {
         return $this->belongsTo(Prodi::class, 'kode_prodi', 'kode_prodi');

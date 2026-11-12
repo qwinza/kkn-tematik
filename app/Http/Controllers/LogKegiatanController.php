@@ -57,7 +57,9 @@ class LogKegiatanController extends Controller
             ? $this->filteredLogsQuery($filters, true, 'menunggu')->count()
             : 0;
         $masterKegiatans = MasterKegiatan::query()
-            ->when(! $isAdmin, fn ($query) => $query->where('kode_prodi', $user?->peserta?->kode_prodi))
+            ->when(! $isAdmin, fn ($query) => $query
+                ->where('kode_prodi', $user?->peserta?->kode_prodi)
+                ->where('is_active', true))
             ->orderBy('nama_kegiatan')
             ->get(['id', 'kode_kegiatan', 'nama_kegiatan', 'kategori', 'kode_prodi']);
         $prodis = $isAdmin
@@ -204,6 +206,7 @@ class LogKegiatanController extends Controller
         $peserta = $user->peserta;
         $masterKegiatans = MasterKegiatan::query()
             ->where('kode_prodi', $peserta->kode_prodi)
+            ->where('is_active', true)
             ->orderBy('kode_kegiatan')
             ->get();
         $student = [
@@ -332,8 +335,16 @@ class LogKegiatanController extends Controller
             $validated = $request->validate([
                 'master_kegiatan_id' => [
                     'required',
-                    Rule::exists('master_kegiatans', 'id')
-                        ->where(fn ($query) => $query->where('kode_prodi', $peserta->kode_prodi)),
+                    Rule::exists('master_kegiatans', 'id')->where(function ($query) use ($peserta, $logKegiatan): void {
+                        $query->where('kode_prodi', $peserta->kode_prodi)
+                            ->where(function ($query) use ($logKegiatan): void {
+                                $query->where('is_active', true);
+
+                                if ($logKegiatan->master_kegiatan_id !== null) {
+                                    $query->orWhere('id', $logKegiatan->master_kegiatan_id);
+                                }
+                            });
+                    }),
                 ],
             ], [
                 'master_kegiatan_id.required' => 'Pilih kode aktivitas kegiatan.',
@@ -613,6 +624,13 @@ class LogKegiatanController extends Controller
         $peserta = $logKegiatan->peserta ?? $user->peserta;
         $masterKegiatans = MasterKegiatan::query()
             ->where('kode_prodi', $peserta?->kode_prodi)
+            ->where(function ($query) use ($logKegiatan): void {
+                $query->where('is_active', true);
+
+                if ($logKegiatan->master_kegiatan_id !== null) {
+                    $query->orWhere('id', $logKegiatan->master_kegiatan_id);
+                }
+            })
             ->orderBy('kode_kegiatan')
             ->get();
 

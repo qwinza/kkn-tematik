@@ -15,20 +15,20 @@ class KegiatanSeeder extends Seeder
     public function run()
     {
         $prodi = [
-            ['kode_prodi' => 'TI', 'nama_prodi' => 'Teknik Industri'],
-            ['kode_prodi' => 'TK', 'nama_prodi' => 'Teknik Kimia'],
-            ['kode_prodi' => 'MS', 'nama_prodi' => 'Teknik Mesin'],
-            ['kode_prodi' => 'EL', 'nama_prodi' => 'Teknik Elektro'],
-            ['kode_prodi' => 'IF', 'nama_prodi' => 'Informatika'],
-            ['kode_prodi' => 'SI', 'nama_prodi' => 'Sistem Informasi'],
-            ['kode_prodi' => 'TG', 'nama_prodi' => 'Teknik Geodesi'],
-            ['kode_prodi' => 'TL', 'nama_prodi' => 'Teknik Lingkungan'],
-            ['kode_prodi' => 'TS', 'nama_prodi' => 'Teknik Sipil'],
-            ['kode_prodi' => 'PWK', 'nama_prodi' => 'Perencanaan Wilayah dan Kota'],
-            ['kode_prodi' => 'ARS', 'nama_prodi' => 'Arsitektur'],
-            ['kode_prodi' => 'DKV', 'nama_prodi' => 'Desain Komunikasi Visual'],
-            ['kode_prodi' => 'DI', 'nama_prodi' => 'Desain Interior'],
-            ['kode_prodi' => 'DP', 'nama_prodi' => 'Desain Produk'],
+            ['kode_prodi' => 'TI',  'nama_prodi' => 'Teknik Industri',              'fakultas' => 'FTI'],
+            ['kode_prodi' => 'TK',  'nama_prodi' => 'Teknik Kimia',                 'fakultas' => 'FTI'],
+            ['kode_prodi' => 'MS',  'nama_prodi' => 'Teknik Mesin',                 'fakultas' => 'FTI'],
+            ['kode_prodi' => 'EL',  'nama_prodi' => 'Teknik Elektro',               'fakultas' => 'FTI'],
+            ['kode_prodi' => 'IF',  'nama_prodi' => 'Informatika',                  'fakultas' => 'FTI'],
+            ['kode_prodi' => 'SI',  'nama_prodi' => 'Sistem Informasi',             'fakultas' => 'FTI'],
+            ['kode_prodi' => 'TG',  'nama_prodi' => 'Teknik Geodesi',               'fakultas' => 'FTSP'],
+            ['kode_prodi' => 'TL',  'nama_prodi' => 'Teknik Lingkungan',            'fakultas' => 'FTSP'],
+            ['kode_prodi' => 'TS',  'nama_prodi' => 'Teknik Sipil',                 'fakultas' => 'FTSP'],
+            ['kode_prodi' => 'PWK', 'nama_prodi' => 'Perencanaan Wilayah dan Kota', 'fakultas' => 'FTSP'],
+            ['kode_prodi' => 'ARS', 'nama_prodi' => 'Arsitektur',                   'fakultas' => 'FAD'],
+            ['kode_prodi' => 'DKV', 'nama_prodi' => 'Desain Komunikasi Visual',     'fakultas' => 'FAD'],
+            ['kode_prodi' => 'DI',  'nama_prodi' => 'Desain Interior',              'fakultas' => 'FAD'],
+            ['kode_prodi' => 'DP',  'nama_prodi' => 'Desain Produk',                'fakultas' => 'FAD'],
         ];
 
         DB::table('prodi')->insert($prodi);

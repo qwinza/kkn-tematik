@@ -5,7 +5,9 @@ use App\Http\Controllers\MasterKegiatanController;
 use App\Http\Controllers\ProdiController;
 use App\Http\Controllers\ProfileController;
 use App\Models\LogKegiatan;
+use App\Models\Peserta;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -15,24 +17,84 @@ Route::get('/', function () {
 
 Route::get('/dashboard', function (Request $request) {
     $user = $request->user();
+    $isAdmin = $user?->isAdmin() ?? false;
+    $isDosen = $user?->isDosen() ?? false;
+    $dosenProdiName = $isDosen ? $user->prodi?->nama_prodi : null;
 
     $pesertaId = $user?->peserta?->id;
     $logs = LogKegiatan::query()
-        ->when(! $user?->isAdmin(), fn ($query) => $query->where('peserta_id', $pesertaId ?? 0));
+        ->when($isDosen, fn ($query) => $query->whereHas('peserta', fn ($pesertaQuery) => $pesertaQuery
+            ->where('kode_prodi', $user->kode_prodi)
+            ->orWhere('program_studi', $dosenProdiName)))
+        ->when(! $isAdmin && ! $isDosen, fn ($query) => $query->where('peserta_id', $pesertaId ?? 0));
 
     $totalJamDisetujui = round(
         (clone $logs)->where('status', 'disetujui')->get()->sum(fn (LogKegiatan $log) => $log->durasiJam()),
         1
     );
 
+    $summary = [
+        'totalKegiatan' => (clone $logs)->count(),
+        'totalDisetujui' => (clone $logs)->where('status', 'disetujui')->count(),
+        'totalLapangan' => (clone $logs)->where('lokasi_kegiatan', 'Lapangan')->count(),
+        'totalKampus' => (clone $logs)->where('lokasi_kegiatan', 'Kampus ITENAS')->count(),
+        'totalJamDisetujui' => $totalJamDisetujui,
+    ];
+
+    $analytics = null;
+
+    if ($isAdmin || $isDosen) {
+        if ($isDosen) {
+            $managedStudentCount = Peserta::query()
+                ->whereHas('user', fn ($query) => $query->where('role', 'mahasiswa'))
+                ->where(fn ($query) => $query
+                    ->where('kode_prodi', $user->kode_prodi)
+                    ->orWhere('program_studi', $dosenProdiName))
+                ->count();
+
+            $studentsPerFaculty = collect([[
+                'fakultas' => $user->prodi?->fakultas ?: 'Belum ditentukan',
+                'total' => $managedStudentCount,
+            ]]);
+        } else {
+            $studentsPerFaculty = Peserta::query()
+                ->join('users', 'users.id', '=', 'pesertas.user_id')
+                ->leftJoin('prodi', 'prodi.kode_prodi', '=', 'pesertas.kode_prodi')
+                ->where('users.role', 'mahasiswa')
+                ->selectRaw("COALESCE(NULLIF(prodi.fakultas, ''), 'Belum ditentukan') as fakultas, COUNT(pesertas.id) as total")
+                ->groupBy('fakultas')
+                ->orderBy('fakultas')
+                ->get();
+        }
+
+        $reportsByStatus = LogKegiatan::query()
+            ->whereIn('status', ['disetujui', 'menunggu', 'ditolak'])
+            ->when($isDosen, fn ($query) => $query->whereHas('peserta', fn ($pesertaQuery) => $pesertaQuery
+                ->where('kode_prodi', $user->kode_prodi)
+                ->orWhere('program_studi', $dosenProdiName)))
+            ->select('status', DB::raw('COUNT(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $analytics = [
+            'totalMahasiswa' => Peserta::query()
+                ->whereHas('user', fn ($query) => $query->where('role', 'mahasiswa'))
+                ->when($isDosen, fn ($query) => $query->where(fn ($query) => $query
+                    ->where('kode_prodi', $user->kode_prodi)
+                    ->orWhere('program_studi', $dosenProdiName)))
+                ->count(),
+            'totalLaporan' => $reportsByStatus->sum(),
+            'totalLaporanDisetujui' => $reportsByStatus->get('disetujui', 0),
+            'totalLaporanMenunggu' => $reportsByStatus->get('menunggu', 0),
+            'totalLaporanDitolak' => $reportsByStatus->get('ditolak', 0),
+            'mahasiswaPerFakultas' => $studentsPerFaculty,
+        ];
+    }
+
     return Inertia::render('Dashboard', [
-        'summary' => [
-            'totalKegiatan' => (clone $logs)->count(),
-            'totalDisetujui' => (clone $logs)->where('status', 'disetujui')->count(),
-            'totalLapangan' => (clone $logs)->where('lokasi_kegiatan', 'Lapangan')->count(),
-            'totalKampus' => (clone $logs)->where('lokasi_kegiatan', 'Kampus ITENAS')->count(),
-            'totalJamDisetujui' => $totalJamDisetujui,
-        ],
+        'summary' => $summary,
+        'analytics' => $analytics,
+        'managedProdi' => $isDosen ? $user->prodi?->nama_prodi : null,
     ]);
 })->middleware(['auth'])->name('dashboard');
 
@@ -50,7 +112,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/master-kegiatan', [MasterKegiatanController::class, 'index'])->name('master-kegiatan.index');
     Route::post('/master-kegiatan', [MasterKegiatanController::class, 'store'])->name('master-kegiatan.store');
     Route::match(['put', 'patch'], '/master-kegiatan/{master_kegiatan}', [MasterKegiatanController::class, 'update'])->name('master-kegiatan.update');
-    Route::delete('/master-kegiatan/{master_kegiatan}', [MasterKegiatanController::class, 'destroy'])->name('master-kegiatan.destroy');
+    Route::patch('/master-kegiatan/{master_kegiatan}/status', [MasterKegiatanController::class, 'updateStatus'])->name('master-kegiatan.status');
 
     // Log Kegiatan CRUD & Stepper Handlers
     Route::get('/log-kegiatan', [LogKegiatanController::class, 'index'])->name('log-kegiatan.index');
@@ -77,4 +139,5 @@ Route::middleware('auth')->group(function () {
 
 require __DIR__.'/auth.php';
 require __DIR__.'/admin/mahasiswa.php';
+require __DIR__.'/dosen.php';
 require __DIR__.'/mahasiswa/rencana-kehadiran.php';

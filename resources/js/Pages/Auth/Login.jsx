@@ -76,7 +76,7 @@ export default function Login({ status }) {
                                 {/* IDENTIFIER */}
                                 <div className="login-field">
                                     <label htmlFor="identifier">
-                                        NIM
+                                        NIM / Email
                                     </label>
 
                                     <div
@@ -135,7 +135,7 @@ export default function Login({ status }) {
                                 <div className="login-field">
                                     <div className="login-label-row">
                                         <label htmlFor="password">
-                                            PIN Kampus
+                                            Password / PIN Kampus
                                         </label>
                                     </div>
 
