@@ -15,17 +15,26 @@ Route::get('/', function () {
 
 Route::get('/dashboard', function (Request $request) {
     $user = $request->user();
+
     $pesertaId = $user?->peserta?->id;
     $logs = LogKegiatan::query()
         ->when(! $user?->isAdmin(), fn ($query) => $query->where('peserta_id', $pesertaId ?? 0));
+
+    $totalJamDisetujui = round(
+        (clone $logs)->where('status', 'disetujui')->get()->sum(fn (LogKegiatan $log) => $log->durasiJam()),
+        1
+    );
 
     return Inertia::render('Dashboard', [
         'summary' => [
             'totalKegiatan' => (clone $logs)->count(),
             'totalDisetujui' => (clone $logs)->where('status', 'disetujui')->count(),
+            'totalLapangan' => (clone $logs)->where('lokasi_kegiatan', 'Lapangan')->count(),
+            'totalKampus' => (clone $logs)->where('lokasi_kegiatan', 'Kampus ITENAS')->count(),
+            'totalJamDisetujui' => $totalJamDisetujui,
         ],
     ]);
-})->middleware(['auth', 'verified'])->name('dashboard');
+})->middleware(['auth'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -50,6 +59,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/log-kegiatan/{log_kegiatan}/save-step', [LogKegiatanController::class, 'saveStep'])->name('log-kegiatan.save-step');
     Route::post('/log-kegiatan/{log_kegiatan}/approve', [LogKegiatanController::class, 'approve'])->name('log-kegiatan.approve');
     Route::post('/log-kegiatan/{log_kegiatan}/reject', [LogKegiatanController::class, 'reject'])->name('log-kegiatan.reject');
+    Route::delete('/log-kegiatan/{log_kegiatan}', [LogKegiatanController::class, 'destroy'])->name('log-kegiatan.destroy');
+    Route::get('/log-kegiatan/export', [LogKegiatanController::class, 'export'])
+        ->middleware('admin')
+        ->name('log-kegiatan.export');
+    Route::post('/log-kegiatan/approve-all', [LogKegiatanController::class, 'approveAll'])
+        ->middleware('admin')
+        ->name('log-kegiatan.approve-all');
     Route::post('/log-kegiatan/step-1', [LogKegiatanController::class, 'saveStep1'])->name('log-kegiatan.step-1');
     Route::post('/log-kegiatan/{log_kegiatan}/step-1', [LogKegiatanController::class, 'saveStep1'])->name('log-kegiatan.step-1.update');
     Route::post('/log-kegiatan/{log_kegiatan}/step-2', [LogKegiatanController::class, 'saveStep2'])->name('log-kegiatan.step-2');

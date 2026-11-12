@@ -47,13 +47,14 @@ class HandleInertiaRequests extends Middleware
             'activityNotifications' => fn () => $request->user()?->isMahasiswa() && $request->user()->peserta
                 ? LogKegiatan::query()
                     ->where('peserta_id', $request->user()->peserta->id)
-                    ->whereIn('status', ['disetujui', 'ditolak'])
+                    ->whereIn('status', ['menunggu', 'disetujui', 'ditolak'])
                     ->with('masterKegiatan:id,nama_kegiatan')
                     ->latest('updated_at')
                     ->limit(5)
                     ->get(['id', 'master_kegiatan_id', 'status', 'updated_at'])
                     ->map(fn (LogKegiatan $log): array => [
                         'id' => $log->id,
+                        'route_key' => $log->getRouteKey(),
                         'status' => $log->status,
                         'kegiatan' => $log->masterKegiatan?->nama_kegiatan ?? 'Log kegiatan',
                         'updated_at' => $log->updated_at?->toDateTimeString(),

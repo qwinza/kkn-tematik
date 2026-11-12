@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasEncryptedRouteKey;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +10,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LogKegiatan extends Model
 {
+    use HasEncryptedRouteKey;
     use HasFactory;
+
+    protected $appends = ['route_key'];
 
     /**
      * The attributes that aren't mass assignable.
@@ -55,11 +59,50 @@ class LogKegiatan extends Model
     }
 
     /**
+     * Durasi kegiatan dalam jam, dihitung dari jam_mulai & jam_selesai
+     * dengan fallback ke pola "HH:MM - HH:MM" pada jam_kehadiran.
+     */
+    public function durasiJam(): float
+    {
+        $start = $this->toMinutes($this->jam_mulai);
+        $end = $this->toMinutes($this->jam_selesai);
+
+        if (
+            ($start === null || $end === null)
+            && is_string($this->jam_kehadiran)
+            && preg_match('/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/', $this->jam_kehadiran, $matches)
+        ) {
+            $start ??= $this->toMinutes($matches[1]);
+            $end ??= $this->toMinutes($matches[2]);
+        }
+
+        if ($start === null || $end === null || $end <= $start) {
+            return 0.0;
+        }
+
+        return ($end - $start) / 60;
+    }
+
+    private function toMinutes(?string $time): ?int
+    {
+        if (! is_string($time) || ! preg_match('/^(\d{1,2}):(\d{2})$/', $time, $matches)) {
+            return null;
+        }
+
+        return ((int) $matches[1]) * 60 + (int) $matches[2];
+    }
+
+    /**
      * Relasi ke peserta pemilik log kegiatan.
      */
     public function peserta(): BelongsTo
     {
         return $this->belongsTo(Peserta::class);
+    }
+
+    public function rencanaKehadiran(): BelongsTo
+    {
+        return $this->belongsTo(RencanaKehadiran::class);
     }
 
     /**

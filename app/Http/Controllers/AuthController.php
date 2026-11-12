@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Peserta;
 use App\Models\Prodi;
 use App\Models\User;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -111,17 +113,19 @@ class AuthController extends Controller
     }
 
     /**
-     * Logika autentikasi Mahasiswa via database lokal atau simulasi API ITENAS.
+     * Autentikasi mahasiswa melalui API kampus untuk peserta KKN yang terdaftar.
      *
      * @throws ValidationException
      */
     protected function handleMahasiswaLogin(Request $request, string $nim, string $password): RedirectResponse
     {
-        $user = User::where('nim', $nim)
-            ->where('role', 'mahasiswa')
+        $peserta = Peserta::query()
+            ->where('nim', $nim)
+            ->whereHas('user', fn ($query) => $query->where('role', 'mahasiswa'))
+            ->with('user')
             ->first();
 
-        if (! $user || ! Hash::check($password, $user->password)) {
+        if (! $peserta || ! $peserta->user) {
             $this->hitRateLimiter($nim, $request->ip());
 
             throw ValidationException::withMessages([
@@ -130,21 +134,104 @@ class AuthController extends Controller
             ]);
         }
 
-        if (! $user->peserta) {
-            Peserta::create([
-                'user_id' => $user->id,
-                'nama_lengkap' => $user->name,
-                'nim' => $nim,
+        // Fallback pengembangan: login mahasiswa pakai password lokal saat APP_ENV=local.
+        if (app()->environment('local')) {
+            if (Hash::check($password, $peserta->user->password)) {
+                $this->clearRateLimiter($nim, $request->ip());
+                Auth::login($peserta->user, $request->boolean('remember'));
+                $request->session()->regenerate();
+
+                return redirect()->intended(route('dashboard', absolute: false));
+            }
+
+            $this->hitRateLimiter($nim, $request->ip());
+
+            throw ValidationException::withMessages([
+                'identifier' => trans('auth.failed'),
+                'email' => trans('auth.failed'),
             ]);
-        } else {
-            $this->syncProdi($user->peserta);
         }
 
+        $endpoint = config('services.campus_auth.endpoint');
+        $apiKey = config('services.campus_auth.api_key');
+
+        if (! filled($endpoint) || ! filled($apiKey)) {
+            $this->hitRateLimiter($nim, $request->ip());
+
+            throw ValidationException::withMessages([
+                'identifier' => 'Layanan login mahasiswa belum dikonfigurasi.',
+            ]);
+        }
+
+        try {
+            $response = Http::acceptJson()
+                ->timeout(max(1, (int) config('services.campus_auth.timeout', 10)))
+                ->post($endpoint, [
+                    'APIKEY' => $apiKey,
+                    'username' => $nim,
+                    'password' => $password,
+                ]);
+        } catch (ConnectionException) {
+            $this->hitRateLimiter($nim, $request->ip());
+
+            throw ValidationException::withMessages([
+                'identifier' => 'Layanan kampus tidak dapat dihubungi. Silakan coba lagi.',
+            ]);
+        }
+
+        $payload = $response->json();
+        $apiStatus = is_array($payload) ? strtolower((string) ($payload['status'] ?? '')) : '';
+        $isAuthenticated = $response->successful()
+            && is_array($payload)
+            && (($payload['success'] ?? false) === true
+                || ($payload['status'] ?? false) === true
+                || in_array($apiStatus, ['success', 'sukses', 'ok'], true));
+
+        if (! $isAuthenticated) {
+            $this->hitRateLimiter($nim, $request->ip());
+
+            throw ValidationException::withMessages([
+                'identifier' => trans('auth.failed'),
+                'email' => trans('auth.failed'),
+            ]);
+        }
+
+        $user = $peserta->user;
+        $this->syncCampusProfile($user, $peserta, $payload);
         $this->clearRateLimiter($nim, $request->ip());
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
         return redirect()->intended(route('dashboard', absolute: false));
+    }
+
+    /**
+     * Sinkronkan identitas yang diberikan API tanpa menimpa data lokal yang tidak tersedia di respons.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    protected function syncCampusProfile(User $user, Peserta $peserta, array $payload): void
+    {
+        $profile = is_array($payload['data'] ?? null) ? $payload['data'] : $payload;
+        $name = $profile['nama_lengkap'] ?? $profile['nama'] ?? $profile['name'] ?? null;
+        $programStudi = $profile['program_studi'] ?? $profile['nama_prodi'] ?? $profile['prodi'] ?? null;
+
+        if (is_array($programStudi)) {
+            $programStudi = $programStudi['nama_prodi'] ?? $programStudi['nama'] ?? null;
+        }
+
+        if (is_string($name) && trim($name) !== '') {
+            $name = trim($name);
+            $user->update(['name' => $name]);
+            $peserta->update(['nama_lengkap' => $name]);
+        }
+
+        if (is_string($programStudi) && trim($programStudi) !== '') {
+            $peserta->update(['program_studi' => trim($programStudi)]);
+            $this->syncProdi($peserta, trim($programStudi));
+        } else {
+            $this->syncProdi($peserta);
+        }
     }
 
     protected function syncProdi(Peserta $peserta, ?string $programStudi = null): void

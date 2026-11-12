@@ -1,8 +1,13 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import InputError from '@/Components/InputError';
+import InputLabel from '@/Components/InputLabel';
+import Modal from '@/Components/Modal';
+import PrimaryButton from '@/Components/PrimaryButton';
+import SecondaryButton from '@/Components/SecondaryButton';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 
-export default function Index({ peserta, rencanaKehadirans, sessions = [], today }) {
+export default function Index({ peserta, rencanaKehadirans, sessions = [] }) {
     const { flash } = usePage().props;
 
     const formatSessionLabel = (session) => {
@@ -23,10 +28,40 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        post(route('mahasiswa.rencana-kehadiran.store'), {
+        post(route('mahasiswa.schedule.store'), {
             onSuccess: () => {
                 reset();
             },
+        });
+    };
+
+    const [reschedule, setReschedule] = useState({ isOpen: false, item: null });
+
+    const rForm = useForm({
+        tanggal_rencana: '',
+        jam_kehadiran: '',
+    });
+
+    const openReschedule = (item) => {
+        rForm.clearErrors();
+        rForm.setData({
+            tanggal_rencana: (item.tanggal_rencana || '').split('T')[0],
+            jam_kehadiran: item.jam_kehadiran || '',
+        });
+        setReschedule({ isOpen: true, item });
+    };
+
+    const closeReschedule = () => {
+        setReschedule({ isOpen: false, item: null });
+        rForm.reset();
+        rForm.clearErrors();
+    };
+
+    const handleRescheduleSubmit = (e) => {
+        e.preventDefault();
+        rForm.put(route('mahasiswa.schedule.update', reschedule.item.route_key), {
+            preserveScroll: true,
+            onSuccess: () => closeReschedule(),
         });
     };
 
@@ -65,7 +100,7 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
             header={
                 <div>
                     <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                        Rencana Kehadiran Mahasiswa
+                        Riwayat Kehadiran
                     </h2>
                     <p className="text-xs text-gray-500 mt-1">
                         Pencatatan rencana tanggal dan sesi kehadiran kegiatan KKN Tematik
@@ -73,7 +108,7 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
                 </div>
             }
         >
-            <Head title="Rencana Kehadiran Mahasiswa" />
+            <Head title="Riwayat Kehadiran" />
 
             <div className="py-8">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
@@ -156,11 +191,11 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
                         </div>
                     </div>
 
-                    {/* Section B: Formulir Rencana Kehadiran */}
+                    {/* Section B: Atur Jadwal Kehadiran */}
                     <div className="overflow-hidden rounded-lg bg-white shadow-sm">
                         <div className="border-b border-gray-100 bg-gray-50 px-6 py-4">
                             <h3 className="text-base font-semibold leading-6 text-gray-900">
-                                Formulir Rencana Kehadiran
+                                Atur Jadwal Kehadiran
                             </h3>
                             <p className="mt-0.5 text-xs text-gray-500">
                                 Pilih tanggal dan sesi kehadiran yang akan dihadiri
@@ -179,7 +214,6 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
                                     <input
                                         id="tanggal_rencana"
                                         type="date"
-                                        min={today}
                                         value={data.tanggal_rencana}
                                         onChange={(e) =>
                                             setData('tanggal_rencana', e.target.value)
@@ -238,14 +272,14 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
                         </form>
                     </div>
 
-                    {/* Section C: Riwayat Rencana Kehadiran */}
+                    {/* Section C: Riwayat Kehadiran */}
                     <div className="overflow-hidden rounded-lg bg-white shadow-sm">
                         <div className="border-b border-gray-100 bg-gray-50 px-6 py-4">
                             <h3 className="text-base font-semibold leading-6 text-gray-900">
-                                Riwayat Rencana Kehadiran
+                                Riwayat Kehadiran
                             </h3>
                             <p className="mt-0.5 text-xs text-gray-500">
-                                Daftar rencana kehadiran yang telah Anda jadwalkan
+                                Jadwal kehadiran Anda dan log kegiatan yang terkait.
                             </p>
                         </div>
 
@@ -277,6 +311,18 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
                                         >
                                             Tanggal Dibuat
                                         </th>
+                                        <th
+                                            scope="col"
+                                            className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+                                        >
+                                            Log Kegiatan
+                                        </th>
+                                        <th
+                                            scope="col"
+                                            className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500"
+                                        >
+                                            Aksi
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 bg-white">
@@ -307,13 +353,42 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
                                                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                                                         {formatDateTime(item.created_at)}
                                                     </td>
+                                                    <td className="px-6 py-4 text-sm text-gray-700">
+                                                        {item.log_kegiatans?.length ? (
+                                                            <div className="flex flex-col gap-2">
+                                                                {item.log_kegiatans.map((log) => (
+                                                                    <Link
+                                                                        key={log.id}
+                                                                        href={route('log-kegiatan.show', log.route_key)}
+                                                                        className="font-medium text-emerald-700 hover:underline"
+                                                                    >
+                                                                        {log.master_kegiatan?.nama_kegiatan || 'Lihat log kegiatan'}
+                                                                        <span className="ml-2 text-xs text-gray-500">
+                                                                            ({log.status})
+                                                                        </span>
+                                                                    </Link>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-gray-500">Belum ada log kegiatan</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="whitespace-nowrap px-6 py-4 text-sm">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openReschedule(item)}
+                                                            className="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition duration-150"
+                                                        >
+                                                            Reschedule
+                                                        </button>
+                                                    </td>
                                                 </tr>
                                             );
                                         })
                                     ) : (
                                         <tr>
                                             <td
-                                                colSpan={4}
+                                                colSpan={6}
                                                 className="px-6 py-12 text-center text-sm text-gray-500"
                                             >
                                                 <div className="flex flex-col items-center justify-center space-y-2">
@@ -395,6 +470,58 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
                     </div>
                 </div>
             </div>
+
+            <Modal show={reschedule.isOpen} onClose={closeReschedule} maxWidth="lg">
+                <form onSubmit={handleRescheduleSubmit} className="p-6">
+                    <h2 className="text-lg font-semibold text-gray-900">
+                        Reschedule Jadwal Kehadiran
+                    </h2>
+                    <p className="mt-1 text-sm text-gray-600">
+                        Ubah tanggal dan sesi kehadiran untuk jadwal ini.
+                    </p>
+
+                    <div className="mt-6 space-y-4">
+                        <div>
+                            <InputLabel htmlFor="reschedule_tanggal_rencana" value="Tanggal Rencana" />
+                            <input
+                                id="reschedule_tanggal_rencana"
+                                type="date"
+                                value={rForm.data.tanggal_rencana}
+                                onChange={(e) => rForm.setData('tanggal_rencana', e.target.value)}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                            />
+                            <InputError message={rForm.errors.tanggal_rencana} className="mt-1" />
+                        </div>
+
+                        <div>
+                            <InputLabel htmlFor="reschedule_jam_kehadiran" value="Sesi Kehadiran" />
+                            <select
+                                id="reschedule_jam_kehadiran"
+                                value={rForm.data.jam_kehadiran}
+                                onChange={(e) => rForm.setData('jam_kehadiran', e.target.value)}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                            >
+                                <option value="">-- Pilih Sesi Kehadiran --</option>
+                                {(sessions || []).map((session) => (
+                                    <option key={session} value={session}>
+                                        {formatSessionLabel(session)}
+                                    </option>
+                                ))}
+                            </select>
+                            <InputError message={rForm.errors.jam_kehadiran} className="mt-1" />
+                        </div>
+                    </div>
+
+                    <div className="mt-6 flex justify-end gap-3">
+                        <SecondaryButton type="button" onClick={closeReschedule}>
+                            Batal
+                        </SecondaryButton>
+                        <PrimaryButton type="submit" disabled={rForm.processing}>
+                            {rForm.processing ? 'Menyimpan...' : 'Simpan'}
+                        </PrimaryButton>
+                    </div>
+                </form>
+            </Modal>
         </AuthenticatedLayout>
     );
 }

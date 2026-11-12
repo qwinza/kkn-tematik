@@ -35,7 +35,7 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
             active: route().current('admin.mahasiswa.*'),
         },
         {
-            label: 'Laporan',
+            label: 'Kegiatan',
             href: route('log-kegiatan.index'),
             active: route().current('log-kegiatan.*'),
         },
@@ -66,15 +66,10 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                                 <Link href="/">
                                     <img
                                         className="portal-brand-wordmark"
-                                        src="/images/itenas-wordmark.svg"
-                                        alt="ITENAS"
+                                        src="/images/itenasresik-trim.png"
+                                        alt="ITENAS RESIK"
                                     />
                                 </Link>
-                                <span className="portal-brand-divider" />
-                                <span className="portal-brand-program">
-                                    <strong>KKN RESIK</strong>
-                                    <small>2026</small>
-                                </span>
                             </div>
 
                         </div>
@@ -114,31 +109,28 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                                     </NavLink>
 
                                     <NavLink
+                                        href={route('log-kegiatan.create')}
+                                        active={route().current('log-kegiatan.create') || route().current('log-kegiatan.edit')}
+                                    >
+                                        Tambah Kegiatan
+                                    </NavLink>
+
+                                    <NavLink
                                         href={route('log-kegiatan.index')}
                                         active={
                                             route().current('log-kegiatan.index') ||
                                             route().current('log-kegiatan.show')
                                         }
                                     >
-                                        Jadwal Kegiatan
-                                    </NavLink>
-
-                                    <NavLink
-                                        href={route('log-kegiatan.create')}
-                                        active={
-                                            route().current('log-kegiatan.create') ||
-                                            route().current('log-kegiatan.edit')
-                                        }
-                                    >
-                                        Dokumentasi&amp; Luaran
+                                        Kegiatan
                                     </NavLink>
 
                                     {user?.is_mahasiswa && (
                                         <NavLink
-                                            href={route('mahasiswa.rencana-kehadiran.index')}
-                                            active={route().current('mahasiswa.rencana-kehadiran.*')}
+                                            href={route('mahasiswa.schedule.index')}
+                                            active={route().current('mahasiswa.schedule.*')}
                                         >
-                                            Rencana Kehadiran
+                                            Riwayat Kehadiran
                                         </NavLink>
                                     )}
                                 </div>
@@ -178,14 +170,35 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                                                     {activityNotifications.map((notification) => (
                                                         <Link
                                                             key={notification.id}
-                                                            href={route('log-kegiatan.show', notification.id)}
+                                                            href={route('log-kegiatan.show', notification.route_key)}
                                                             onClick={() => setShowingNotifications(false)}
                                                             className="block border-b px-4 py-3 hover:bg-gray-50"
                                                         >
-                                                            <span className={`text-xs font-semibold ${notification.status === 'disetujui' ? 'text-green-700' : 'text-red-700'}`}>
-                                                                {notification.status === 'disetujui' ? 'Log disetujui' : 'Log ditolak'}
+                                                            <span className={`text-xs font-semibold ${
+                                                                notification.status === 'disetujui'
+                                                                    ? 'text-green-700'
+                                                                    : notification.status === 'ditolak'
+                                                                    ? 'text-red-700'
+                                                                    : 'text-blue-700'
+                                                            }`}>
+                                                                {notification.status === 'disetujui'
+                                                                    ? 'Laporan disetujui'
+                                                                    : notification.status === 'ditolak'
+                                                                    ? 'Laporan ditolak'
+                                                                    : 'Laporan disubmit — menunggu persetujuan'}
                                                             </span>
                                                             <span className="mt-1 block truncate text-sm text-gray-700">{notification.kegiatan}</span>
+                                                            {notification.updated_at && (
+                                                                <span className="mt-0.5 block text-[11px] text-gray-400">
+                                                                    {new Date(notification.updated_at).toLocaleString('id-ID', {
+                                                                        day: 'numeric',
+                                                                        month: 'short',
+                                                                        year: 'numeric',
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit',
+                                                                    })}
+                                                                </span>
+                                                            )}
                                                         </Link>
                                                     ))}
                                                 </div>
@@ -354,22 +367,25 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                                     Dashboard
                                 </ResponsiveNavLink>
                                 <ResponsiveNavLink
-                                    href={route('log-kegiatan.index')}
-                                    active={route().current('log-kegiatan.*')}
+                                    href={route('log-kegiatan.create')}
+                                    active={route().current('log-kegiatan.create') || route().current('log-kegiatan.edit')}
                                 >
-                                    Jadwal Kegiatan
+                                    Tambah Kegiatan
                                 </ResponsiveNavLink>
-                                <ResponsiveNavLink href={route('log-kegiatan.create')} active={route().current('log-kegiatan.create') || route().current('log-kegiatan.edit')}>
-                                    Dokumentasi &amp; Luaran
+                                <ResponsiveNavLink
+                                    href={route('log-kegiatan.index')}
+                                    active={route().current('log-kegiatan.index') || route().current('log-kegiatan.show')}
+                                >
+                                    Kegiatan
                                 </ResponsiveNavLink>
                             </>
                         )}
                         {user?.is_mahasiswa && (
                             <ResponsiveNavLink
-                                href={route('mahasiswa.rencana-kehadiran.index')}
-                                active={route().current('mahasiswa.rencana-kehadiran.*')}
+                                href={route('mahasiswa.schedule.index')}
+                                active={route().current('mahasiswa.schedule.*')}
                             >
-                                Rencana Kehadiran
+                                Riwayat Kehadiran
                             </ResponsiveNavLink>
                         )}
                     </div>

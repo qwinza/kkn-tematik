@@ -2,26 +2,18 @@ import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
-export default function LogKegiatanStepper({ log, currentStep = 1, student, masterKegiatans = [], prodis = [] }) {
+export default function LogKegiatanStepper({ log, currentStep = 1, student, masterKegiatans = [], prodis = [], rencanaKehadirans = [] }) {
     const [activeStep, setActiveStep] = useState(currentStep || 1);
     const [currentLogId, setCurrentLogId] = useState(log?.id || null);
+    const [currentLogRouteKey, setCurrentLogRouteKey] = useState(log?.route_key || null);
     const [stepValidationError, setStepValidationError] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
 
     const [geoLoading, setGeoLoading] = useState(false);
     const [geoMessage, setGeoMessage] = useState(null);
-
-    // Initial Date handling
-    const initialDate = log?.tanggal_kehadiran || new Date().toISOString().slice(0, 10);
-
-    const getDayName = (dateStr) => {
-        if (!dateStr) return '';
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('en-US', { weekday: 'long' });
-    };
 
     // Main Stepper Form state
     const form = useForm({
@@ -30,32 +22,29 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
         is_draft_only: false,
         action: 'continue',
 
-        // Step 1: Identity
+        // Identitas peserta (hanya untuk tampilan Tinjau)
         email: student?.email || log?.peserta?.user?.email || '',
         nama_lengkap: student?.nama_lengkap || log?.peserta?.nama_lengkap || '',
         nim: student?.nim || log?.peserta?.nim || '',
         kode_prodi: student?.kode_prodi || log?.peserta?.kode_prodi || '',
 
-        // Step 2: Schedule
-        tanggal_kehadiran: initialDate,
-        day: getDayName(initialDate),
-        jam_mulai: log?.jam_mulai || '08:00',
-        jam_selesai: log?.jam_selesai || '12:00',
+        // Step 1: Schedule
+        rencana_kehadiran_id: log?.rencana_kehadiran_id || '',
 
-        // Step 3: Activity
+        // Step 2: Activity
         master_kegiatan_id: log?.master_kegiatan_id || '',
 
-        // Step 4: Details
+        // Step 3: Details
         lokasi_kegiatan: log?.lokasi_kegiatan || 'Lapangan',
-        tipe_lokasi: log?.latitude ? 'manual' : 'otomatis',
+        keterangan_tempat: log?.keterangan_tempat || '',
         latitude: log?.latitude || '',
         longitude: log?.longitude || '',
         deskripsi_kegiatan: log?.deskripsi_kegiatan || '',
 
-        // Step 5: Evidence
+        // Step 4: Evidence
         foto_kegiatan: [],
 
-        // Step 6: Outputs
+        // Step 5: Outputs
         deskripsi_luaran: log?.deskripsi_luaran || '',
         file_luaran: [],
     });
@@ -72,18 +61,10 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
     useEffect(() => {
         if (log?.id) {
             setCurrentLogId(log.id);
+            setCurrentLogRouteKey(log.route_key);
             form.setData('log_id', log.id);
         }
-    }, [log?.id]);
-
-    // Update Day automatically when date changes
-    const handleDateChange = (dateVal) => {
-        form.setData((prev) => ({
-            ...prev,
-            tanggal_kehadiran: dateVal,
-            day: getDayName(dateVal),
-        }));
-    };
+    }, [log?.id, log?.route_key]);
 
     const filteredActivities = masterKegiatans;
 
@@ -100,7 +81,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
     // Geolocation API (Browser GPS)
     const handleGetCurrentLocation = () => {
         if (!navigator.geolocation) {
-            setGeoMessage({ type: 'error', text: 'Geolocation tidak didukung oleh browser Anda.' });
+            setGeoMessage({ type: 'error', text: 'Fitur lokasi tidak didukung oleh peramban Anda.' });
             return;
         }
 
@@ -122,11 +103,11 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                     text: `Berhasil mendapatkan koordinat: ${lat}, ${lng}`,
                 });
             },
-            (error) => {
+            () => {
                 setGeoLoading(false);
                 setGeoMessage({
                     type: 'error',
-                    text: `Gagal mendeteksi lokasi: ${error.message}. Anda dapat mengisi secara manual.`,
+                    text: 'Lokasi tidak dapat dideteksi. Periksa izin lokasi atau isi koordinat secara manual.',
                 });
             },
             { enableHighAccuracy: true, timeout: 10000 }
@@ -136,8 +117,9 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
     // Save Handlers
     const saveCurrentStep = (targetStep, isDraft = false, actionType = 'continue') => {
         const targetLogId = currentLogId || log?.id;
-        const url = targetLogId
-            ? route('log-kegiatan.save-step', targetLogId)
+        const targetLogRouteKey = currentLogRouteKey || log?.route_key;
+        const url = targetLogRouteKey
+            ? route('log-kegiatan.save-step', targetLogRouteKey)
             : route('log-kegiatan.save-step.create');
 
         form.transform((data) => ({
@@ -156,6 +138,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                 const newLog = page.props?.log;
                 if (newLog?.id) {
                     setCurrentLogId(newLog.id);
+                    setCurrentLogRouteKey(newLog.route_key);
                 }
             },
             onError: (errs) => {
@@ -173,36 +156,31 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
 
         // Validation per step before continuing
         if (activeStep === 1) {
-            if (!form.data.nama_lengkap) {
-                setStepValidationError('Nama lengkap wajib diisi.');
-                return;
-            }
-            if (!form.data.kode_prodi) {
-                setStepValidationError('Pilih program studi terlebih dahulu.');
+            if (!form.data.rencana_kehadiran_id) {
+                setStepValidationError('Pilih jadwal kehadiran yang sudah diatur.');
                 return;
             }
         } else if (activeStep === 2) {
-            if (!form.data.tanggal_kehadiran || !form.data.jam_mulai || !form.data.jam_selesai) {
-                setStepValidationError('Tanggal kehadiran, jam mulai, dan jam selesai wajib diisi.');
-                return;
-            }
-        } else if (activeStep === 3) {
             if (!form.data.master_kegiatan_id) {
                 setStepValidationError('Pilih salah satu kode aktivitas kegiatan.');
                 return;
             }
-        } else if (activeStep === 4) {
+        } else if (activeStep === 3) {
+            if (!form.data.keterangan_tempat) {
+                setStepValidationError('Keterangan tempat wajib diisi.');
+                return;
+            }
             if (!form.data.deskripsi_kegiatan) {
                 setStepValidationError('Deskripsi rincian kegiatan wajib diisi.');
                 return;
             }
-        } else if (activeStep === 5) {
+        } else if (activeStep === 4) {
             const hasExistingPhotos = log?.files?.some((file) => file.jenis_file === 'foto_kegiatan');
             if (!form.data.foto_kegiatan.length && !hasExistingPhotos) {
                 setStepValidationError('Foto dokumentasi kegiatan wajib dipilih.');
                 return;
             }
-        } else if (activeStep === 6) {
+        } else if (activeStep === 5) {
             if (!form.data.deskripsi_luaran) {
                 setStepValidationError('Deskripsi luaran wajib diisi.');
                 return;
@@ -219,7 +197,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
         saveCurrentStep(currentStepBeingSaved, false, 'continue');
 
         // Advance to next step in UI immediately
-        if (activeStep < 7) {
+        if (activeStep < 6) {
             setActiveStep(activeStep + 1);
         }
     };
@@ -233,51 +211,41 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
     const handleFinalSubmit = (e) => {
         e?.preventDefault();
         setStepValidationError(null);
-        saveCurrentStep(7, false, 'submit');
+        saveCurrentStep(6, false, 'submit');
     };
 
     const steps = [
-        { number: 1, label: 'Identity' },
-        { number: 2, label: 'Schedule' },
-        { number: 3, label: 'Activity' },
-        { number: 4, label: 'Details' },
-        { number: 5, label: 'Evidence' },
-        { number: 6, label: 'Outputs' },
-        { number: 7, label: 'Review' },
+        { number: 1, label: 'Jadwal' },
+        { number: 2, label: 'Kegiatan' },
+        { number: 3, label: 'Rincian' },
+        { number: 4, label: 'Dokumentasi' },
+        { number: 5, label: 'Luaran' },
+        { number: 6, label: 'Tinjau' },
     ];
+
+    // Hanya tahap yang sudah tercapai yang boleh dibuka lewat tombol stepper.
+    const maxUnlockedStep = Math.max(log?.current_step ?? 1, activeStep);
 
     const currentActivityObj = masterKegiatans.find((k) => k.id === Number(form.data.master_kegiatan_id)) || log?.master_kegiatan;
     const selectedProdi = prodis.find((prodi) => prodi.kode_prodi === form.data.kode_prodi);
+    const selectedRencanaKehadiran = rencanaKehadirans.find(
+        (rencana) => Number(rencana.id) === Number(form.data.rencana_kehadiran_id)
+    );
+    const pageTitle = log ? 'Ubah Kegiatan' : 'Tambah Kegiatan';
 
     return (
         <AuthenticatedLayout showSweetAlerts={false}>
-            <Head title="Laporan KKN" />
+            <Head title={pageTitle} />
 
             <div className="portal-stepper-page min-h-screen bg-[#fbfcfb] py-10 px-4 sm:px-6 lg:px-8">
                 <div className="portal-stepper-content mx-auto max-w-4xl">
-                    {/* Page Header */}
                     <div className="portal-stepper-heading text-center mb-8">
                         <h1 className="text-3xl font-extrabold text-[#111827] tracking-tight">
-                            Activity report
+                            {pageTitle}
                         </h1>
                         <p className="mt-2 text-sm text-[#4b5563]">
-                            Complete each section with accurate field activity information.
+                            Isi formulir ini untuk mencatat kegiatan KKN yang telah dilaksanakan.
                         </p>
-                    </div>
-
-                    {/* Attendance Verification Banner */}
-                    <div className="mb-10 rounded-2xl border border-[#fef3c7] bg-[#fffbeb] p-4 text-[#92400e] shadow-xs flex items-start gap-3.5">
-                        <div className="mt-0.5 shrink-0 rounded-full bg-[#fde68a] p-1 text-[#b45309]">
-                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                            </svg>
-                        </div>
-                        <div className="text-sm">
-                            <span className="font-bold block text-[#78350f]">Attendance verification</span>
-                            <span className="text-[#92400e]">
-                                Submitting this form records a report only. An admin must verify your presence.
-                            </span>
-                        </div>
                     </div>
 
                     {/* Stepper Progress Bar */}
@@ -289,20 +257,26 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                             {steps.map((step) => {
                                 const isCurrent = activeStep === step.number;
                                 const isCompleted = activeStep > step.number || ['menunggu', 'disetujui', 'ditolak'].includes(log?.status);
+                                const isLocked = step.number > maxUnlockedStep;
 
                                 return (
                                     <div key={step.number} className="relative z-10 flex flex-col items-center">
                                         <button
                                             type="button"
+                                            disabled={isLocked}
                                             onClick={() => {
                                                 setStepValidationError(null);
                                                 setActiveStep(step.number);
                                             }}
-                                            className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                                            className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold transition-all shadow-xs ${
+                                                isLocked ? 'cursor-not-allowed' : 'cursor-pointer'
+                                            } ${
                                                 isCurrent
                                                     ? 'bg-[#064e3b] text-white ring-4 ring-emerald-100 ring-offset-1'
                                                     : isCompleted
                                                     ? 'bg-[#ecfdf5] border-2 border-[#059669] text-[#059669]'
+                                                    : isLocked
+                                                    ? 'bg-white border-2 border-gray-200 text-gray-300'
                                                     : 'bg-white border-2 border-gray-200 text-gray-500 hover:border-emerald-500'
                                             }`}
                                         >
@@ -320,6 +294,8 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                                                     ? 'text-[#064e3b] font-bold'
                                                     : isCompleted
                                                     ? 'text-gray-700'
+                                                    : isLocked
+                                                    ? 'text-gray-300'
                                                     : 'text-gray-400'
                                             }`}
                                         >
@@ -344,170 +320,86 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
 
                     {/* Stepper Card Content */}
                     <div className="portal-stepper-card rounded-2xl border border-gray-100 bg-white p-6 sm:p-10 shadow-sm">
-                        {/* STEP 1: IDENTITY */}
+                        {/* STEP 1: SCHEDULE */}
                         {activeStep === 1 && (
                             <div>
                                 <div className="mb-6">
                                     <span className="text-xs font-bold tracking-widest text-[#059669] uppercase">
-                                        STEP 1 OF 7
+                                        TAHAP 1 DARI 6
                                     </span>
                                     <h2 className="mt-1 text-2xl font-bold text-gray-900">
-                                        Identity
+                                        Jadwal
                                     </h2>
                                     <p className="mt-1 text-sm text-gray-500">
-                                        Tell us who is submitting this report.
+                                        Isi tanggal dan waktu pelaksanaan kegiatan.
                                     </p>
                                 </div>
 
-                                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                <div className="space-y-5">
                                     <div>
-                                        <InputLabel htmlFor="email" value="Email address" className="text-xs font-semibold text-gray-700" />
-                                        <TextInput
-                                            id="email"
-                                            type="email"
-                                            className="mt-1.5 block w-full rounded-xl border-gray-200 bg-gray-50 text-sm"
-                                            value={form.data.email}
-                                            placeholder="nadia.amalia@itenas.ac.id"
-                                            autoComplete="off"
-                                            disabled
-                                        />
-                                        <InputError message={form.errors.email} className="mt-1" />
-                                    </div>
-
-                                    <div>
-                                        <InputLabel htmlFor="nama_lengkap" value="Full name" className="text-xs font-semibold text-gray-700" />
-                                        <TextInput
-                                            id="nama_lengkap"
-                                            type="text"
-                                            className="mt-1.5 block w-full rounded-xl border-gray-200 bg-gray-50 text-sm"
-                                            value={form.data.nama_lengkap}
-                                            placeholder="Nadia Amalia"
-                                            autoComplete="off"
-                                            disabled
-                                        />
-                                        <InputError message={form.errors.nama_lengkap} className="mt-1" />
-                                    </div>
-
-                                    <div>
-                                        <InputLabel htmlFor="nim" value="NIM" className="text-xs font-semibold text-gray-700" />
-                                        <TextInput
-                                            id="nim"
-                                            type="text"
-                                            className="mt-1.5 block w-full rounded-xl border-gray-200 text-sm focus:border-emerald-600 focus:ring-emerald-600 bg-gray-50"
-                                            value={form.data.nim}
-                                            readOnly
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <InputLabel htmlFor="kode_prodi" value="Program Studi" className="text-xs font-semibold text-gray-700"/>
+                                        <InputLabel htmlFor="rencana_kehadiran_id" value="Jadwal kehadiran" className="text-xs font-semibold text-gray-700" />
                                         <select
-                                            id="kode_prodi"
+                                            id="rencana_kehadiran_id"
                                             className="mt-1.5 block w-full rounded-xl border-gray-200 text-sm focus:border-emerald-600 focus:ring-emerald-600"
-                                            value={form.data.kode_prodi}
-                                            onChange={(e) => form.setData('kode_prodi', e.target.value)}
-                                            disabled={Boolean(student?.kode_prodi || log?.peserta?.kode_prodi)}
+                                            value={form.data.rencana_kehadiran_id}
+                                            onChange={(event) => form.setData('rencana_kehadiran_id', event.target.value)}
                                             required
                                         >
-                                            <option value="">Pilih program studi</option>
-                                            {prodis.map((prodi) => (
-                                                <option key={prodi.kode_prodi} value={prodi.kode_prodi}>
-                                                    {prodi.kode_prodi} — {prodi.nama_prodi}
+                                            <option value="">Pilih jadwal yang sudah diatur</option>
+                                            {rencanaKehadirans.map((rencana) => (
+                                                <option key={rencana.id} value={rencana.id}>
+                                                    {rencana.tanggal_rencana.slice(0, 10)} - {rencana.jam_kehadiran}
                                                 </option>
                                             ))}
                                         </select>
-                                        <InputError message={form.errors.kode_prodi} className="mt-1" />
+                                        <InputError message={form.errors.rencana_kehadiran_id} className="mt-1" />
                                     </div>
+
+                                    {selectedRencanaKehadiran ? (
+                                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                            <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                                                <span className="block text-xs font-semibold uppercase text-gray-500">Tanggal</span>
+                                                <span className="mt-1 block text-sm font-medium text-gray-900">
+                                                    {selectedRencanaKehadiran.tanggal_rencana.slice(0, 10)}
+                                                </span>
+                                            </div>
+                                            <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                                                <span className="block text-xs font-semibold uppercase text-gray-500">Sesi</span>
+                                                <span className="mt-1 block text-sm font-medium text-gray-900">
+                                                    {selectedRencanaKehadiran.jam_kehadiran}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-gray-600">
+                                            Belum ada jadwal kehadiran.{' '}
+                                            <Link href={route('mahasiswa.schedule.index')} className="font-semibold text-emerald-700 underline">
+                                                Atur jadwal kehadiran
+                                            </Link>
+                                            {' '}terlebih dahulu.
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         )}
 
-                        {/* STEP 2: SCHEDULE */}
+                        {/* STEP 2: ACTIVITY */}
                         {activeStep === 2 && (
                             <div>
                                 <div className="mb-6">
                                     <span className="text-xs font-bold tracking-widest text-[#059669] uppercase">
-                                        STEP 2 OF 7
+                                        TAHAP 2 DARI 6
                                     </span>
                                     <h2 className="mt-1 text-2xl font-bold text-gray-900">
-                                        Schedule
+                                        Kegiatan
                                     </h2>
                                     <p className="mt-1 text-sm text-gray-500">
-                                        Provide the requested activity information.
-                                    </p>
-                                </div>
-
-                                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                                    <div>
-                                        <InputLabel htmlFor="tanggal_kehadiran" value="Attendance date" className="text-xs font-semibold text-gray-700" />
-                                        <TextInput
-                                            id="tanggal_kehadiran"
-                                            type="date"
-                                            className="mt-1.5 block w-full rounded-xl border-gray-200 text-sm focus:border-emerald-600 focus:ring-emerald-600"
-                                            value={form.data.tanggal_kehadiran}
-                                            onChange={(e) => handleDateChange(e.target.value)}
-                                            required
-                                        />
-                                        <InputError message={form.errors.tanggal_kehadiran} className="mt-1" />
-                                    </div>
-
-                                    <div>
-                                        <InputLabel htmlFor="day" value="Day" className="text-xs font-semibold text-gray-700" />
-                                        <TextInput
-                                            id="day"
-                                            type="text"
-                                            className="mt-1.5 block w-full rounded-xl border-gray-200 text-sm bg-gray-50"
-                                            value={form.data.day}
-                                            readOnly
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <InputLabel htmlFor="jam_mulai" value="Planned start time" className="text-xs font-semibold text-gray-700" />
-                                        <TextInput
-                                            id="jam_mulai"
-                                            type="time"
-                                            className="mt-1.5 block w-full rounded-xl border-gray-200 text-sm focus:border-emerald-600 focus:ring-emerald-600"
-                                            value={form.data.jam_mulai}
-                                            onChange={(e) => form.setData('jam_mulai', e.target.value)}
-                                            required
-                                        />
-                                        <InputError message={form.errors.jam_mulai} className="mt-1" />
-                                    </div>
-
-                                    <div>
-                                        <InputLabel htmlFor="jam_selesai" value="Planned end time" className="text-xs font-semibold text-gray-700" />
-                                        <TextInput
-                                            id="jam_selesai"
-                                            type="time"
-                                            className="mt-1.5 block w-full rounded-xl border-gray-200 text-sm focus:border-emerald-600 focus:ring-emerald-600"
-                                            value={form.data.jam_selesai}
-                                            onChange={(e) => form.setData('jam_selesai', e.target.value)}
-                                            required
-                                        />
-                                        <InputError message={form.errors.jam_selesai} className="mt-1" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* STEP 3: ACTIVITY */}
-                        {activeStep === 3 && (
-                            <div>
-                                <div className="mb-6">
-                                    <span className="text-xs font-bold tracking-widest text-[#059669] uppercase">
-                                        STEP 3 OF 7
-                                    </span>
-                                    <h2 className="mt-1 text-2xl font-bold text-gray-900">
-                                        Activity
-                                    </h2>
-                                    <p className="mt-1 text-sm text-gray-500">
-                                        Select an activity assigned to your program study.
+                                        Pilih kegiatan yang sesuai dengan program studi Anda.
                                     </p>
                                 </div>
 
                                 <div>
-                                    <InputLabel htmlFor="master_kegiatan_id" value="Activity / project code" className="text-xs font-semibold text-gray-700" />
+                                    <InputLabel htmlFor="master_kegiatan_id" value="Kegiatan / kode kegiatan" className="text-xs font-semibold text-gray-700" />
                                     <select
                                         id="master_kegiatan_id"
                                         className="mt-1.5 block w-full rounded-xl border-gray-200 text-sm focus:border-emerald-600 focus:ring-emerald-600"
@@ -524,25 +416,25 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                                         ))}
                                     </select>
                                     {filteredActivities.length === 0 && (
-                                        <p className="mt-2 text-sm text-amber-700">Belum ada jadwal kegiatan untuk program studi ini.</p>
+                                        <p className="mt-2 text-sm text-amber-700">Belum ada kegiatan untuk program studi ini.</p>
                                     )}
                                     <InputError message={form.errors.master_kegiatan_id} className="mt-1" />
                                 </div>
                             </div>
                         )}
 
-                        {/* STEP 4: DETAILS */}
-                        {activeStep === 4 && (
+                        {/* STEP 3: DETAILS */}
+                        {activeStep === 3 && (
                             <div>
                                 <div className="mb-6">
                                     <span className="text-xs font-bold tracking-widest text-[#059669] uppercase">
-                                        STEP 4 OF 7
+                                        TAHAP 3 DARI 6
                                     </span>
                                     <h2 className="mt-1 text-2xl font-bold text-gray-900">
-                                        Details
+                                        Rincian Kegiatan
                                     </h2>
                                     <p className="mt-1 text-sm text-gray-500">
-                                        Describe the activity details and location.
+                                        Jelaskan kegiatan yang dilakukan beserta lokasi pelaksanaannya.
                                     </p>
                                 </div>
 
@@ -567,75 +459,61 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                                         <InputError message={form.errors.lokasi_kegiatan} className="mt-1" />
                                     </div>
 
-                                    {/* GPS Coordinate options */}
-                                    <div className="rounded-2xl border border-gray-100 bg-[#f9fafb] p-5">
-                                        <div className="text-xs font-semibold text-gray-700">Metode Koordinat Lokasi (GPS)</div>
-                                        <div className="mt-2 flex gap-4 text-xs">
-                                            <label className="inline-flex items-center">
-                                                <input
-                                                    type="radio"
-                                                    name="tipe_lokasi"
-                                                    value="otomatis"
-                                                    checked={form.data.tipe_lokasi === 'otomatis'}
-                                                    onChange={(e) => form.setData('tipe_lokasi', e.target.value)}
-                                                    className="text-emerald-600 focus:ring-emerald-500"
-                                                />
-                                                <span className="ms-1.5 font-medium text-gray-700">1. Lokasi Saat Ini (GPS Browser)</span>
-                                            </label>
-                                            <label className="inline-flex items-center">
-                                                <input
-                                                    type="radio"
-                                                    name="tipe_lokasi"
-                                                    value="manual"
-                                                    checked={form.data.tipe_lokasi === 'manual'}
-                                                    onChange={(e) => form.setData('tipe_lokasi', e.target.value)}
-                                                    className="text-emerald-600 focus:ring-emerald-500"
-                                                />
-                                                <span className="ms-1.5 font-medium text-gray-700">2. Input Manual</span>
-                                            </label>
-                                        </div>
+                                    <div>
+                                        <InputLabel htmlFor="keterangan_tempat" value="Keterangan Tempat *" className="text-xs font-semibold text-gray-700" />
+                                        <TextInput
+                                            id="keterangan_tempat"
+                                            type="text"
+                                            className="mt-1.5 block w-full rounded-xl border-gray-200 text-sm focus:border-emerald-600 focus:ring-emerald-600"
+                                            placeholder="Contoh: Balai RW 05, TPS 3R Sarimukti, Kantor Kelurahan..."
+                                            value={form.data.keterangan_tempat}
+                                            onChange={(e) => form.setData('keterangan_tempat', e.target.value)}
+                                        />
+                                        <InputError message={form.errors.keterangan_tempat} className="mt-1" />
+                                    </div>
 
-                                        {form.data.tipe_lokasi === 'otomatis' && (
-                                            <div className="mt-3">
-                                                <button
-                                                    type="button"
-                                                    onClick={handleGetCurrentLocation}
-                                                    disabled={geoLoading}
-                                                    className="rounded-lg bg-white border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                                                >
-                                                    {geoLoading ? 'Mendeteksi sinyal GPS...' : '📍 Ambil Titik Lokasi Sekarang'}
-                                                </button>
-                                                {geoMessage && (
-                                                    <p className={`mt-2 text-xs ${geoMessage.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>
-                                                        {geoMessage.text}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        )}
+                                    {/* Koordinat GPS perangkat */}
+                                    <div className="rounded-2xl border border-gray-100 bg-[#f9fafb] p-5">
+                                        <div className="text-xs font-semibold text-gray-700">Koordinat Lokasi (GPS perangkat)</div>
+                                        <p className="mt-1 text-xs text-gray-500">Koordinat terisi otomatis dari GPS perangkat Anda.</p>
+
+                                        <div className="mt-3">
+                                            <button
+                                                type="button"
+                                                onClick={handleGetCurrentLocation}
+                                                disabled={geoLoading}
+                                                className="rounded-lg bg-white border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                                            >
+                                                {geoLoading ? 'Mendeteksi lokasi...' : '📍 Gunakan lokasi saat ini'}
+                                            </button>
+                                            {geoMessage && (
+                                                <p className={`mt-2 text-xs ${geoMessage.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>
+                                                    {geoMessage.text}
+                                                </p>
+                                            )}
+                                        </div>
 
                                         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                                             <div>
-                                                <InputLabel htmlFor="latitude" value="Latitude" className="text-xs text-gray-600" />
+                                                <InputLabel htmlFor="latitude" value="Garis lintang" className="text-xs text-gray-600" />
                                                 <TextInput
                                                     id="latitude"
-                                                    type="number"
-                                                    step="any"
-                                                    className="mt-1 block w-full rounded-xl border-gray-200 text-xs"
+                                                    type="text"
+                                                    className="mt-1 block w-full rounded-xl border-gray-200 bg-gray-100 text-xs text-gray-600"
                                                     placeholder="-6.8975000"
                                                     value={form.data.latitude}
-                                                    onChange={(e) => form.setData('latitude', e.target.value)}
+                                                    readOnly
                                                 />
                                             </div>
                                             <div>
-                                                <InputLabel htmlFor="longitude" value="Longitude" className="text-xs text-gray-600" />
+                                                <InputLabel htmlFor="longitude" value="Garis bujur" className="text-xs text-gray-600" />
                                                 <TextInput
                                                     id="longitude"
-                                                    type="number"
-                                                    step="any"
-                                                    className="mt-1 block w-full rounded-xl border-gray-200 text-xs"
+                                                    type="text"
+                                                    className="mt-1 block w-full rounded-xl border-gray-200 bg-gray-100 text-xs text-gray-600"
                                                     placeholder="107.6358000"
                                                     value={form.data.longitude}
-                                                    onChange={(e) => form.setData('longitude', e.target.value)}
+                                                    readOnly
                                                 />
                                             </div>
                                         </div>
@@ -658,23 +536,23 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                             </div>
                         )}
 
-                        {/* STEP 5: EVIDENCE */}
-                        {activeStep === 5 && (
+                        {/* STEP 4: EVIDENCE */}
+                        {activeStep === 4 && (
                             <div>
                                 <div className="mb-6">
                                     <span className="text-xs font-bold tracking-widest text-[#059669] uppercase">
-                                        STEP 5 OF 7
+                                        TAHAP 4 DARI 6
                                     </span>
                                     <h2 className="mt-1 text-2xl font-bold text-gray-900">
-                                        Evidence
+                                        Dokumentasi
                                     </h2>
                                     <p className="mt-1 text-sm text-gray-500">
-                                        Upload photographic evidence of the activity.
+                                        Unggah foto sebagai bukti kegiatan.
                                     </p>
                                 </div>
 
                                 <div>
-                                    <InputLabel htmlFor="foto_kegiatan" value="Upload Photos (Maks 50MB per file, Format JPG/PNG/WEBP) *" className="text-xs font-semibold text-gray-700" />
+                                    <InputLabel htmlFor="foto_kegiatan" value="Unggah foto kegiatan (maks. 50 MB per berkas, format JPG/PNG/WEBP) *" className="text-xs font-semibold text-gray-700" />
                                     <input
                                         id="foto_kegiatan"
                                         type="file"
@@ -706,29 +584,29 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                             </div>
                         )}
 
-                        {/* STEP 6: OUTPUTS */}
-                        {activeStep === 6 && (
+                        {/* STEP 5: OUTPUTS */}
+                        {activeStep === 5 && (
                             <div>
                                 <div className="mb-6">
                                     <span className="text-xs font-bold tracking-widest text-[#059669] uppercase">
-                                        STEP 6 OF 7
+                                        TAHAP 5 DARI 6
                                     </span>
                                     <h2 className="mt-1 text-2xl font-bold text-gray-900">
-                                        Outputs
+                                        Luaran Kegiatan
                                     </h2>
                                     <p className="mt-1 text-sm text-gray-500">
-                                        Document the tangible outputs and deliverables.
+                                        Jelaskan hasil atau luaran yang dihasilkan dari kegiatan.
                                     </p>
                                 </div>
 
                                 <div className="space-y-6">
                                     <div>
-                                        <InputLabel htmlFor="deskripsi_luaran" value="Deskripsi Luaran / Deliverables *" className="text-xs font-semibold text-gray-700" />
+                                        <InputLabel htmlFor="deskripsi_luaran" value="Deskripsi luaran *" className="text-xs font-semibold text-gray-700" />
                                         <textarea
                                             id="deskripsi_luaran"
                                             rows={4}
                                             className="mt-1.5 block w-full rounded-xl border-gray-200 text-sm focus:border-emerald-600 focus:ring-emerald-600"
-                                            placeholder="Tuliskan luaran atau hasil konkret kegiatan (misal: draf peta sampah, data kuesioner, laporan ringkas)..."
+                                            placeholder="Deskripsikan kegiatan yang telah dilakukan (misal: kerja bakti membersihkan saluran air, pendataan sampah warga, penyusunan draf laporan kegiatan)."
                                             value={form.data.deskripsi_luaran}
                                             onChange={(e) => form.setData('deskripsi_luaran', e.target.value)}
                                             required
@@ -737,7 +615,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                                     </div>
 
                                     <div>
-                                        <InputLabel htmlFor="file_luaran" value="Upload Berkas Luaran (Maks 50MB per file, PDF/DOCX/ZIP/Gambar) *" className="text-xs font-semibold text-gray-700" />
+                                        <InputLabel htmlFor="file_luaran" value="Unggah berkas luaran (maks. 50 MB per berkas, PDF/DOCX/ZIP/gambar) *" className="text-xs font-semibold text-gray-700" />
                                         <input
                                             id="file_luaran"
                                             type="file"
@@ -757,7 +635,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
 
                                         {log?.files?.some((file) => file.jenis_file === 'file_luaran') && (
                                             <div className="mt-3 flex flex-col gap-2 text-xs">
-                                                <span className="text-gray-500">Berkas luaran tersimpan:</span>
+                                                <span className="text-gray-500">Berkas luaran yang tersimpan:</span>
                                                 {log.files.filter((file) => file.jenis_file === 'file_luaran').map((file) => (
                                                     <a key={file.id} href={file.url} target="_blank" rel="noreferrer" className="text-emerald-700 font-semibold underline">
                                                         {file.nama_file_asli}
@@ -770,61 +648,62 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                             </div>
                         )}
 
-                        {/* STEP 7: REVIEW */}
-                        {activeStep === 7 && (
+                        {/* STEP 6: REVIEW */}
+                        {activeStep === 6 && (
                             <div>
                                 <div className="mb-6">
                                     <span className="text-xs font-bold tracking-widest text-[#059669] uppercase">
-                                        STEP 7 OF 7
+                                        TAHAP 6 DARI 6
                                     </span>
                                     <h2 className="mt-1 text-2xl font-bold text-gray-900">
-                                        Review
+                                        Tinjau Kegiatan
                                     </h2>
                                     <p className="mt-1 text-sm text-gray-500">
-                                        Review all information before final submission.
+                                        Periksa kembali seluruh informasi sebelum mengirim kegiatan.
                                     </p>
                                 </div>
 
                                 <div className="space-y-4 text-sm">
                                     <div className="rounded-xl border border-gray-100 bg-[#f9fafb] p-4">
-                                        <div className="font-bold text-gray-800 mb-2">1. Identity</div>
+                                        <div className="font-bold text-gray-800 mb-2">1. Identitas</div>
                                         <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                                            <div><strong>Name:</strong> {form.data.nama_lengkap}</div>
+                                            <div><strong>Nama:</strong> {form.data.nama_lengkap}</div>
                                             <div><strong>NIM:</strong> {form.data.nim}</div>
-                                            <div><strong>Email:</strong> {form.data.email}</div>
-                                            <div><strong>Program:</strong> {selectedProdi?.nama_prodi ?? '-'}</div>
+                                            <div><strong>Alamat email:</strong> {form.data.email}</div>
+                                            <div><strong>Program studi:</strong> {selectedProdi?.nama_prodi ?? '-'}</div>
                                         </div>
                                     </div>
 
                                     <div className="rounded-xl border border-gray-100 bg-[#f9fafb] p-4">
-                                        <div className="font-bold text-gray-800 mb-2">2. Schedule</div>
+                                        <div className="font-bold text-gray-800 mb-2">2. Jadwal</div>
                                         <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                                            <div><strong>Date:</strong> {form.data.tanggal_kehadiran} ({form.data.day})</div>
-                                            <div><strong>Time:</strong> {form.data.jam_mulai} - {form.data.jam_selesai}</div>
+                                            <div><strong>Tanggal:</strong> {selectedRencanaKehadiran?.tanggal_rencana.slice(0, 10) ?? '-'}</div>
+                                            <div><strong>Sesi:</strong> {selectedRencanaKehadiran?.jam_kehadiran ?? '-'}</div>
                                         </div>
                                     </div>
 
                                     <div className="rounded-xl border border-gray-100 bg-[#f9fafb] p-4">
-                                        <div className="font-bold text-gray-800 mb-2">3. Activity</div>
+                                        <div className="font-bold text-gray-800 mb-2">3. Kegiatan</div>
                                         <div className="text-xs text-gray-600">
-                                            <strong>Project:</strong> {currentActivityObj?.kode_kegiatan} — {currentActivityObj?.nama_kegiatan} ({currentActivityObj?.kategori})
+                                            <strong>Nama kegiatan:</strong> {currentActivityObj?.kode_kegiatan} — {currentActivityObj?.nama_kegiatan} ({currentActivityObj?.kategori})
                                         </div>
                                     </div>
 
                                     <div className="rounded-xl border border-gray-100 bg-[#f9fafb] p-4">
-                                        <div className="font-bold text-gray-800 mb-2">4. Details & Location</div>
+                                        <div className="font-bold text-gray-800 mb-2">4. Rincian dan lokasi</div>
                                         <div className="text-xs text-gray-600 space-y-1">
-                                            <div><strong>Location:</strong> {form.data.lokasi_kegiatan} {form.data.latitude ? `(${form.data.latitude}, ${form.data.longitude})` : ''}</div>
-                                            <div><strong>Description:</strong> {form.data.deskripsi_kegiatan}</div>
+                                            <div><strong>Lokasi:</strong> {form.data.lokasi_kegiatan} {form.data.latitude ? `(${form.data.latitude}, ${form.data.longitude})` : ''}</div>
+                                            <div><strong>Keterangan tempat:</strong> {form.data.keterangan_tempat || '-'}</div>
+                                            <div><strong>Rincian kegiatan:</strong> {form.data.deskripsi_kegiatan}</div>
                                         </div>
                                     </div>
 
                                     <div className="rounded-xl border border-gray-100 bg-[#f9fafb] p-4">
-                                        <div className="font-bold text-gray-800 mb-2">5. Evidence & 6. Outputs</div>
+                                        <div className="font-bold text-gray-800 mb-2">5. Dokumentasi dan 6. Luaran</div>
                                         <div className="text-xs text-gray-600 space-y-1">
-                                            <div><strong>Photo Evidence:</strong> {form.data.foto_kegiatan.length ? `${form.data.foto_kegiatan.length} file baru dipilih` : (log?.files?.some((file) => file.jenis_file === 'foto_kegiatan') ? 'Tersimpan' : 'Belum diunggah')}</div>
-                                            <div><strong>Deliverables:</strong> {form.data.deskripsi_luaran}</div>
-                                            <div><strong>Output File:</strong> {form.data.file_luaran.length ? `${form.data.file_luaran.length} file baru dipilih` : (log?.files?.some((file) => file.jenis_file === 'file_luaran') ? 'Tersimpan' : 'Belum diunggah')}</div>
+                                            <div><strong>Foto kegiatan:</strong> {form.data.foto_kegiatan.length ? `${form.data.foto_kegiatan.length} berkas baru dipilih` : (log?.files?.some((file) => file.jenis_file === 'foto_kegiatan') ? 'Tersimpan' : 'Belum diunggah')}</div>
+                                            <div><strong>Deskripsi luaran:</strong> {form.data.deskripsi_luaran}</div>
+                                            <div><strong>Berkas luaran:</strong> {form.data.file_luaran.length ? `${form.data.file_luaran.length} berkas baru dipilih` : (log?.files?.some((file) => file.jenis_file === 'file_luaran') ? 'Tersimpan' : 'Belum diunggah')}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -840,7 +719,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                                 onClick={handleSaveDraft}
                                 className="rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-xs hover:bg-gray-50 transition cursor-pointer"
                             >
-                                {form.processing ? 'Menyimpan...' : 'Save draft'}
+                                {form.processing ? 'Menyimpan...' : 'Simpan draf'}
                             </button>
 
                             {/* Right: Back & Continue/Submit */}
@@ -854,18 +733,18 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                                         }}
                                         className="rounded-xl border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-xs hover:bg-gray-50 transition cursor-pointer"
                                     >
-                                        Back
+                                        Kembali
                                     </button>
                                 )}
 
-                                {activeStep < 7 ? (
+                                {activeStep < 6 ? (
                                     <button
                                         type="button"
                                         disabled={form.processing}
                                         onClick={handleContinue}
                                         className="inline-flex items-center gap-2 rounded-xl bg-[#064e3b] hover:bg-[#065f46] px-6 py-2.5 text-sm font-semibold text-white shadow-xs transition cursor-pointer"
                                     >
-                                        <span>Continue</span>
+                                        <span>Lanjut</span>
                                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                                         </svg>
@@ -877,7 +756,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                                         onClick={handleFinalSubmit}
                                         className="inline-flex items-center gap-2 rounded-xl bg-[#064e3b] hover:bg-[#065f46] px-6 py-2.5 text-sm font-semibold text-white shadow-xs transition cursor-pointer"
                                     >
-                                        <span>Submit report</span>
+                                        <span>Kirim kegiatan</span>
                                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                         </svg>

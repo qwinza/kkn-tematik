@@ -312,6 +312,28 @@
     border: none;
 }
 
+.login-input-wrapper select {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    appearance: none;
+    outline: none;
+    border: none;
+    background: transparent;
+    color: #29313b;
+    font-family: inherit;
+    font-size: 14px;
+    box-shadow: none !important;
+}
+
+.login-input-wrapper select:invalid {
+    color: #a4a9b2;
+}
+
+.login-input-wrapper select option {
+    color: #29313b;
+}
+
 /* =================================
    PASSWORD TOGGLE
 ================================= */
@@ -591,7 +613,7 @@
 }
 
 .portal-navbar-brand img {
-    max-height: 38px;
+    max-height: 62px;
 }
 
 .portal-navigation {
@@ -1373,8 +1395,8 @@
 
 .login-itenas-wordmark {
     display: block;
-    width: 132px;
-    height: 50px;
+    width: 150px;
+    height: auto;
     flex: 0 0 auto;
     object-fit: contain;
 }
@@ -1460,6 +1482,23 @@
     margin-top: 26px;
 }
 
+.login-register-link {
+    margin: 20px 0 0;
+    color: #747d88;
+    font-size: 13px;
+    text-align: center;
+}
+
+.login-register-link a {
+    color: #df801f;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.login-register-link a:hover {
+    text-decoration: underline;
+}
+
 .login-footer p {
     margin-bottom: 14px;
     color: #78818b;
@@ -1494,8 +1533,8 @@
     }
 
     .login-itenas-wordmark {
-        width: 112px;
-        height: 43px;
+        width: 130px;
+        height: auto;
     }
 
     .login-heading {
@@ -1543,8 +1582,8 @@
 
 .portal-brand-wordmark {
     display: block;
-    width: 82px;
-    height: 28px;
+    width: 110px;
+    height: auto;
     object-fit: contain;
 }
 
@@ -2087,8 +2126,8 @@
     }
 
     .portal-brand-wordmark {
-        width: 72px;
-        height: 26px;
+        width: 95px;
+        height: auto;
     }
 
     .portal-brand-program strong {
@@ -2286,7 +2325,7 @@
 
 .portal-dashboard-overview {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(280px, 1.3fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(250px, 1.35fr);
     gap: 14px;
 }
 
@@ -2350,6 +2389,10 @@
     color: #169254;
 }
 
+.portal-dashboard-overview .portal-stat-card-info strong {
+    color: #2f6fed;
+}
+
 .portal-dashboard-quick-card {
     display: flex;
     min-height: 150px;
@@ -2408,7 +2451,7 @@
 
 .portal-dashboard-bottom {
     display: grid;
-    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
     gap: 14px;
 }
 
@@ -2472,6 +2515,53 @@
 .portal-dashboard-approval > p {
     margin-top: 9px;
     font-size: 10px;
+}
+
+.portal-dashboard-location-list {
+    display: grid;
+    gap: 13px;
+    margin-top: 16px;
+}
+
+.portal-dashboard-location-item {
+    display: grid;
+    gap: 6px;
+}
+
+.portal-dashboard-location-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.portal-dashboard-location-head span {
+    color: #75808b;
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.portal-dashboard-location-head strong {
+    color: #25303b;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.portal-dashboard-location-item small {
+    color: #9099a2;
+    font-size: 10px;
+}
+
+.portal-dashboard-location-item .portal-dashboard-progress-track {
+    margin-top: 0;
+}
+
+.portal-dashboard-progress-track.is-field span {
+    background: #e78320;
+}
+
+.portal-dashboard-progress-track.is-campus span {
+    background: #2f6fed;
 }
 
 .portal-admin-students-heading {
@@ -2692,6 +2782,74 @@
 
 .portal-admin-students-detail:hover {
     background: #ffe6c7;
+}
+
+.portal-admin-students-action-menu {
+    position: relative;
+    display: inline-flex;
+    justify-content: flex-end;
+}
+
+.portal-admin-students-menu-toggle {
+    display: inline-flex;
+    width: 34px;
+    height: 34px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #dce2e8;
+    border-radius: 8px;
+    background: #fff;
+    color: #344054;
+    font-size: 23px;
+    line-height: 1;
+}
+
+.portal-admin-students-menu-toggle:hover {
+    background: #f5f7fa;
+}
+
+.portal-admin-students-menu-icon {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-width: 1.8;
+}
+
+.portal-admin-students-menu {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 5px);
+    right: 0;
+    min-width: 150px;
+    padding: 5px;
+    border: 1px solid #e4e7ec;
+    border-radius: 9px;
+    background: #fff;
+    box-shadow: 0 8px 20px rgb(16 24 40 / 12%);
+}
+
+.portal-admin-students-menu-item {
+    display: block;
+    width: 100%;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #344054;
+    font: inherit;
+    font-size: 13px;
+    text-align: left;
+    text-decoration: none;
+}
+
+.portal-admin-students-menu-item:hover {
+    background: #f2f4f7;
+}
+
+.portal-admin-students-menu-item.is-danger {
+    color: #b42318;
 }
 
 .portal-admin-students-empty {

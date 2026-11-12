@@ -1,21 +1,31 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
 
-export default function Dashboard({ summary = { totalKegiatan: 0, totalDisetujui: 0 } }) {
+export default function Dashboard({
+    summary = { totalKegiatan: 0, totalDisetujui: 0, totalLapangan: 0, totalKampus: 0, totalJamDisetujui: 0 },
+}) {
     const { auth } = usePage().props;
     const isAdmin = auth.user.is_admin;
     const approvalRate = summary.totalKegiatan > 0
         ? Math.round((summary.totalDisetujui / summary.totalKegiatan) * 100)
         : 0;
+    const locationRate = (value) => (summary.totalKegiatan > 0
+        ? Math.round((value / summary.totalKegiatan) * 100)
+        : 0);
+    const lapanganRate = locationRate(summary.totalLapangan ?? 0);
+    const kampusRate = locationRate(summary.totalKampus ?? 0);
+    const totalJam = Number(summary.totalJamDisetujui ?? 0);
+    const totalJamLabel = Number.isInteger(totalJam) ? totalJam : totalJam.toFixed(1);
     const shortcuts = isAdmin
         ? [
-            { label: 'Laporan', href: route('log-kegiatan.index'), icon: 'report' },
+            { label: 'Kegiatan', href: route('log-kegiatan.index'), icon: 'report' },
             { label: 'Mahasiswa', href: route('admin.mahasiswa.index'), icon: 'students' },
             { label: 'Jadwal Kegiatan', href: route('master-kegiatan.index'), icon: 'schedule' },
         ]
         : [
-            { label: 'Riwayat', href: route('log-kegiatan.index'), icon: 'history' },
-            { label: 'Presensi', href: route('log-kegiatan.create'), icon: 'attendance' },
+            { label: 'Tambah Kegiatan', href: route('log-kegiatan.create'), icon: 'attendance' },
+            { label: 'Kegiatan', href: route('log-kegiatan.index'), icon: 'history' },
+            { label: 'Jadwal Kegiatan', href: route('mahasiswa.schedule.index'), icon: 'schedule' },
         ];
 
     return (
@@ -31,8 +41,8 @@ export default function Dashboard({ summary = { totalKegiatan: 0, totalDisetujui
                             </p>
                             <h1>Dashboard</h1>
                             <p>{isAdmin
-                                ? 'Pantau laporan kegiatan dan progres mahasiswa KKN.'
-                                : 'Pantau aktivitas lapangan, logbook, dan progres KKN Anda.'}
+                                ? 'Pantau kegiatan dan perkembangan mahasiswa KKN.'
+                                : 'Pantau aktivitas lapangan dan perkembangan KKN Anda.'}
                             </p>
                         </div>
                     </header>
@@ -43,7 +53,7 @@ export default function Dashboard({ summary = { totalKegiatan: 0, totalDisetujui
                             <h2>Selamat Datang, {auth.user.name}!</h2>
                             <span>
                                 {isAdmin
-                                    ? 'Tinjau laporan dan pantau perkembangan kegiatan mahasiswa.'
+                                    ? 'Tinjau kegiatan dan pantau perkembangan mahasiswa.'
                                     : 'Setiap kegiatan yang Anda catat membantu memantau progres program.'}
                             </span>
                         </div>
@@ -57,15 +67,21 @@ export default function Dashboard({ summary = { totalKegiatan: 0, totalDisetujui
                     <section className="portal-dashboard-overview">
                         <article className="portal-stat-card portal-stat-card-orange">
                             <span className="portal-stat-icon" aria-hidden="true">▤</span>
-                            <p>{isAdmin ? 'Total Laporan' : 'Total Kegiatan'}</p>
+                            <p>Total Kegiatan</p>
                             <strong>{summary.totalKegiatan}</strong>
-                            <small>{isAdmin ? 'laporan tercatat' : 'kegiatan tercatat'}</small>
+                            <small>kegiatan tercatat</small>
                         </article>
                         <article className="portal-stat-card portal-stat-card-success">
                             <span className="portal-stat-icon" aria-hidden="true">✓</span>
                             <p>Disetujui</p>
                             <strong>{summary.totalDisetujui}</strong>
-                            <small>laporan terverifikasi</small>
+                            <small>kegiatan terverifikasi</small>
+                        </article>
+                        <article className="portal-stat-card portal-stat-card-info">
+                            <span className="portal-stat-icon" aria-hidden="true">◷</span>
+                            <p>Total Jam Disetujui</p>
+                            <strong>{totalJamLabel}</strong>
+                            <small>jam kegiatan yang disetujui</small>
                         </article>
                         <article className="portal-dashboard-quick-card">
                             <div className="portal-dashboard-panel-kicker">AKSES CEPAT</div>
@@ -88,17 +104,17 @@ export default function Dashboard({ summary = { totalKegiatan: 0, totalDisetujui
                         <article className="portal-dashboard-panel portal-dashboard-activity">
                             <div>
                                 <p className="portal-dashboard-panel-kicker">AKTIVITAS</p>
-                                <h2>{isAdmin ? 'Laporan Kegiatan' : 'Log Kegiatan'}</h2>
+                                <h2>Kegiatan</h2>
                             </div>
                             {summary.totalKegiatan > 0 ? (
                                 <p>
-                                    Terdapat {summary.totalKegiatan} {isAdmin ? 'laporan' : 'kegiatan'} tercatat.
+                                    Terdapat {summary.totalKegiatan} kegiatan tercatat.
                                 </p>
                             ) : (
-                                <p>Belum ada {isAdmin ? 'laporan' : 'log kegiatan'} yang tercatat.</p>
+                                <p>Belum ada kegiatan yang tercatat.</p>
                             )}
                             <Link href={route('log-kegiatan.index')}>
-                                {isAdmin ? 'Buka daftar laporan' : 'Lihat riwayat log'}
+                                Lihat kegiatan
                                 <span aria-hidden="true"> →</span>
                             </Link>
                         </article>
@@ -115,11 +131,40 @@ export default function Dashboard({ summary = { totalKegiatan: 0, totalDisetujui
                                 <span style={{ width: `${approvalRate}%` }} />
                             </div>
                             <p>
-                                {summary.totalDisetujui} dari {summary.totalKegiatan} laporan disetujui
+                                {summary.totalDisetujui} dari {summary.totalKegiatan} kegiatan disetujui
                             </p>
                             <Link href={route('log-kegiatan.index')}>
-                                Lihat laporan <span aria-hidden="true"> →</span>
+                                Lihat kegiatan <span aria-hidden="true"> →</span>
                             </Link>
+                        </article>
+
+                        <article className="portal-dashboard-panel portal-dashboard-location">
+                            <div>
+                                <p className="portal-dashboard-panel-kicker">LOKASI</p>
+                                <h2>Sebaran Lokasi</h2>
+                            </div>
+                            <div className="portal-dashboard-location-list">
+                                <div className="portal-dashboard-location-item">
+                                    <div className="portal-dashboard-location-head">
+                                        <span>Di Lapangan</span>
+                                        <strong>{lapanganRate}%</strong>
+                                    </div>
+                                    <div className="portal-dashboard-progress-track is-field">
+                                        <span style={{ width: `${lapanganRate}%` }} />
+                                    </div>
+                                    <small>{summary.totalLapangan ?? 0} kegiatan</small>
+                                </div>
+                                <div className="portal-dashboard-location-item">
+                                    <div className="portal-dashboard-location-head">
+                                        <span>Di Kampus</span>
+                                        <strong>{kampusRate}%</strong>
+                                    </div>
+                                    <div className="portal-dashboard-progress-track is-campus">
+                                        <span style={{ width: `${kampusRate}%` }} />
+                                    </div>
+                                    <small>{summary.totalKampus ?? 0} kegiatan</small>
+                                </div>
+                            </div>
                         </article>
                     </section>
                 </div>

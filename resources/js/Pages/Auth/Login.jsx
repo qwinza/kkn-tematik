@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
-import { Head, useForm } from '@inertiajs/react';
+import SweetAlertNotifications from '@/Components/SweetAlertNotifications';
+import { Head, Link, useForm } from '@inertiajs/react';
 
 export default function Login({ status }) {
     const [showPassword, setShowPassword] = useState(false);
@@ -30,6 +31,7 @@ export default function Login({ status }) {
     return (
         <>
             <Head title="Masuk" />
+            <SweetAlertNotifications />
 
             <main className="login-page">
                 <img
@@ -44,11 +46,11 @@ export default function Login({ status }) {
                 >
                     <div className="login-form-side">
                         <div className="login-form-wrapper">
-                            <div className="login-mobile-brand">
+                            <div className="login-mobile-brand size-md">
                                 <img
                                     className="login-itenas-wordmark"
-                                    src="/images/itenas-wordmark.svg"
-                                    alt="Institut Teknologi Nasional"
+                                    src="/images/itenasresik-trim.png"
+                                    alt="ITENAS RESIK"
                                 />
                             </div>
 
@@ -74,7 +76,7 @@ export default function Login({ status }) {
                                 {/* IDENTIFIER */}
                                 <div className="login-field">
                                     <label htmlFor="identifier">
-                                        NIM / Email Admin
+                                        NIM
                                     </label>
 
                                     <div
@@ -133,7 +135,7 @@ export default function Login({ status }) {
                                 <div className="login-field">
                                     <div className="login-label-row">
                                         <label htmlFor="password">
-                                            Password
+                                            PIN Kampus
                                         </label>
                                     </div>
 
@@ -166,7 +168,7 @@ export default function Login({ status }) {
                                                     : 'password'
                                             }
                                             value={data.password}
-                                            placeholder="Masukkan password"
+                                            placeholder="Masukkan PIN kampus"
                                             autoComplete="current-password"
                                             aria-invalid={Boolean(errors.password)}
                                             aria-describedby={

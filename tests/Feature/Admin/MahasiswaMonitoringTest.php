@@ -7,6 +7,7 @@ use App\Models\Prodi;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -31,6 +32,25 @@ class MahasiswaMonitoringTest extends TestCase
             ->has('filters')
             ->has('totalCount')
         );
+    }
+
+    public function test_admin_can_open_student_details_using_an_encrypted_route_key(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $student = User::factory()->mahasiswa()->create();
+        $peserta = Peserta::factory()->create(['user_id' => $student->id]);
+        $url = route('admin.mahasiswa.show', $peserta);
+
+        $this->assertSame(0, preg_match('#/admin/mahasiswa/\\d+$#', (string) parse_url($url, PHP_URL_PATH)));
+
+        $this->actingAs($admin)
+            ->get($url)
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Mahasiswa/Show')
+                ->where('mahasiswa.id', $peserta->id)
+                ->has('mahasiswa.route_key')
+            );
     }
 
     /**
@@ -379,6 +399,13 @@ class MahasiswaMonitoringTest extends TestCase
 
         $nim = '152024038';
         $password = 'password123';
+        config([
+            'services.campus_auth.endpoint' => 'https://campus.example.test/login',
+            'services.campus_auth.api_key' => 'test-api-key',
+        ]);
+        Http::fake([
+            'campus.example.test/login' => Http::response(['status' => 'success']),
+        ]);
 
         $user = User::create([
             'name' => 'Aa Faris Ahmad Shidiq',
@@ -407,5 +434,44 @@ class MahasiswaMonitoringTest extends TestCase
         $peserta->refresh();
         $this->assertSame($prodi->kode_prodi, $peserta->kode_prodi);
         $this->assertSame('Teknik Informatika', $peserta->program_studi);
+    }
+
+    public function test_admin_cannot_set_a_local_student_password(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $prodi = Prodi::factory()->create();
+        $student = User::factory()->mahasiswa()->create([
+            'name' => 'Mahasiswa Contoh',
+            'nim' => '202600000003',
+            'email' => 'mahasiswa@example.com',
+            'must_change_password' => false,
+        ]);
+        $peserta = Peserta::factory()->create([
+            'user_id' => $student->id,
+            'nama_lengkap' => 'Mahasiswa Contoh',
+            'nim' => '202600000003',
+            'kode_prodi' => $prodi->kode_prodi,
+            'program_studi' => $prodi->nama_prodi,
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('admin.mahasiswa.update', $peserta), [
+                'nama_lengkap' => 'Mahasiswa Contoh',
+                'nim' => '202600000003',
+                'email' => 'mahasiswa@example.com',
+                'kode_prodi' => $prodi->kode_prodi,
+                'password' => 'PasswordAdmin123!',
+                'password_confirmation' => 'PasswordAdmin123!',
+            ])
+            ->assertSessionHas('success');
+
+        $this->assertTrue(Hash::check('password', $student->fresh()->password));
+        $this->assertFalse($student->fresh()->must_change_password);
+
+        $this->actingAs($admin)
+            ->get(route('admin.mahasiswa.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->missing('mahasiswas.data.0.user.password')
+            );
     }
 }

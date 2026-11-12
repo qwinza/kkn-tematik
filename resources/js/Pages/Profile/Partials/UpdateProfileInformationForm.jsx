@@ -48,8 +48,8 @@ export default function UpdateProfileInformation({
                         required
                         isFocused
                         autoComplete="name"
+                        disabled
                     />
-
                     <InputError className="mt-2" message={errors.name} />
                 </div>
 
@@ -64,6 +64,7 @@ export default function UpdateProfileInformation({
                         onChange={(e) => setData('email', e.target.value)}
                         required
                         autoComplete="username"
+                        disabled
                     />
 
                     <InputError className="mt-2" message={errors.email} />
@@ -91,22 +92,6 @@ export default function UpdateProfileInformation({
                         )}
                     </div>
                 )}
-
-                <div className="flex items-center gap-4">
-                    <PrimaryButton disabled={processing}>Simpan Perubahan</PrimaryButton>
-
-                    <Transition
-                        show={recentlySuccessful}
-                        enter="transition ease-in-out"
-                        enterFrom="opacity-0"
-                        leave="transition ease-in-out"
-                        leaveTo="opacity-0"
-                    >
-                        <p className="text-sm text-gray-600">
-                            Tersimpan.
-                        </p>
-                    </Transition>
-                </div>
             </form>
         </section>
     );

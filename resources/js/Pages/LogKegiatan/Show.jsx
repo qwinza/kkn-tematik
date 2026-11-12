@@ -22,7 +22,7 @@ export default function LogKegiatanShow({ log, isAdmin }) {
         });
         if (!confirmed) return;
 
-        router.post(route('log-kegiatan.approve', log.id), {}, {
+        router.post(route('log-kegiatan.approve', log.route_key), {}, {
             preserveScroll: true,
             onStart: () => setIsApproving(true),
             onFinish: () => setIsApproving(false),
@@ -37,7 +37,7 @@ export default function LogKegiatanShow({ log, isAdmin }) {
         });
         if (!confirmed) return;
 
-        router.post(route('log-kegiatan.reject', log.id), {}, {
+        router.post(route('log-kegiatan.reject', log.route_key), {}, {
             preserveScroll: true,
             onStart: () => setIsRejecting(true),
             onFinish: () => setIsRejecting(false),
@@ -50,7 +50,7 @@ export default function LogKegiatanShow({ log, isAdmin }) {
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                            Detail Log Kegiatan #{log.id}
+                            Detail Log Kegiatan
                         </h2>
                         <p className="mt-1 text-sm text-gray-500">
                             Informasi lengkap kegiatan KKN beserta dokumentasi dan luaran.
@@ -61,8 +61,8 @@ export default function LogKegiatanShow({ log, isAdmin }) {
                             <SecondaryButton>Kembali</SecondaryButton>
                         </Link>
                         {!isAdmin && ['draft', 'ditolak'].includes(log.status) && (
-                            <Link href={route('log-kegiatan.edit', { log_kegiatan: log.id, step: log.current_step })}>
-                                <PrimaryButton>{log.status === 'ditolak' ? 'Perbaiki Log' : 'Edit Log'}</PrimaryButton>
+                            <Link href={route('log-kegiatan.edit', { log_kegiatan: log.route_key, step: log.current_step })}>
+                                <PrimaryButton>{log.status === 'ditolak' ? 'Perbaiki Kegiatan' : 'Ubah Kegiatan'}</PrimaryButton>
                             </Link>
                         )}
                         {isAdmin && log.status === 'menunggu' && (
@@ -79,7 +79,7 @@ export default function LogKegiatanShow({ log, isAdmin }) {
                 </div>
             }
         >
-            <Head title={`Detail Log Kegiatan #${log.id}`} />
+            <Head title={`Detail Log Kegiatan`} />
 
             <div className="portal-log-detail-page py-8">
                 <div className="portal-log-detail-content mx-auto max-w-4xl sm:px-6 lg:px-8 space-y-6">
@@ -112,7 +112,7 @@ export default function LogKegiatanShow({ log, isAdmin }) {
                                     </span>
                                 ) : (
                                     <span className="inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-800">
-                                        ✎ Status: Draft (Step {log.current_step})
+                                        ✎ Status: Draf (Tahap {log.current_step})
                                     </span>
                                 )}
                             </div>
@@ -140,7 +140,7 @@ export default function LogKegiatanShow({ log, isAdmin }) {
                         <h4 className="text-base font-semibold text-gray-800 border-b pb-2">
                             1. Informasi Kehadiran & Lokasi
                         </h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 text-sm">
                             <div>
                                 <span className="text-xs text-gray-500 block">Tanggal Kehadiran</span>
                                 <span className="font-medium text-gray-800">{log.tanggal_kehadiran}</span>
@@ -152,6 +152,10 @@ export default function LogKegiatanShow({ log, isAdmin }) {
                             <div>
                                 <span className="text-xs text-gray-500 block">Lokasi</span>
                                 <span className="font-medium text-gray-800">📍 {log.lokasi_kegiatan}</span>
+                            </div>
+                            <div>
+                                <span className="text-xs text-gray-500 block">Keterangan Tempat</span>
+                                <span className="font-medium text-gray-800">{log.keterangan_tempat || '-'}</span>
                             </div>
                         </div>
 
