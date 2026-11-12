@@ -65,7 +65,7 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
             header={
                 <div>
                     <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                        Riwayat Kehadiran
+                        Rencana Kehadiran
                     </h2>
                     <p className="text-xs text-gray-500 mt-1">
                         Pencatatan rencana tanggal dan sesi kehadiran kegiatan KKN Tematik
@@ -73,7 +73,7 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
                 </div>
             }
         >
-            <Head title="Riwayat Kehadiran" />
+            <Head title="Rencana Kehadiran" />
 
             <div className="py-8">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
@@ -238,11 +238,11 @@ export default function Index({ peserta, rencanaKehadirans, sessions = [], today
                         </form>
                     </div>
 
-                    {/* Section C: Riwayat Kehadiran */}
+                    {/* Section C: Rencana Kehadiran */}
                     <div className="overflow-hidden rounded-lg bg-white shadow-sm">
                         <div className="border-b border-gray-100 bg-gray-50 px-6 py-4">
                             <h3 className="text-base font-semibold leading-6 text-gray-900">
-                                Riwayat Kehadiran
+                                Rencana Kehadiran
                             </h3>
                             <p className="mt-0.5 text-xs text-gray-500">
                                 Jadwal kehadiran Anda dan log kegiatan yang terkait.

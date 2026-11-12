@@ -104,7 +104,7 @@ export default function Login({ status }) {
                                             name="identifier"
                                             type="text"
                                             value={data.identifier}
-                                            placeholder="Masukkan NIM atau email"
+                                            placeholder="XXXXXXXXX"
                                             autoComplete="username"
                                             aria-invalid={Boolean(identifierError)}
                                             aria-describedby={
@@ -135,7 +135,7 @@ export default function Login({ status }) {
                                 <div className="login-field">
                                     <div className="login-label-row">
                                         <label htmlFor="password">
-                                            PIN Kampus
+                                            Password
                                         </label>
                                     </div>
 
@@ -168,7 +168,7 @@ export default function Login({ status }) {
                                                     : 'password'
                                             }
                                             value={data.password}
-                                            placeholder="Masukkan PIN kampus"
+                                            placeholder="........"
                                             autoComplete="current-password"
                                             aria-invalid={Boolean(errors.password)}
                                             aria-describedby={

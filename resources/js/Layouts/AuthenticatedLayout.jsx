@@ -108,6 +108,15 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                                         Dashboard
                                     </NavLink>
 
+                                    {user?.is_mahasiswa && (
+                                        <NavLink
+                                            href={route('mahasiswa.schedule.index')}
+                                            active={route().current('mahasiswa.schedule.*')}
+                                        >
+                                            Rencana Kehadiran
+                                        </NavLink>
+                                    )}
+
                                     <NavLink
                                         href={route('log-kegiatan.create')}
                                         active={route().current('log-kegiatan.create') || route().current('log-kegiatan.edit')}
@@ -125,14 +134,6 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                                         Kegiatan
                                     </NavLink>
 
-                                    {user?.is_mahasiswa && (
-                                        <NavLink
-                                            href={route('mahasiswa.schedule.index')}
-                                            active={route().current('mahasiswa.schedule.*')}
-                                        >
-                                            Riwayat Kehadiran
-                                        </NavLink>
-                                    )}
                                 </div>
                             )}
                         </div>
@@ -345,6 +346,14 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                                 >
                                     Dashboard
                                 </ResponsiveNavLink>
+                                {user?.is_mahasiswa && (
+                                    <ResponsiveNavLink
+                                        href={route('mahasiswa.schedule.index')}
+                                        active={route().current('mahasiswa.schedule.*')}
+                                    >
+                                        Rencana Kehadiran
+                                    </ResponsiveNavLink>
+                                )}
                                 <ResponsiveNavLink
                                     href={route('log-kegiatan.create')}
                                     active={route().current('log-kegiatan.create') || route().current('log-kegiatan.edit')}
@@ -358,14 +367,6 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                                     Kegiatan
                                 </ResponsiveNavLink>
                             </>
-                        )}
-                        {user?.is_mahasiswa && (
-                            <ResponsiveNavLink
-                                href={route('mahasiswa.schedule.index')}
-                                active={route().current('mahasiswa.schedule.*')}
-                            >
-                                Riwayat Kehadiran
-                            </ResponsiveNavLink>
                         )}
                     </div>
 

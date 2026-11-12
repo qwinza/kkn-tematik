@@ -5,8 +5,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
-export default function LogKegiatanStepper({ log, currentStep = 1, student, masterKegiatans = [], prodis = [], rencanaKehadirans = [] }) {
-    const [activeStep, setActiveStep] = useState(currentStep || 1);
+export default function LogKegiatanStepper({ log, currentStep = 1, masterKegiatans = [], rencanaKehadirans = [] }) {
+    const [activeStep, setActiveStep] = useState(Math.min(Math.max((currentStep || 1) - 1, 1), 6));
     const [currentLogId, setCurrentLogId] = useState(log?.id || null);
     const [currentLogRouteKey, setCurrentLogRouteKey] = useState(log?.route_key || null);
     const [stepValidationError, setStepValidationError] = useState(null);
@@ -18,15 +18,9 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
     // Main Stepper Form state
     const form = useForm({
         log_id: currentLogId,
-        step: activeStep,
+        step: activeStep + 1,
         is_draft_only: false,
         action: 'continue',
-
-        // Step 1: Identity
-        email: student?.email || log?.peserta?.user?.email || '',
-        nama_lengkap: student?.nama_lengkap || log?.peserta?.nama_lengkap || '',
-        nim: student?.nim || log?.peserta?.nim || '',
-        kode_prodi: student?.kode_prodi || log?.peserta?.kode_prodi || '',
 
         // Step 2: Schedule
         rencana_kehadiran_id: log?.rencana_kehadiran_id || '',
@@ -54,7 +48,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
     // Synchronize activeStep and currentLogId when props change
     useEffect(() => {
         if (currentStep) {
-            setActiveStep(currentStep);
+            setActiveStep(Math.min(Math.max(currentStep - 1, 1), 6));
         }
     }, [currentStep]);
 
@@ -156,36 +150,27 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
 
         // Validation per step before continuing
         if (activeStep === 1) {
-            if (!form.data.nama_lengkap) {
-                setStepValidationError('Nama lengkap wajib diisi.');
-                return;
-            }
-            if (!form.data.kode_prodi) {
-                setStepValidationError('Pilih program studi terlebih dahulu.');
-                return;
-            }
-        } else if (activeStep === 2) {
             if (!form.data.rencana_kehadiran_id) {
                 setStepValidationError('Pilih jadwal kehadiran yang sudah diatur.');
                 return;
             }
-        } else if (activeStep === 3) {
+        } else if (activeStep === 2) {
             if (!form.data.master_kegiatan_id) {
                 setStepValidationError('Pilih salah satu kode aktivitas kegiatan.');
                 return;
             }
-        } else if (activeStep === 4) {
+        } else if (activeStep === 3) {
             if (!form.data.deskripsi_kegiatan) {
                 setStepValidationError('Deskripsi rincian kegiatan wajib diisi.');
                 return;
             }
-        } else if (activeStep === 5) {
+        } else if (activeStep === 4) {
             const hasExistingPhotos = log?.files?.some((file) => file.jenis_file === 'foto_kegiatan');
             if (!form.data.foto_kegiatan.length && !hasExistingPhotos) {
                 setStepValidationError('Foto dokumentasi kegiatan wajib dipilih.');
                 return;
             }
-        } else if (activeStep === 6) {
+        } else if (activeStep === 5) {
             if (!form.data.deskripsi_luaran) {
                 setStepValidationError('Deskripsi luaran wajib diisi.');
                 return;
@@ -198,11 +183,11 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
         }
 
         // Save this step to backend
-        const currentStepBeingSaved = activeStep;
+        const currentStepBeingSaved = activeStep + 1;
         saveCurrentStep(currentStepBeingSaved, false, 'continue');
 
         // Advance to next step in UI immediately
-        if (activeStep < 7) {
+        if (activeStep < 6) {
             setActiveStep(activeStep + 1);
         }
     };
@@ -210,7 +195,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
     const handleSaveDraft = (e) => {
         e?.preventDefault();
         setStepValidationError(null);
-        saveCurrentStep(activeStep, true, 'draft');
+        saveCurrentStep(activeStep + 1, true, 'draft');
     };
 
     const handleFinalSubmit = (e) => {
@@ -220,17 +205,15 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
     };
 
     const steps = [
-        { number: 1, label: 'Identitas' },
-        { number: 2, label: 'Jadwal' },
-        { number: 3, label: 'Kegiatan' },
-        { number: 4, label: 'Rincian' },
-        { number: 5, label: 'Dokumentasi' },
-        { number: 6, label: 'Luaran' },
-        { number: 7, label: 'Tinjau' },
+        { number: 1, label: 'Jadwal' },
+        { number: 2, label: 'Kegiatan' },
+        { number: 3, label: 'Rincian' },
+        { number: 4, label: 'Dokumentasi' },
+        { number: 5, label: 'Luaran' },
+        { number: 6, label: 'Tinjau' },
     ];
 
     const currentActivityObj = masterKegiatans.find((k) => k.id === Number(form.data.master_kegiatan_id)) || log?.master_kegiatan;
-    const selectedProdi = prodis.find((prodi) => prodi.kode_prodi === form.data.kode_prodi);
     const selectedRencanaKehadiran = rencanaKehadirans.find(
         (rencana) => Number(rencana.id) === Number(form.data.rencana_kehadiran_id)
     );
@@ -315,90 +298,12 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
 
                     {/* Stepper Card Content */}
                     <div className="portal-stepper-card rounded-2xl border border-gray-100 bg-white p-6 sm:p-10 shadow-sm">
-                        {/* STEP 1: IDENTITY */}
+                        {/* STEP 1: SCHEDULE */}
                         {activeStep === 1 && (
                             <div>
                                 <div className="mb-6">
                                     <span className="text-xs font-bold tracking-widest text-[#059669] uppercase">
-                                        TAHAP 1 DARI 7
-                                    </span>
-                                    <h2 className="mt-1 text-2xl font-bold text-gray-900">
-                                        Identitas
-                                    </h2>
-                                    <p className="mt-1 text-sm text-gray-500">
-                                        Pastikan data mahasiswa yang mengisi kegiatan sudah benar.
-                                    </p>
-                                </div>
-
-                                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                                    <div>
-                                        <InputLabel htmlFor="email" value="Alamat email" className="text-xs font-semibold text-gray-700" />
-                                        <TextInput
-                                            id="email"
-                                            type="email"
-                                            className="mt-1.5 block w-full rounded-xl border-gray-200 bg-gray-50 text-sm"
-                                            value={form.data.email}
-                                            placeholder="nadia.amalia@itenas.ac.id"
-                                            autoComplete="off"
-                                            disabled
-                                        />
-                                        <InputError message={form.errors.email} className="mt-1" />
-                                    </div>
-
-                                    <div>
-                                        <InputLabel htmlFor="nama_lengkap" value="Nama lengkap" className="text-xs font-semibold text-gray-700" />
-                                        <TextInput
-                                            id="nama_lengkap"
-                                            type="text"
-                                            className="mt-1.5 block w-full rounded-xl border-gray-200 bg-gray-50 text-sm"
-                                            value={form.data.nama_lengkap}
-                                            placeholder="Nadia Amalia"
-                                            autoComplete="off"
-                                            disabled
-                                        />
-                                        <InputError message={form.errors.nama_lengkap} className="mt-1" />
-                                    </div>
-
-                                    <div>
-                                        <InputLabel htmlFor="nim" value="NIM" className="text-xs font-semibold text-gray-700" />
-                                        <TextInput
-                                            id="nim"
-                                            type="text"
-                                            className="mt-1.5 block w-full rounded-xl border-gray-200 text-sm focus:border-emerald-600 focus:ring-emerald-600 bg-gray-50"
-                                            value={form.data.nim}
-                                            readOnly
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <InputLabel htmlFor="kode_prodi" value="Program Studi" className="text-xs font-semibold text-gray-700"/>
-                                        <select
-                                            id="kode_prodi"
-                                            className="mt-1.5 block w-full rounded-xl border-gray-200 text-sm focus:border-emerald-600 focus:ring-emerald-600"
-                                            value={form.data.kode_prodi}
-                                            onChange={(e) => form.setData('kode_prodi', e.target.value)}
-                                            disabled={Boolean(student?.kode_prodi || log?.peserta?.kode_prodi)}
-                                            required
-                                        >
-                                            <option value="">Pilih program studi</option>
-                                            {prodis.map((prodi) => (
-                                                <option key={prodi.kode_prodi} value={prodi.kode_prodi}>
-                                                    {prodi.kode_prodi} — {prodi.nama_prodi}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <InputError message={form.errors.kode_prodi} className="mt-1" />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* STEP 2: SCHEDULE */}
-                        {activeStep === 2 && (
-                            <div>
-                                <div className="mb-6">
-                                    <span className="text-xs font-bold tracking-widest text-[#059669] uppercase">
-                                        TAHAP 2 DARI 7
+                                        TAHAP 1 DARI 6
                                     </span>
                                     <h2 className="mt-1 text-2xl font-bold text-gray-900">
                                         Jadwal
@@ -456,12 +361,12 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                             </div>
                         )}
 
-                        {/* STEP 3: ACTIVITY */}
-                        {activeStep === 3 && (
+                        {/* STEP 2: ACTIVITY */}
+                        {activeStep === 2 && (
                             <div>
                                 <div className="mb-6">
                                     <span className="text-xs font-bold tracking-widest text-[#059669] uppercase">
-                                        TAHAP 3 DARI 7
+                                        TAHAP 2 DARI 6
                                     </span>
                                     <h2 className="mt-1 text-2xl font-bold text-gray-900">
                                         Kegiatan
@@ -496,12 +401,12 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                             </div>
                         )}
 
-                        {/* STEP 4: DETAILS */}
-                        {activeStep === 4 && (
+                        {/* STEP 3: DETAILS */}
+                        {activeStep === 3 && (
                             <div>
                                 <div className="mb-6">
                                     <span className="text-xs font-bold tracking-widest text-[#059669] uppercase">
-                                        TAHAP 4 DARI 7
+                                        TAHAP 3 DARI 6
                                     </span>
                                     <h2 className="mt-1 text-2xl font-bold text-gray-900">
                                         Rincian Kegiatan
@@ -623,12 +528,12 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                             </div>
                         )}
 
-                        {/* STEP 5: EVIDENCE */}
-                        {activeStep === 5 && (
+                        {/* STEP 4: EVIDENCE */}
+                        {activeStep === 4 && (
                             <div>
                                 <div className="mb-6">
                                     <span className="text-xs font-bold tracking-widest text-[#059669] uppercase">
-                                        TAHAP 5 DARI 7
+                                        TAHAP 4 DARI 6
                                     </span>
                                     <h2 className="mt-1 text-2xl font-bold text-gray-900">
                                         Dokumentasi
@@ -671,12 +576,12 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                             </div>
                         )}
 
-                        {/* STEP 6: OUTPUTS */}
-                        {activeStep === 6 && (
+                        {/* STEP 5: OUTPUTS */}
+                        {activeStep === 5 && (
                             <div>
                                 <div className="mb-6">
                                     <span className="text-xs font-bold tracking-widest text-[#059669] uppercase">
-                                        TAHAP 6 DARI 7
+                                        TAHAP 5 DARI 6
                                     </span>
                                     <h2 className="mt-1 text-2xl font-bold text-gray-900">
                                         Luaran Kegiatan
@@ -735,12 +640,12 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                             </div>
                         )}
 
-                        {/* STEP 7: REVIEW */}
-                        {activeStep === 7 && (
+                        {/* STEP 6: REVIEW */}
+                        {activeStep === 6 && (
                             <div>
                                 <div className="mb-6">
                                     <span className="text-xs font-bold tracking-widest text-[#059669] uppercase">
-                                        TAHAP 7 DARI 7
+                                        TAHAP 6 DARI 6
                                     </span>
                                     <h2 className="mt-1 text-2xl font-bold text-gray-900">
                                         Tinjau Kegiatan
@@ -752,17 +657,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
 
                                 <div className="space-y-4 text-sm">
                                     <div className="rounded-xl border border-gray-100 bg-[#f9fafb] p-4">
-                                        <div className="font-bold text-gray-800 mb-2">1. Identitas</div>
-                                        <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                                            <div><strong>Nama:</strong> {form.data.nama_lengkap}</div>
-                                            <div><strong>NIM:</strong> {form.data.nim}</div>
-                                            <div><strong>Alamat email:</strong> {form.data.email}</div>
-                                            <div><strong>Program studi:</strong> {selectedProdi?.nama_prodi ?? '-'}</div>
-                                        </div>
-                                    </div>
-
-                                    <div className="rounded-xl border border-gray-100 bg-[#f9fafb] p-4">
-                                        <div className="font-bold text-gray-800 mb-2">2. Jadwal</div>
+                                        <div className="font-bold text-gray-800 mb-2">1. Jadwal</div>
                                         <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
                                             <div><strong>Tanggal:</strong> {selectedRencanaKehadiran?.tanggal_rencana.slice(0, 10) ?? '-'}</div>
                                             <div><strong>Sesi:</strong> {selectedRencanaKehadiran?.jam_kehadiran ?? '-'}</div>
@@ -770,14 +665,14 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                                     </div>
 
                                     <div className="rounded-xl border border-gray-100 bg-[#f9fafb] p-4">
-                                        <div className="font-bold text-gray-800 mb-2">3. Kegiatan</div>
+                                        <div className="font-bold text-gray-800 mb-2">2. Kegiatan</div>
                                         <div className="text-xs text-gray-600">
                                             <strong>Nama kegiatan:</strong> {currentActivityObj?.kode_kegiatan} — {currentActivityObj?.nama_kegiatan} ({currentActivityObj?.kategori})
                                         </div>
                                     </div>
 
                                     <div className="rounded-xl border border-gray-100 bg-[#f9fafb] p-4">
-                                        <div className="font-bold text-gray-800 mb-2">4. Rincian dan lokasi</div>
+                                        <div className="font-bold text-gray-800 mb-2">3. Rincian dan lokasi</div>
                                         <div className="text-xs text-gray-600 space-y-1">
                                             <div><strong>Lokasi:</strong> {form.data.lokasi_kegiatan} {form.data.latitude ? `(${form.data.latitude}, ${form.data.longitude})` : ''}</div>
                                             <div><strong>Rincian kegiatan:</strong> {form.data.deskripsi_kegiatan}</div>
@@ -785,7 +680,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                                     </div>
 
                                     <div className="rounded-xl border border-gray-100 bg-[#f9fafb] p-4">
-                                        <div className="font-bold text-gray-800 mb-2">5. Dokumentasi dan 6. Luaran</div>
+                                        <div className="font-bold text-gray-800 mb-2">4. Dokumentasi dan 5. Luaran</div>
                                         <div className="text-xs text-gray-600 space-y-1">
                                             <div><strong>Foto kegiatan:</strong> {form.data.foto_kegiatan.length ? `${form.data.foto_kegiatan.length} berkas baru dipilih` : (log?.files?.some((file) => file.jenis_file === 'foto_kegiatan') ? 'Tersimpan' : 'Belum diunggah')}</div>
                                             <div><strong>Deskripsi luaran:</strong> {form.data.deskripsi_luaran}</div>
@@ -823,7 +718,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                                     </button>
                                 )}
 
-                                {activeStep < 7 ? (
+                                {activeStep < 6 ? (
                                     <button
                                         type="button"
                                         disabled={form.processing}

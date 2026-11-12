@@ -191,19 +191,6 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                     </header>
 
                                     <div className="space-y-4">
-                                        <div>
-                                            <label htmlFor="filter-search" className="mb-1.5 block text-sm font-medium text-gray-700">
-                                                Nama / NRP / rincian
-                                            </label>
-                                            <TextInput
-                                                id="filter-search"
-                                                type="search"
-                                                className="w-full text-sm"
-                                                placeholder="Cari mahasiswa atau laporan"
-                                                value={search}
-                                                onChange={(event) => setSearch(event.target.value)}
-                                            />
-                                        </div>
 
                                         <div>
                                             <label htmlFor="filter-status" className="mb-1.5 block text-sm font-medium text-gray-700">Status</label>
