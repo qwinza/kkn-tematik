@@ -67,4 +67,13 @@ class User extends Authenticatable
     {
         return $this->role === 'mahasiswa';
     }
+    public function dppProfile(): HasOne
+    {
+        return $this->hasOne(DppProfile::class);
+    }
+
+    public function isDpp(): bool
+    {
+        return $this->role === 'dpp';
+    }
 }

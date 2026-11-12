@@ -2,35 +2,62 @@
 
 namespace App\Http\Requests;
 
+use App\Models\MasterKegiatan;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class MasterKegiatanRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
-        return $this->user()?->isAdmin() ?? false;
+        $user = $this->user();
+
+        if ($user?->isAdmin()) {
+            return true;
+        }
+
+        if (! $user?->isDpp() || ! $user->dppProfile) {
+            return false;
+        }
+
+        $masterKegiatan = $this->route('master_kegiatan');
+
+        if (
+            $masterKegiatan instanceof MasterKegiatan
+            && $masterKegiatan->kode_prodi !== $user->dppProfile->kode_prodi
+        ) {
+            return false;
+        }
+
+        return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
+    protected function prepareForValidation(): void
+    {
+        $user = $this->user();
+
+        if ($user?->isDpp() && $user->dppProfile) {
+            $this->merge([
+                'kode_prodi' => $user->dppProfile->kode_prodi,
+            ]);
+        }
+    }
+
     public function rules(): array
     {
-        $masterKegiatanId = $this->route('master_kegiatan')?->id ?? $this->route('master_kegiatan');
+        $masterKegiatan = $this->route('master_kegiatan');
+        $masterKegiatanId = $masterKegiatan instanceof MasterKegiatan
+            ? $masterKegiatan->id
+            : $masterKegiatan;
 
         return [
             'kode_kegiatan' => [
                 'required',
                 'string',
                 'max:50',
-                Rule::unique('master_kegiatans', 'kode_kegiatan')->ignore($masterKegiatanId),
+                Rule::unique('master_kegiatans', 'kode_kegiatan')
+                    ->ignore($masterKegiatanId),
             ],
             'nama_kegiatan' => ['required', 'string', 'max:255'],
             'kategori' => ['required', 'string', 'max:100'],
@@ -38,11 +65,6 @@ class MasterKegiatanRequest extends FormRequest
         ];
     }
 
-    /**
-     * Custom message validation.
-     *
-     * @return array<string, string>
-     */
     public function messages(): array
     {
         return [

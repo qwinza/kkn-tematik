@@ -933,4 +933,133 @@ class LogKegiatanStepperTest extends TestCase
         $this->assertSame((string) $log->getKey(), Crypt::decryptString($encryptedKey));
         $this->assertSame("step={$step}", parse_url($location, PHP_URL_QUERY));
     }
+    public function test_dpp_only_sees_logs_from_own_prodi(): void
+    {
+        $ownProdi = Prodi::factory()->create();
+        $otherProdi = Prodi::factory()->create();
+
+        $dpp = User::factory()->dpp()->create();
+
+        $dpp->dppProfile()->create([
+            'kode_prodi' => $ownProdi->kode_prodi,
+        ]);
+
+        $ownStudent = User::factory()->mahasiswa()->create();
+        $otherStudent = User::factory()->mahasiswa()->create();
+
+        $ownPeserta = Peserta::factory()->create([
+            'user_id' => $ownStudent->id,
+            'kode_prodi' => $ownProdi->kode_prodi,
+        ]);
+
+        $otherPeserta = Peserta::factory()->create([
+            'user_id' => $otherStudent->id,
+            'kode_prodi' => $otherProdi->kode_prodi,
+        ]);
+
+        $ownLog = LogKegiatan::factory()->create([
+            'peserta_id' => $ownPeserta->id,
+            'status' => 'menunggu',
+        ]);
+
+        LogKegiatan::factory()->create([
+            'peserta_id' => $otherPeserta->id,
+            'status' => 'menunggu',
+        ]);
+
+        $this->actingAs($dpp)
+            ->get(route('log-kegiatan.index', [
+                'kode_prodi' => $otherProdi->kode_prodi,
+            ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('LogKegiatan/Index')
+                ->has('logs.data', 1)
+                ->where('logs.data.0.id', $ownLog->id)
+                ->where('isDpp', true)
+                ->where('isReviewer', true)
+                ->where('pendingCount', 1)
+            );
+    }
+
+    public function test_dpp_can_approve_own_log_but_cannot_approve_other_prodi_log(): void
+    {
+        $ownProdi = Prodi::factory()->create();
+        $otherProdi = Prodi::factory()->create();
+
+        $dpp = User::factory()->dpp()->create();
+
+        $dpp->dppProfile()->create([
+            'kode_prodi' => $ownProdi->kode_prodi,
+        ]);
+
+        $ownStudent = User::factory()->mahasiswa()->create();
+        $otherStudent = User::factory()->mahasiswa()->create();
+
+        $ownPeserta = Peserta::factory()->create([
+            'user_id' => $ownStudent->id,
+            'kode_prodi' => $ownProdi->kode_prodi,
+        ]);
+
+        $otherPeserta = Peserta::factory()->create([
+            'user_id' => $otherStudent->id,
+            'kode_prodi' => $otherProdi->kode_prodi,
+        ]);
+
+        $ownLog = LogKegiatan::factory()->create([
+            'peserta_id' => $ownPeserta->id,
+            'status' => 'menunggu',
+        ]);
+
+        $otherLog = LogKegiatan::factory()->create([
+            'peserta_id' => $otherPeserta->id,
+            'status' => 'menunggu',
+        ]);
+
+        $this->actingAs($dpp)
+            ->post(route('log-kegiatan.approve', $ownLog))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('log_kegiatans', [
+            'id' => $ownLog->id,
+            'status' => 'disetujui',
+        ]);
+
+        $this->post(route('log-kegiatan.approve', $otherLog))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('log_kegiatans', [
+            'id' => $otherLog->id,
+            'status' => 'menunggu',
+        ]);
+    }
+
+    public function test_dpp_cannot_access_another_prodis_log_detail(): void
+    {
+        $ownProdi = Prodi::factory()->create();
+        $otherProdi = Prodi::factory()->create();
+
+        $dpp = User::factory()->dpp()->create();
+
+        $dpp->dppProfile()->create([
+            'kode_prodi' => $ownProdi->kode_prodi,
+        ]);
+
+        $otherStudent = User::factory()->mahasiswa()->create();
+
+        $otherPeserta = Peserta::factory()->create([
+            'user_id' => $otherStudent->id,
+            'kode_prodi' => $otherProdi->kode_prodi,
+        ]);
+
+        $otherLog = LogKegiatan::factory()->create([
+            'peserta_id' => $otherPeserta->id,
+            'status' => 'menunggu',
+        ]);
+
+        $this->actingAs($dpp)
+            ->get(route('log-kegiatan.show', $otherLog))
+            ->assertForbidden();
+    }
 }
