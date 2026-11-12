@@ -140,7 +140,7 @@ export default function LogKegiatanShow({ log, isAdmin }) {
                         <h4 className="text-base font-semibold text-gray-800 border-b pb-2">
                             1. Informasi Kehadiran & Lokasi
                         </h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 text-sm">
                             <div>
                                 <span className="text-xs text-gray-500 block">Tanggal Kehadiran</span>
                                 <span className="font-medium text-gray-800">{log.tanggal_kehadiran}</span>
@@ -152,6 +152,10 @@ export default function LogKegiatanShow({ log, isAdmin }) {
                             <div>
                                 <span className="text-xs text-gray-500 block">Lokasi</span>
                                 <span className="font-medium text-gray-800">📍 {log.lokasi_kegiatan}</span>
+                            </div>
+                            <div>
+                                <span className="text-xs text-gray-500 block">Keterangan Tempat</span>
+                                <span className="font-medium text-gray-800">{log.keterangan_tempat || '-'}</span>
                             </div>
                         </div>
 

@@ -9,6 +9,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
@@ -125,6 +126,24 @@ class AuthController extends Controller
             ->first();
 
         if (! $peserta || ! $peserta->user) {
+            $this->hitRateLimiter($nim, $request->ip());
+
+            throw ValidationException::withMessages([
+                'identifier' => trans('auth.failed'),
+                'email' => trans('auth.failed'),
+            ]);
+        }
+
+        // Fallback pengembangan: login mahasiswa pakai password lokal saat APP_ENV=local.
+        if (app()->environment('local')) {
+            if (Hash::check($password, $peserta->user->password)) {
+                $this->clearRateLimiter($nim, $request->ip());
+                Auth::login($peserta->user, $request->boolean('remember'));
+                $request->session()->regenerate();
+
+                return redirect()->intended(route('dashboard', absolute: false));
+            }
+
             $this->hitRateLimiter($nim, $request->ip());
 
             throw ValidationException::withMessages([

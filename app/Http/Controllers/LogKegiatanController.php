@@ -19,7 +19,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
@@ -228,7 +227,7 @@ class LogKegiatanController extends Controller
     }
 
     /**
-     * Simpan data berdasarkan step (1 s.d. 7) dengan dukungan simpan draft.
+     * Simpan data berdasarkan step (1 s.d. 6) dengan dukungan simpan draft.
      */
     public function saveStep(Request $request, ?LogKegiatan $logKegiatan = null): RedirectResponse
     {
@@ -269,38 +268,8 @@ class LogKegiatanController extends Controller
             $this->ensureDraft($logKegiatan);
         }
 
-        // STEP 1: IDENTITY
+        // STEP 1: SCHEDULE
         if ($step === 1) {
-            $validated = $request->validate([
-                'kode_prodi' => ['required', 'string', 'exists:prodi,kode_prodi'],
-            ], [
-                'kode_prodi.required' => 'Pilih program studi terlebih dahulu.',
-                'kode_prodi.exists' => 'Program studi yang dipilih tidak ditemukan.',
-            ]);
-
-            if ($peserta->kode_prodi !== null && $peserta->kode_prodi !== $validated['kode_prodi']) {
-                throw ValidationException::withMessages([
-                    'kode_prodi' => 'Program studi peserta sudah ditetapkan dan tidak dapat diubah dari log kegiatan.',
-                ]);
-            }
-
-            $peserta->update(['kode_prodi' => $validated['kode_prodi']]);
-
-            $logKegiatan->current_step = max($logKegiatan->current_step, 2);
-            $logKegiatan->save();
-
-            if ($isDraftOnly) {
-                return redirect()->back()->with('success', 'Draft identitas berhasil disimpan.');
-            }
-
-            return redirect()->route('log-kegiatan.edit', [
-                'log_kegiatan' => $logKegiatan,
-                'step' => 2,
-            ]);
-        }
-
-        // STEP 2: SCHEDULE
-        if ($step === 2) {
             if ($request->exists('rencana_kehadiran_id')) {
                 $validated = $request->validate([
                     'rencana_kehadiran_id' => [
@@ -345,7 +314,7 @@ class LogKegiatanController extends Controller
 
             $logKegiatan->update([
                 ...$scheduleData,
-                'current_step' => max($logKegiatan->current_step, 3),
+                'current_step' => max($logKegiatan->current_step, 2),
             ]);
 
             if ($isDraftOnly) {
@@ -354,12 +323,12 @@ class LogKegiatanController extends Controller
 
             return redirect()->route('log-kegiatan.edit', [
                 'log_kegiatan' => $logKegiatan,
-                'step' => 3,
+                'step' => 2,
             ]);
         }
 
-        // STEP 3: ACTIVITY (FACULTY & PROJECT CODE)
-        if ($step === 3) {
+        // STEP 2: ACTIVITY (FACULTY & PROJECT CODE)
+        if ($step === 2) {
             $validated = $request->validate([
                 'master_kegiatan_id' => [
                     'required',
@@ -372,7 +341,7 @@ class LogKegiatanController extends Controller
 
             $logKegiatan->update([
                 'master_kegiatan_id' => $validated['master_kegiatan_id'],
-                'current_step' => max($logKegiatan->current_step, 4),
+                'current_step' => max($logKegiatan->current_step, 3),
             ]);
 
             if ($isDraftOnly) {
@@ -381,28 +350,31 @@ class LogKegiatanController extends Controller
 
             return redirect()->route('log-kegiatan.edit', [
                 'log_kegiatan' => $logKegiatan,
-                'step' => 4,
+                'step' => 3,
             ]);
         }
 
-        // STEP 4: DETAILS (LOCATION, GPS, DESCRIPTION)
-        if ($step === 4) {
+        // STEP 3: DETAILS (LOCATION, PLACE NOTE, GPS, DESCRIPTION)
+        if ($step === 3) {
             $validated = $request->validate([
                 'lokasi_kegiatan' => ['required', 'string'],
+                'keterangan_tempat' => ['required', 'string', 'max:255'],
                 'deskripsi_kegiatan' => ['required', 'string', 'min:5'],
                 'latitude' => ['nullable', 'numeric', 'between:-90,90'],
                 'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             ], [
                 'lokasi_kegiatan.required' => 'Pilih lokasi kegiatan.',
+                'keterangan_tempat.required' => 'Keterangan tempat wajib diisi.',
                 'deskripsi_kegiatan.required' => 'Deskripsi rincian kegiatan wajib diisi.',
             ]);
 
             $logKegiatan->update([
                 'lokasi_kegiatan' => $validated['lokasi_kegiatan'],
+                'keterangan_tempat' => $validated['keterangan_tempat'],
                 'deskripsi_kegiatan' => $validated['deskripsi_kegiatan'],
                 'latitude' => $validated['latitude'] ?? null,
                 'longitude' => $validated['longitude'] ?? null,
-                'current_step' => max($logKegiatan->current_step, 5),
+                'current_step' => max($logKegiatan->current_step, 4),
             ]);
 
             if ($isDraftOnly) {
@@ -411,12 +383,12 @@ class LogKegiatanController extends Controller
 
             return redirect()->route('log-kegiatan.edit', [
                 'log_kegiatan' => $logKegiatan,
-                'step' => 5,
+                'step' => 4,
             ]);
         }
 
-        // STEP 5: EVIDENCE (PHOTO UPLOAD MAX 50MB)
-        if ($step === 5) {
+        // STEP 4: EVIDENCE (PHOTO UPLOAD MAX 50MB)
+        if ($step === 4) {
             $hasExisting = $logKegiatan->fotoKegiatanFiles()->exists();
             $validated = $request->validate([
                 'foto_kegiatan' => [
@@ -432,7 +404,7 @@ class LogKegiatanController extends Controller
 
             $this->storeUploadedFiles($logKegiatan, $request->file('foto_kegiatan'), 'foto_kegiatan', 'kegiatan/foto');
 
-            $logKegiatan->current_step = max($logKegiatan->current_step, 6);
+            $logKegiatan->current_step = max($logKegiatan->current_step, 5);
             $logKegiatan->save();
 
             if ($isDraftOnly) {
@@ -441,12 +413,12 @@ class LogKegiatanController extends Controller
 
             return redirect()->route('log-kegiatan.edit', [
                 'log_kegiatan' => $logKegiatan,
-                'step' => 6,
+                'step' => 5,
             ]);
         }
 
-        // STEP 6: OUTPUTS (DELIVERABLES MAX 50MB)
-        if ($step === 6) {
+        // STEP 5: OUTPUTS (DELIVERABLES MAX 50MB)
+        if ($step === 5) {
             $hasExisting = $logKegiatan->fileLuaranFiles()->exists();
             $validated = $request->validate([
                 'deskripsi_luaran' => ['required', 'string', 'min:3'],
@@ -465,7 +437,7 @@ class LogKegiatanController extends Controller
             $this->storeUploadedFiles($logKegiatan, $request->file('file_luaran'), 'file_luaran', 'kegiatan/luaran');
 
             $logKegiatan->deskripsi_luaran = $validated['deskripsi_luaran'];
-            $logKegiatan->current_step = max($logKegiatan->current_step, 7);
+            $logKegiatan->current_step = max($logKegiatan->current_step, 6);
             $logKegiatan->save();
 
             if ($isDraftOnly) {
@@ -474,12 +446,12 @@ class LogKegiatanController extends Controller
 
             return redirect()->route('log-kegiatan.edit', [
                 'log_kegiatan' => $logKegiatan,
-                'step' => 7,
+                'step' => 6,
             ]);
         }
 
-        // STEP 7: REVIEW & SUBMIT
-        if ($step === 7) {
+        // STEP 6: REVIEW & SUBMIT
+        if ($step === 6) {
             if ($request->input('action') === 'submit') {
                 if (
                     empty($logKegiatan->tanggal_kehadiran) ||
@@ -490,12 +462,12 @@ class LogKegiatanController extends Controller
                     empty($logKegiatan->deskripsi_luaran) ||
                     ! $logKegiatan->fileLuaranFiles()->exists()
                 ) {
-                    return redirect()->back()->with('error', 'Semua bagian (Step 1 s.d. 6) wajib dilengkapi sebelum submit akhir.');
+                    return redirect()->back()->with('error', 'Semua bagian (Step 1 s.d. 5) wajib dilengkapi sebelum submit akhir.');
                 }
 
                 $logKegiatan->update([
                     'status' => 'menunggu',
-                    'current_step' => 7,
+                    'current_step' => 6,
                 ]);
 
                 return redirect()->route('log-kegiatan.index')->with('success', 'Laporan kegiatan KKN berhasil disubmit!');
@@ -645,7 +617,7 @@ class LogKegiatanController extends Controller
             ->get();
 
         $requestedStep = (int) $request->input('step', $logKegiatan->current_step ?: 1);
-        $step = in_array($requestedStep, [1, 2, 3, 4, 5, 6, 7], true) ? $requestedStep : 1;
+        $step = in_array($requestedStep, [1, 2, 3, 4, 5, 6], true) ? $requestedStep : 1;
 
         $student = [
             'nama_lengkap' => $peserta?->nama_lengkap ?? $user->name,

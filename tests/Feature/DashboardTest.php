@@ -55,4 +55,65 @@ class DashboardTest extends TestCase
                 ->where('summary.totalDisetujui', 1)
             );
     }
+
+    public function test_dashboard_summarizes_activities_by_location(): void
+    {
+        $mahasiswa = User::factory()->mahasiswa()->create();
+        $peserta = Peserta::factory()->create(['user_id' => $mahasiswa->id]);
+
+        LogKegiatan::factory()->create([
+            'peserta_id' => $peserta->id,
+            'lokasi_kegiatan' => 'Lapangan',
+        ]);
+        LogKegiatan::factory()->create([
+            'peserta_id' => $peserta->id,
+            'lokasi_kegiatan' => 'Lapangan',
+        ]);
+        LogKegiatan::factory()->create([
+            'peserta_id' => $peserta->id,
+            'lokasi_kegiatan' => 'Kampus ITENAS',
+        ]);
+
+        $this->actingAs($mahasiswa)
+            ->get(route('dashboard'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Dashboard')
+                ->where('summary.totalKegiatan', 3)
+                ->where('summary.totalLapangan', 2)
+                ->where('summary.totalKampus', 1)
+            );
+    }
+
+    public function test_dashboard_sums_hours_for_approved_activities_only(): void
+    {
+        $mahasiswa = User::factory()->mahasiswa()->create();
+        $peserta = Peserta::factory()->create(['user_id' => $mahasiswa->id]);
+
+        LogKegiatan::factory()->create([
+            'peserta_id' => $peserta->id,
+            'status' => 'disetujui',
+            'jam_mulai' => '08:00',
+            'jam_selesai' => '11:30',
+        ]);
+        LogKegiatan::factory()->create([
+            'peserta_id' => $peserta->id,
+            'status' => 'disetujui',
+            'jam_mulai' => '13:00',
+            'jam_selesai' => '16:00',
+        ]);
+        LogKegiatan::factory()->create([
+            'peserta_id' => $peserta->id,
+            'status' => 'menunggu',
+            'jam_mulai' => '07:00',
+            'jam_selesai' => '10:00',
+        ]);
+
+        $this->actingAs($mahasiswa)
+            ->get(route('dashboard'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Dashboard')
+                ->where('summary.totalDisetujui', 2)
+                ->where('summary.totalJamDisetujui', 6.5)
+            );
+    }
 }

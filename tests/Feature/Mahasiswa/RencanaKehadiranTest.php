@@ -164,9 +164,9 @@ class RencanaKehadiranTest extends TestCase
     }
 
     /**
-     * 7. Past dates are rejected.
+     * 7. Past dates are accepted (mendukung pengisian tanggal sebelumnya).
      */
-    public function test_past_dates_are_rejected(): void
+    public function test_past_dates_are_accepted(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-11-02 10:00:00', config('app.timezone')));
 
@@ -179,8 +179,12 @@ class RencanaKehadiranTest extends TestCase
             'jam_kehadiran' => '07:00 - 10:00 (Pagi)',
         ]);
 
-        $response->assertSessionHasErrors('tanggal_rencana');
-        $this->assertDatabaseCount('rencana_kehadirans', 0);
+        $response->assertRedirect(route('mahasiswa.rencana-kehadiran.index'));
+        $response->assertSessionHas('success');
+
+        $plan = RencanaKehadiran::where('peserta_id', $peserta->id)->first();
+        $this->assertNotNull($plan);
+        $this->assertSame($yesterday, $plan->tanggal_rencana->format('Y-m-d'));
 
         Carbon::setTestNow();
     }
@@ -406,5 +410,80 @@ class RencanaKehadiranTest extends TestCase
             'jam_kehadiran' => '07:00 - 10:00 (Pagi)',
         ]);
         $responseStore->assertStatus(404);
+    }
+
+    /**
+     * 13. Mahasiswa can reschedule their own attendance plan.
+     */
+    public function test_mahasiswa_can_reschedule_their_attendance_plan(): void
+    {
+        [$user, $peserta] = $this->createMahasiswaPeserta();
+        $rencana = RencanaKehadiran::create([
+            'peserta_id' => $peserta->id,
+            'tanggal_rencana' => Carbon::today()->addDay()->toDateString(),
+            'jam_kehadiran' => '07:00 - 10:00 (Pagi)',
+        ]);
+
+        $newDate = Carbon::today()->addDays(3)->toDateString();
+
+        $response = $this->actingAs($user)->put(route('mahasiswa.schedule.update', $rencana), [
+            'tanggal_rencana' => $newDate,
+            'jam_kehadiran' => '13:00 - 16:00 (Sore)',
+        ]);
+
+        $response->assertRedirect(route('mahasiswa.schedule.index'));
+        $response->assertSessionHas('success', 'Jadwal kehadiran berhasil diperbarui.');
+
+        $rencana->refresh();
+        $this->assertSame($newDate, $rencana->tanggal_rencana->format('Y-m-d'));
+        $this->assertSame('13:00 - 16:00 (Sore)', $rencana->jam_kehadiran);
+    }
+
+    /**
+     * 14. Mahasiswa cannot reschedule another student's plan.
+     */
+    public function test_mahasiswa_cannot_reschedule_another_students_plan(): void
+    {
+        [$userA, $pesertaA] = $this->createMahasiswaPeserta();
+        [, $pesertaB] = $this->createMahasiswaPeserta(['nim' => '152024777']);
+
+        $rencanaB = RencanaKehadiran::create([
+            'peserta_id' => $pesertaB->id,
+            'tanggal_rencana' => Carbon::today()->addDay()->toDateString(),
+            'jam_kehadiran' => '07:00 - 10:00 (Pagi)',
+        ]);
+
+        $this->actingAs($userA)
+            ->put(route('mahasiswa.schedule.update', $rencanaB), [
+                'tanggal_rencana' => Carbon::today()->addDays(4)->toDateString(),
+                'jam_kehadiran' => '13:00 - 16:00 (Sore)',
+            ])
+            ->assertForbidden();
+
+        $rencanaB->refresh();
+        $this->assertSame('07:00 - 10:00 (Pagi)', $rencanaB->jam_kehadiran);
+    }
+
+    /**
+     * 15. Reschedule validates the session value.
+     */
+    public function test_reschedule_validates_session_value(): void
+    {
+        [$user, $peserta] = $this->createMahasiswaPeserta();
+        $rencana = RencanaKehadiran::create([
+            'peserta_id' => $peserta->id,
+            'tanggal_rencana' => Carbon::today()->addDay()->toDateString(),
+            'jam_kehadiran' => '07:00 - 10:00 (Pagi)',
+        ]);
+
+        $this->actingAs($user)
+            ->put(route('mahasiswa.schedule.update', $rencana), [
+                'tanggal_rencana' => Carbon::today()->addDays(3)->toDateString(),
+                'jam_kehadiran' => 'Malam (19.00 - 21.00)',
+            ])
+            ->assertSessionHasErrors('jam_kehadiran');
+
+        $rencana->refresh();
+        $this->assertSame('07:00 - 10:00 (Pagi)', $rencana->jam_kehadiran);
     }
 }

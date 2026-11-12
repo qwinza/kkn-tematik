@@ -66,7 +66,7 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                                 <Link href="/">
                                     <img
                                         className="portal-brand-wordmark"
-                                        src="/images/itenasresik.jpeg"
+                                        src="/images/itenasresik-trim.png"
                                         alt="ITENAS RESIK"
                                     />
                                 </Link>
@@ -174,10 +174,31 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                                                             onClick={() => setShowingNotifications(false)}
                                                             className="block border-b px-4 py-3 hover:bg-gray-50"
                                                         >
-                                                            <span className={`text-xs font-semibold ${notification.status === 'disetujui' ? 'text-green-700' : 'text-red-700'}`}>
-                                                                {notification.status === 'disetujui' ? 'Log disetujui' : 'Log ditolak'}
+                                                            <span className={`text-xs font-semibold ${
+                                                                notification.status === 'disetujui'
+                                                                    ? 'text-green-700'
+                                                                    : notification.status === 'ditolak'
+                                                                    ? 'text-red-700'
+                                                                    : 'text-blue-700'
+                                                            }`}>
+                                                                {notification.status === 'disetujui'
+                                                                    ? 'Laporan disetujui'
+                                                                    : notification.status === 'ditolak'
+                                                                    ? 'Laporan ditolak'
+                                                                    : 'Laporan disubmit — menunggu persetujuan'}
                                                             </span>
                                                             <span className="mt-1 block truncate text-sm text-gray-700">{notification.kegiatan}</span>
+                                                            {notification.updated_at && (
+                                                                <span className="mt-0.5 block text-[11px] text-gray-400">
+                                                                    {new Date(notification.updated_at).toLocaleString('id-ID', {
+                                                                        day: 'numeric',
+                                                                        month: 'short',
+                                                                        year: 'numeric',
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit',
+                                                                    })}
+                                                                </span>
+                                                            )}
                                                         </Link>
                                                     ))}
                                                 </div>

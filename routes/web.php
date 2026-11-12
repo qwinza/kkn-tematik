@@ -20,10 +20,18 @@ Route::get('/dashboard', function (Request $request) {
     $logs = LogKegiatan::query()
         ->when(! $user?->isAdmin(), fn ($query) => $query->where('peserta_id', $pesertaId ?? 0));
 
+    $totalJamDisetujui = round(
+        (clone $logs)->where('status', 'disetujui')->get()->sum(fn (LogKegiatan $log) => $log->durasiJam()),
+        1
+    );
+
     return Inertia::render('Dashboard', [
         'summary' => [
             'totalKegiatan' => (clone $logs)->count(),
             'totalDisetujui' => (clone $logs)->where('status', 'disetujui')->count(),
+            'totalLapangan' => (clone $logs)->where('lokasi_kegiatan', 'Lapangan')->count(),
+            'totalKampus' => (clone $logs)->where('lokasi_kegiatan', 'Kampus ITENAS')->count(),
+            'totalJamDisetujui' => $totalJamDisetujui,
         ],
     ]);
 })->middleware(['auth'])->name('dashboard');

@@ -414,7 +414,7 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                                 </td>
                                                 <td className="whitespace-nowrap px-6 py-4">
                                                     <span className="inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
-                                                        Tahap {item.current_step} dari 7
+                                                        Tahap {item.current_step} dari 6
                                                     </span>
                                                 </td>
                                                 <td className="whitespace-nowrap px-6 py-4 text-right">
