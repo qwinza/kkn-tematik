@@ -77,6 +77,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/log-kegiatan/{log_kegiatan}', [LogKegiatanController::class, 'destroy'])->name('log-kegiatan.destroy');
     Route::get('/log-kegiatan/export', [LogKegiatanController::class, 'export'])
     ->name('log-kegiatan.export');
+    Route::get('/log-kegiatan/export-rekap-jam-python', [LogKegiatanController::class, 'exportPythonSummary'])
+        ->name('log-kegiatan.export-python-summary');
 
     Route::post('/log-kegiatan/approve-all', [LogKegiatanController::class, 'approveAll'])
     ->name('log-kegiatan.approve-all');

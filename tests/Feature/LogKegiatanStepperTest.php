@@ -867,6 +867,81 @@ class LogKegiatanStepperTest extends TestCase
         });
     }
 
+    public function test_python_summary_groups_approved_activity_hours_per_student(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $student = User::factory()->mahasiswa()->create();
+        $peserta = Peserta::factory()->create(['user_id' => $student->id]);
+
+        LogKegiatan::factory()->create([
+            'peserta_id' => $peserta->id,
+            'status' => 'disetujui',
+            'jam_mulai' => '08:00',
+            'jam_selesai' => '09:30',
+        ]);
+        LogKegiatan::factory()->create([
+            'peserta_id' => $peserta->id,
+            'status' => 'disetujui',
+            'jam_mulai' => '10:00',
+            'jam_selesai' => '12:30',
+        ]);
+        LogKegiatan::factory()->create([
+            'peserta_id' => $peserta->id,
+            'status' => 'menunggu',
+            'jam_mulai' => '13:00',
+            'jam_selesai' => '15:00',
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->get(route('log-kegiatan.export-python-summary'))
+            ->assertOk()
+            ->assertHeader('content-type', 'text/csv; charset=UTF-8');
+
+        $lines = array_values(array_filter(
+            preg_split('/\r?\n/', trim($response->streamedContent())),
+            fn (string $line): bool => $line !== ''
+        ));
+        $rows = array_map('str_getcsv', $lines);
+
+        $this->assertSame(['NIM', 'Nama Mahasiswa', 'Total Jam Disetujui'], array_map(
+            fn (string $header): string => preg_replace('/^\xEF\xBB\xBF/', '', $header),
+            $rows[0]
+        ));
+        $this->assertSame($peserta->nim, $rows[1][0]);
+        $this->assertSame('4', $rows[1][2]);
+    }
+
+    public function test_dpp_python_summary_is_limited_to_its_program(): void
+    {
+        $prodi = Prodi::factory()->create();
+        $otherProdi = Prodi::factory()->create();
+        $dpp = User::factory()->dpp()->create();
+        $dpp->dppProfile()->create(['kode_prodi' => $prodi->kode_prodi]);
+        $peserta = Peserta::factory()->create(['kode_prodi' => $prodi->kode_prodi]);
+        $outsideProdi = Peserta::factory()->create(['kode_prodi' => $otherProdi->kode_prodi]);
+
+        LogKegiatan::factory()->create([
+            'peserta_id' => $peserta->id,
+            'status' => 'disetujui',
+            'jam_mulai' => '08:00',
+            'jam_selesai' => '10:00',
+        ]);
+        LogKegiatan::factory()->create([
+            'peserta_id' => $outsideProdi->id,
+            'status' => 'disetujui',
+            'jam_mulai' => '08:00',
+            'jam_selesai' => '12:00',
+        ]);
+
+        $content = $this->actingAs($dpp)
+            ->get(route('log-kegiatan.export-python-summary'))
+            ->assertOk()
+            ->streamedContent();
+
+        $this->assertStringContainsString($peserta->nim, $content);
+        $this->assertStringNotContainsString($outsideProdi->nim, $content);
+    }
+
     public function test_student_cannot_use_admin_bulk_approval_or_export(): void
     {
         $student = User::factory()->mahasiswa()->create();
@@ -877,6 +952,10 @@ class LogKegiatanStepperTest extends TestCase
 
         $this->actingAs($student)
             ->get(route('log-kegiatan.export'))
+            ->assertForbidden();
+
+        $this->actingAs($student)
+            ->get(route('log-kegiatan.export-python-summary'))
             ->assertForbidden();
     }
 
@@ -933,6 +1012,7 @@ class LogKegiatanStepperTest extends TestCase
         $this->assertSame((string) $log->getKey(), Crypt::decryptString($encryptedKey));
         $this->assertSame("step={$step}", parse_url($location, PHP_URL_QUERY));
     }
+
     public function test_dpp_only_sees_logs_from_own_prodi(): void
     {
         $ownProdi = Prodi::factory()->create();

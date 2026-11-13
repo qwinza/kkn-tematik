@@ -17,12 +17,15 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\Process\Process;
 
 class LogKegiatanController extends Controller
 {
@@ -173,6 +176,85 @@ class LogKegiatanController extends Controller
             new ApprovedLogKegiatanExport($query),
             'laporan-kegiatan-disetujui-'.now()->format('Ymd-His').'.xlsx'
         );
+    }
+
+    public function exportPythonSummary(Request $request): StreamedResponse
+    {
+        $user = $request->user();
+
+        abort_unless($user && ($user->isAdmin() || $user->isDpp()), 403);
+
+        $isDpp = $user->isDpp();
+        $dppKodeProdi = $isDpp ? $this->getDppKodeProdi($user) : null;
+        $filters = $this->validateLogFilters($request, true);
+
+        if ($isDpp) {
+            $filters['kode_prodi'] = $dppKodeProdi;
+        }
+
+        $logs = $this->filteredLogsQuery(
+            $filters,
+            true,
+            'disetujui',
+            $dppKodeProdi
+        )->get();
+
+        $activities = [];
+
+        foreach ($logs as $log) {
+            if (! $log->peserta) {
+                continue;
+            }
+
+            $activities[] = [
+                'nim' => $log->peserta->nim,
+                'nama' => $log->peserta->nama_lengkap,
+                'durasi_jam' => $log->durasiJam(),
+            ];
+        }
+
+        $process = new Process([
+            config('services.python.binary', 'python'),
+            base_path('rekap_jam_kegiatan.py'),
+        ]);
+        $process->setInput(json_encode($activities, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
+
+        try {
+            $process->run();
+        } catch (\Throwable $exception) {
+            Log::error('Python activity summary could not start.', ['exception' => $exception]);
+
+            abort(503, 'Fitur rekap Python belum tersedia. Pastikan Python terpasang di server.');
+        }
+
+        if (! $process->isSuccessful()) {
+            Log::error('Python activity summary failed.', ['error' => $process->getErrorOutput()]);
+
+            abort(503, 'Rekap Python gagal dibuat.');
+        }
+
+        $summary = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
+
+        abort_unless(is_array($summary), 500, 'Hasil rekap Python tidak valid.');
+
+        return response()->streamDownload(function () use ($summary): void {
+            $output = fopen('php://output', 'w');
+
+            fwrite($output, "\xEF\xBB\xBF");
+            fputcsv($output, ['NIM', 'Nama Mahasiswa', 'Total Jam Disetujui'], ',', '"', '');
+
+            foreach ($summary as $mahasiswa) {
+                fputcsv($output, [
+                    $this->safeCsvCell((string) ($mahasiswa['nim'] ?? '')),
+                    $this->safeCsvCell((string) ($mahasiswa['nama'] ?? '')),
+                    (float) ($mahasiswa['total_jam'] ?? 0),
+                ], ',', '"', '');
+            }
+
+            fclose($output);
+        }, 'rekap-jam-mahasiswa-python-'.now()->format('Ymd-His').'.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     public function approveAll(Request $request): RedirectResponse
@@ -1013,6 +1095,14 @@ class LogKegiatanController extends Controller
             abort(403, 'Laporan yang sedang menunggu atau sudah disetujui tidak dapat diubah.');
         }
     }
+
+    private function safeCsvCell(string $value): string
+    {
+        return preg_match('/^[\t\r\n=+\-@]/', $value) === 1
+            ? "'{$value}"
+            : $value;
+    }
+
     private function authorizeReviewerLog(
         ?User $user,
         LogKegiatan $logKegiatan

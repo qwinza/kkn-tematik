@@ -41,4 +41,8 @@ return [
         'timeout' => env('CAMPUS_AUTH_TIMEOUT', 10),
     ],
 
+    'python' => [
+        'binary' => env('PYTHON_BINARY', 'python'),
+    ],
+
 ];

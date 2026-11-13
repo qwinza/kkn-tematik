@@ -483,6 +483,16 @@ export default function LogKegiatanIndex({
                                     Export Excel
                                 </a>
                             )}
+
+                            {canReview && (
+                                <a
+                                    href={route('log-kegiatan.export-python-summary', exportFilters)}
+                                    title="Unduh total jam kegiatan disetujui per mahasiswa"
+                                    className="inline-flex min-h-10 items-center gap-2 rounded-md border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100"
+                                >
+                                    Rekap Jam Python
+                                </a>
+                            )}
                         </div>
                     </div>
 
