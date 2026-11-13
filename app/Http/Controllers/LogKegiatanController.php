@@ -13,6 +13,7 @@ use App\Models\MasterKegiatan;
 use App\Models\Peserta;
 use App\Models\Prodi;
 use App\Models\User;
+use App\Services\PythonAnalyticsService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,9 +24,9 @@ use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use Symfony\Component\Process\Process;
 
 class LogKegiatanController extends Controller
 {
@@ -178,7 +179,7 @@ class LogKegiatanController extends Controller
         );
     }
 
-    public function exportPythonSummary(Request $request): StreamedResponse
+    public function exportPythonSummary(Request $request, PythonAnalyticsService $python): StreamedResponse
     {
         $user = $request->user();
 
@@ -213,29 +214,12 @@ class LogKegiatanController extends Controller
             ];
         }
 
-        $process = new Process([
-            config('services.python.binary', 'python'),
-            base_path('rekap_jam_kegiatan.py'),
-        ]);
-        $process->setInput(json_encode($activities, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
-
         try {
-            $process->run();
-        } catch (\Throwable $exception) {
-            Log::error('Python activity summary could not start.', ['exception' => $exception]);
-
+            $summary = $python->run('rekap-jam', $activities);
+        } catch (RuntimeException $exception) {
+            Log::error('Python activity summary failed.', ['exception' => $exception]);
             abort(503, 'Fitur rekap Python belum tersedia. Pastikan Python terpasang di server.');
         }
-
-        if (! $process->isSuccessful()) {
-            Log::error('Python activity summary failed.', ['error' => $process->getErrorOutput()]);
-
-            abort(503, 'Rekap Python gagal dibuat.');
-        }
-
-        $summary = json_decode($process->getOutput(), true, flags: JSON_THROW_ON_ERROR);
-
-        abort_unless(is_array($summary), 500, 'Hasil rekap Python tidak valid.');
 
         return response()->streamDownload(function () use ($summary): void {
             $output = fopen('php://output', 'w');

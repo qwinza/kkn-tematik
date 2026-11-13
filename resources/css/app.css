@@ -2852,6 +2852,17 @@
     color: #b42318;
 }
 
+.portal-admin-students-menu-item.is-disabled,
+.portal-admin-students-menu-item:disabled {
+    color: #98a2b3;
+    cursor: not-allowed;
+}
+
+.portal-admin-students-menu-item.is-disabled:hover,
+.portal-admin-students-menu-item:disabled:hover {
+    background: transparent;
+}
+
 .portal-admin-students-empty {
     height: 100px !important;
     color: #7a8590 !important;
@@ -3069,6 +3080,28 @@
     white-space: nowrap;
 }
 
+.portal-progress-row {
+    grid-template-columns: minmax(0, 1fr) minmax(80px, 1.2fr) 42px;
+    gap: 12px;
+    font-size: 11px;
+}
+
+.portal-progress-row-label {
+    display: block;
+    font-size: 11px;
+}
+
+.portal-progress-row-meta {
+    display: block;
+    margin-top: 4px;
+    color: #75808b;
+    font-size: 10px;
+}
+
+.portal-progress-row strong {
+    font-size: 11px;
+}
+
 .portal-analytics-row strong {
     text-align: right;
     font-size: 9px;
@@ -3190,6 +3223,11 @@
 
     .portal-analytics-charts {
         grid-template-columns: 1fr;
+    }
+
+    .portal-progress-row {
+        grid-template-columns: minmax(0, 1fr) minmax(60px, 0.8fr) 36px;
+        gap: 8px;
     }
 
     .portal-dashboard-quick-card {

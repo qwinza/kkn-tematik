@@ -107,10 +107,72 @@ class MasterKegiatanTest extends TestCase
         $response->assertSessionHas('success');
 
         $this->assertDatabaseHas('master_kegiatans', [
-            'kode_kegiatan' => 'KKN-101',
+            'kode_kegiatan' => $prodi->kode_prodi.'-01',
             'nama_kegiatan' => 'Pemberdayaan Masyarakat Pesisir',
             'kategori' => 'Pemberdayaan',
             'kode_prodi' => $prodi->kode_prodi,
+        ]);
+    }
+
+    public function test_new_activity_code_increments_independently_for_each_program(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $informatics = Prodi::factory()->create(['kode_prodi' => 'IF', 'nama_prodi' => 'Informatika']);
+        $design = Prodi::factory()->create(['kode_prodi' => 'DK', 'nama_prodi' => 'Desain']);
+        $informationSystems = Prodi::factory()->create(['kode_prodi' => 'SI', 'nama_prodi' => 'Sistem Informasi']);
+
+        MasterKegiatan::factory()->create([
+            'kode_kegiatan' => 'IF-WP2',
+            'kode_prodi' => $informatics->kode_prodi,
+        ]);
+        MasterKegiatan::factory()->create([
+            'kode_kegiatan' => 'IF-WP6',
+            'kode_prodi' => $informatics->kode_prodi,
+        ]);
+        MasterKegiatan::factory()->create([
+            'kode_kegiatan' => 'DK-03',
+            'kode_prodi' => $design->kode_prodi,
+        ]);
+        MasterKegiatan::factory()->create([
+            'kode_kegiatan' => 'SI-05',
+            'kode_prodi' => $informationSystems->kode_prodi,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('master-kegiatan.store'), [
+                'nama_kegiatan' => 'Kegiatan Informatika Baru',
+                'kategori' => 'Pengembangan Sistem',
+                'kode_prodi' => $informatics->kode_prodi,
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($admin)
+            ->post(route('master-kegiatan.store'), [
+                'nama_kegiatan' => 'Kegiatan Desain Baru',
+                'kategori' => 'Desain',
+                'kode_prodi' => $design->kode_prodi,
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($admin)
+            ->post(route('master-kegiatan.store'), [
+                'nama_kegiatan' => 'Kegiatan Sistem Informasi Baru',
+                'kategori' => 'Sistem Informasi',
+                'kode_prodi' => $informationSystems->kode_prodi,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('master_kegiatans', [
+            'kode_kegiatan' => 'IF-WP7',
+            'kode_prodi' => $informatics->kode_prodi,
+        ]);
+        $this->assertDatabaseHas('master_kegiatans', [
+            'kode_kegiatan' => 'DK-04',
+            'kode_prodi' => $design->kode_prodi,
+        ]);
+        $this->assertDatabaseHas('master_kegiatans', [
+            'kode_kegiatan' => 'SI-06',
+            'kode_prodi' => $informationSystems->kode_prodi,
         ]);
     }
 
@@ -151,7 +213,7 @@ class MasterKegiatanTest extends TestCase
 
         $this->assertDatabaseHas('master_kegiatans', [
             'id' => $kegiatan->id,
-            'kode_kegiatan' => 'KKN-NEW',
+            'kode_kegiatan' => 'KKN-OLD',
             'nama_kegiatan' => 'Kegiatan Baru Diperbarui',
             'kategori' => 'Sosial',
             'kode_prodi' => $kegiatan->kode_prodi,
@@ -187,6 +249,7 @@ class MasterKegiatanTest extends TestCase
         $response->assertSessionHas('error');
         $this->assertDatabaseHas('master_kegiatans', ['id' => $kegiatan->id]);
     }
+
     public function test_dpp_only_sees_master_kegiatan_from_own_prodi(): void
     {
         $ownProdi = Prodi::factory()->create();
@@ -244,12 +307,12 @@ class MasterKegiatanTest extends TestCase
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('master_kegiatans', [
-            'kode_kegiatan' => 'DPP-001',
+            'kode_kegiatan' => $ownProdi->kode_prodi.'-01',
             'kode_prodi' => $ownProdi->kode_prodi,
         ]);
 
         $this->assertDatabaseMissing('master_kegiatans', [
-            'kode_kegiatan' => 'DPP-001',
+            'kode_kegiatan' => $ownProdi->kode_prodi.'-01',
             'kode_prodi' => $otherProdi->kode_prodi,
         ]);
     }
@@ -334,7 +397,7 @@ class MasterKegiatanTest extends TestCase
 
         $this->assertDatabaseHas('master_kegiatans', [
             'id' => $activity->id,
-            'kode_kegiatan' => 'DPP-UPDATED',
+            'kode_kegiatan' => $activity->kode_kegiatan,
             'kode_prodi' => $ownProdi->kode_prodi,
         ]);
     }

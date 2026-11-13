@@ -67,7 +67,7 @@ export default function AuthenticatedLayout({
             active: route().current('log-kegiatan.*'),
         },
         {
-            label: 'Jadwal Kegiatan',
+            label: 'Jenis Kegiatan',
             href: route('master-kegiatan.index'),
             active: route().current('master-kegiatan.*'),
         },

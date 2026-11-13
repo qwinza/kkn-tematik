@@ -28,6 +28,7 @@ export default function LogKegiatanIndex({
     const [processingId, setProcessingId] = useState(null);
     const [isApprovingAll, setIsApprovingAll] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
+    const [openActionMenu, setOpenActionMenu] = useState(null);
 
     const isInitialFilter = useRef(true);
 
@@ -634,64 +635,63 @@ export default function LogKegiatanIndex({
                                                 </td>
 
                                                 <td className="whitespace-nowrap px-6 py-4 text-right">
-                                                    <div className="inline-flex items-center gap-2">
-                                                        <Link
-                                                            href={route('log-kegiatan.show', item.route_key)}
-                                                            title="Lihat detail"
-                                                            aria-label={`Lihat detail log ${item.id}`}
-                                                            className={canReview
-                                                                ? 'inline-flex h-8 w-8 items-center justify-center rounded-full border border-indigo-200 font-bold text-indigo-700 hover:bg-indigo-50'
-                                                                : 'inline-flex items-center rounded bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100'}
+                                                    <div className="portal-admin-students-action-menu">
+                                                        <button
+                                                            type="button"
+                                                            className="portal-admin-students-menu-toggle"
+                                                            aria-label={`Buka aksi untuk log ${item.id}`}
+                                                            aria-haspopup="menu"
+                                                            aria-expanded={openActionMenu === item.id}
+                                                            onClick={() => setOpenActionMenu(openActionMenu === item.id ? null : item.id)}
                                                         >
-                                                            {canReview ? 'i' : 'Detail'}
-                                                        </Link>
-
-                                                        {!canReview && item.status === 'draft' && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleDeleteDraft(item)}
-                                                                className="inline-flex items-center rounded bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100"
-                                                            >
-                                                                Hapus draft
-                                                            </button>
-                                                        )}
-
-                                                        {canReview && item.status === 'menunggu' && (
-                                                            <>
-                                                                <button
-                                                                    type="button"
-                                                                    title="Setujui log"
-                                                                    aria-label={`Setujui log ${item.id}`}
-                                                                    disabled={processingId === item.id}
-                                                                    onClick={() => handleStatusAction('approve', item)}
-                                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-green-200 text-green-700 hover:bg-green-50 disabled:opacity-50"
-                                                                >
-                                                                    <svg
-                                                                        aria-hidden="true"
-                                                                        viewBox="0 0 20 20"
-                                                                        className="h-4 w-4 fill-none stroke-current stroke-2"
-                                                                    >
-                                                                        <path d="m4 10 4 4 8-8" />
-                                                                    </svg>
-                                                                </button>
-
-                                                                <button
-                                                                    type="button"
-                                                                    title="Tolak log"
-                                                                    aria-label={`Tolak log ${item.id}`}
-                                                                    disabled={processingId === item.id}
-                                                                    onClick={() => handleStatusAction('reject', item)}
-                                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-50"
-                                                                >
-                                                                    <svg
-                                                                        aria-hidden="true"
-                                                                        viewBox="0 0 20 20"
-                                                                        className="h-4 w-4 fill-none stroke-current stroke-2"
-                                                                    >
-                                                                        <path d="m5 5 10 10M15 5 5 15" />
-                                                                    </svg>
-                                                                </button>
-                                                            </>
+                                                            <svg viewBox="0 0 20 20" aria-hidden="true" className="portal-admin-students-menu-icon">
+                                                                <path d="M3 5h14M3 10h14M3 15h14" />
+                                                            </svg>
+                                                        </button>
+                                                        {openActionMenu === item.id && (
+                                                            <div className="portal-admin-students-menu" role="menu">
+                                                                <Link
+                                                                    href={route('log-kegiatan.show', item.route_key)}
+                                                                    className="portal-admin-students-menu-item"
+                                                                    role="menuitem"
+                                                                    onClick={() => setOpenActionMenu(null)}
+                                                                >Detail</Link>
+                                                                {!canReview && item.status === 'draft' && (
+                                                                    <button
+                                                                        type="button"
+                                                                        className="portal-admin-students-menu-item is-danger"
+                                                                        role="menuitem"
+                                                                        onClick={() => {
+                                                                            setOpenActionMenu(null);
+                                                                            handleDeleteDraft(item);
+                                                                        }}
+                                                                    >Hapus draft</button>
+                                                                )}
+                                                                {canReview && item.status === 'menunggu' && (
+                                                                    <>
+                                                                        <button
+                                                                            type="button"
+                                                                            className="portal-admin-students-menu-item"
+                                                                            role="menuitem"
+                                                                            disabled={processingId === item.id}
+                                                                            onClick={() => {
+                                                                                setOpenActionMenu(null);
+                                                                                handleStatusAction('approve', item);
+                                                                            }}
+                                                                        >Setujui</button>
+                                                                        <button
+                                                                            type="button"
+                                                                            className="portal-admin-students-menu-item is-danger"
+                                                                            role="menuitem"
+                                                                            disabled={processingId === item.id}
+                                                                            onClick={() => {
+                                                                                setOpenActionMenu(null);
+                                                                                handleStatusAction('reject', item);
+                                                                            }}
+                                                                        >Tolak</button>
+                                                                    </>
+                                                                )}
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </td>

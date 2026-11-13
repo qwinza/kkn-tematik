@@ -22,17 +22,17 @@ export default function Dashboard({
         ? [
             { label: 'Kegiatan', href: route('log-kegiatan.index'), icon: 'report' },
             { label: 'Mahasiswa', href: route('admin.mahasiswa.index'), icon: 'students' },
-            { label: 'Jadwal Kegiatan', href: route('master-kegiatan.index'), icon: 'schedule' },
+            { label: 'Jenis Kegiatan', href: route('master-kegiatan.index'), icon: 'schedule' },
         ]
         : isDpp
             ? [
                 { label: 'Kegiatan Prodi', href: route('log-kegiatan.index'), icon: 'history' },
-                { label: 'Jadwal Kegiatan', href: route('master-kegiatan.index'), icon: 'schedule' },
+                { label: 'Jenis Kegiatan', href: route('master-kegiatan.index'), icon: 'schedule' },
             ]
             : [
                 { label: 'Tambah Kegiatan', href: route('log-kegiatan.create'), icon: 'attendance' },
                 { label: 'Kegiatan', href: route('log-kegiatan.index'), icon: 'history' },
-                { label: 'Jadwal Kegiatan', href: route('mahasiswa.schedule.index'), icon: 'schedule' },
+                { label: 'Jenis Kegiatan', href: route('master-kegiatan.index'), icon: 'schedule' },
             ];
 
     return (
@@ -123,23 +123,39 @@ export default function Dashboard({
                     </section>
 
                     <section className="portal-dashboard-bottom">
-                        <article className="portal-dashboard-panel portal-dashboard-activity">
-                            <div>
-                                <p className="portal-dashboard-panel-kicker">AKTIVITAS</p>
-                                <h2>Kegiatan</h2>
-                            </div>
-                            {summary.totalKegiatan > 0 ? (
+                        {(isAdmin || isDpp) && (
+                            <article className="portal-dashboard-panel portal-dashboard-activity">
+                                <div>
+                                    <p className="portal-dashboard-panel-kicker">ANALISIS PROGRES</p>
+                                    <h2>Progres KKN</h2>
+                                </div>
                                 <p>
-                                    Terdapat {summary.totalKegiatan} kegiatan tercatat.
+                                    Lihat jumlah kegiatan, jam disetujui, dan partisipasi mahasiswa
+                                    {dppProdi ? ` di ${dppProdi}` : ' berdasarkan program studi dan kategori kegiatan'}.
                                 </p>
-                            ) : (
-                                <p>Belum ada kegiatan yang tercatat.</p>
-                            )}
-                            <Link href={route('log-kegiatan.index')}>
-                                Lihat kegiatan
-                                <span aria-hidden="true"> →</span>
-                            </Link>
-                        </article>
+                                <Link href={route('progress-analysis.index')}>
+                                    Lihat Analisis Progres KKN
+                                </Link>
+                            </article>
+                        )}
+
+                        {!isAdmin && !isDpp && (
+                            <article className="portal-dashboard-panel portal-dashboard-activity">
+                                <div>
+                                    <p className="portal-dashboard-panel-kicker">AKTIVITAS</p>
+                                    <h2>Kegiatan</h2>
+                                </div>
+                                {summary.totalKegiatan > 0 ? (
+                                    <p>Terdapat {summary.totalKegiatan} kegiatan tercatat.</p>
+                                ) : (
+                                    <p>Belum ada kegiatan yang tercatat.</p>
+                                )}
+                                <Link href={route('log-kegiatan.index')}>
+                                    Lihat kegiatan
+                                    <span aria-hidden="true"> →</span>
+                                </Link>
+                            </article>
+                        )}
 
                         <article className="portal-dashboard-panel portal-dashboard-approval">
                             <div className="portal-dashboard-approval-heading">

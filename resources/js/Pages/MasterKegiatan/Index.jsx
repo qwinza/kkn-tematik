@@ -11,12 +11,19 @@ import confirmWithSweetAlert from '@/Components/confirmWithSweetAlert';
 import { Head, router, useForm } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
-export default function MasterKegiatanIndex({ kegiatans, filters, canManage, prodis = [] }) {
+export default function MasterKegiatanIndex({
+    kegiatans,
+    filters,
+    canManage,
+    prodis = [],
+    kodeBerikutnyaPerProdi = {},
+}) {
     const [search, setSearch] = useState(filters?.search || '');
     const [kodeProdi, setKodeProdi] = useState(filters?.kode_prodi || '');
     const filterTimer = useRef(null);
     const [modalState, setModalState] = useState({ isOpen: false, mode: 'create', item: null });
     const [deleteItem, setDeleteItem] = useState(null);
+    const [openActionMenu, setOpenActionMenu] = useState(null);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         kode_kegiatan: '',
@@ -54,6 +61,13 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
     const openCreateModal = () => {
         clearErrors();
         reset();
+        const selectedProdi = kodeProdi || (prodis.length === 1 ? prodis[0].kode_prodi : '');
+        setData({
+            kode_kegiatan: kodeBerikutnyaPerProdi[selectedProdi] || '',
+            nama_kegiatan: '',
+            kategori: '',
+            kode_prodi: selectedProdi,
+        });
         setModalState({ isOpen: true, mode: 'create', item: null });
     };
 
@@ -89,7 +103,7 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
 
     const handleDelete = async (item) => {
         const confirmed = await confirmWithSweetAlert({
-            title: 'Hapus jadwal kegiatan?',
+            title: 'Hapus Jenis Kegiatan?',
             text: `Data ${item.nama_kegiatan} (${item.kode_kegiatan}) akan dihapus.`,
             confirmButtonText: 'Ya, hapus',
         });
@@ -100,17 +114,17 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
 
     return (
         <AuthenticatedLayout>
-            <Head title="Jadwal Kegiatan" />
+            <Head title="Jenis Kegiatan" />
 
             <div className="portal-master-kegiatan-page">
                 <div className="portal-master-kegiatan-content mx-auto max-w-7xl sm:px-6 lg:px-8">
                     <header className="portal-dashboard-page-heading portal-master-kegiatan-heading">
                         <div>
                             <p className="portal-dashboard-breadcrumb">
-                                Portal Admin <span>/</span> Jadwal Kegiatan
+                                Portal Admin <span>/</span> Jenis Kegiatan
                             </p>
-                            <h1>Jadwal Kegiatan</h1>
-                            <p>Kelola daftar kegiatan yang digunakan dalam laporan mahasiswa KKN.</p>
+                            <h1>Jenis Kegiatan</h1>
+                            <p>Kelola daftar jenis kegiatan yang digunakan dalam laporan mahasiswa KKN.</p>
                         </div>
                         {canManage && (
                             <PrimaryButton onClick={openCreateModal}>
@@ -211,19 +225,45 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
                                                     {item.log_kegiatans_count ?? 0} log
                                                 </td>
                                                 {canManage && (
-                                                    <td className="whitespace-nowrap px-6 py-4 text-right space-x-2">
-                                                        <SecondaryButton
-                                                            onClick={() => openEditModal(item)}
-                                                            className="text-xs"
-                                                        >
-                                                            Edit
-                                                        </SecondaryButton>
-                                                        <DangerButton
-                                                            onClick={() => handleDelete(item)}
-                                                            className="text-xs"
-                                                        >
-                                                            Hapus
-                                                        </DangerButton>
+                                                    <td className="whitespace-nowrap px-6 py-4 text-right">
+                                                        <div className="portal-admin-students-action-menu">
+                                                            <button
+                                                                type="button"
+                                                                className="portal-admin-students-menu-toggle"
+                                                                aria-label={`Buka aksi untuk ${item.nama_kegiatan}`}
+                                                                aria-haspopup="menu"
+                                                                aria-expanded={openActionMenu === item.id}
+                                                                onClick={() => setOpenActionMenu(openActionMenu === item.id ? null : item.id)}
+                                                            >
+                                                                <svg viewBox="0 0 20 20" aria-hidden="true" className="portal-admin-students-menu-icon">
+                                                                    <path d="M3 5h14M3 10h14M3 15h14" />
+                                                                </svg>
+                                                            </button>
+                                                            {openActionMenu === item.id && (
+                                                                <div className="portal-admin-students-menu" role="menu">
+                                                                    <button
+                                                                        type="button"
+                                                                        className="portal-admin-students-menu-item"
+                                                                        role="menuitem"
+                                                                        onClick={() => {
+                                                                            setOpenActionMenu(null);
+                                                                            openEditModal(item);
+                                                                        }}
+                                                                    >Edit</button>
+                                                                    <button
+                                                                        type="button"
+                                                                        className={`portal-admin-students-menu-item is-danger${item.log_kegiatans_count > 0 ? ' is-disabled' : ''}`}
+                                                                        role="menuitem"
+                                                                        disabled={item.log_kegiatans_count > 0}
+                                                                        title={item.log_kegiatans_count > 0 ? 'Tidak bisa dihapus karena sudah memiliki log kegiatan' : 'Hapus kegiatan'}
+                                                                        onClick={() => {
+                                                                            setOpenActionMenu(null);
+                                                                            handleDelete(item);
+                                                                        }}
+                                                                    >Hapus</button>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                 )}
                                             </tr>
@@ -231,7 +271,7 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
                                     ) : (
                                         <tr>
                                             <td colSpan={canManage ? 7 : 6} className="py-8 text-center text-gray-500">
-                                                Belum ada data jadwal kegiatan.
+                                                Belum ada data jenis kegiatan.
                                             </td>
                                         </tr>
                                     )}
@@ -272,25 +312,54 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
             <Modal show={modalState.isOpen} onClose={closeModal}>
                 <form onSubmit={handleSubmit} className="p-6">
                     <h3 className="text-lg font-medium text-gray-900">
-                        {modalState.mode === 'create' ? 'Tambah Jadwal Kegiatan' : 'Edit Jadwal Kegiatan'}
+                        {modalState.mode === 'create' ? 'Tambah Jenis Kegiatan' : 'Edit Jenis Kegiatan'}
                     </h3>
                     <p className="mt-1 text-sm text-gray-600">
-                        Isi data kegiatan yang akan digunakan sebagai referensi laporan mahasiswa.
+                        Isi data jenis kegiatan yang akan digunakan sebagai referensi laporan mahasiswa.
                     </p>
 
                     <div className="mt-6 space-y-4">
                         <div>
-                            <InputLabel htmlFor="kode_kegiatan" value="Kode Kegiatan" />
+                            <InputLabel htmlFor="kode_prodi" value="Program Studi" />
+                            <select
+                                id="kode_prodi"
+                                className="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                value={data.kode_prodi}
+                                onChange={(e) => {
+                                    const selectedProdi = e.target.value;
+                                    const selectedCode = modalState.mode === 'edit'
+                                        && selectedProdi === modalState.item?.kode_prodi
+                                        ? modalState.item.kode_kegiatan
+                                        : kodeBerikutnyaPerProdi[selectedProdi] || '';
+
+                                    setData({
+                                        ...data,
+                                        kode_prodi: selectedProdi,
+                                        kode_kegiatan: selectedCode,
+                                    });
+                                }}
+                                required
+                            >
+                                <option value="">Pilih program studi</option>
+                                {prodis.map((prodi) => (
+                                    <option key={prodi.kode_prodi} value={prodi.kode_prodi}>
+                                        {prodi.kode_prodi} — {prodi.nama_prodi}
+                                    </option>
+                                ))}
+                            </select>
+                            <InputError message={errors.kode_prodi} className="mt-1" />
+                        </div>
+
+                        <div>
+                            <InputLabel htmlFor="kode_kegiatan" value="Kode Kegiatan (otomatis)" />
                             <TextInput
                                 id="kode_kegiatan"
                                 type="text"
                                 className="mt-1 block w-full"
-                                placeholder="Contoh: KKN-001"
+                                placeholder={data.kode_prodi ? 'Kode dibuat otomatis' : 'Pilih program studi terlebih dahulu'}
                                 value={data.kode_kegiatan}
-                                onChange={(e) => setData('kode_kegiatan', e.target.value)}
-                                required
+                                readOnly
                             />
-                            <InputError message={errors.kode_kegiatan} className="mt-1" />
                         </div>
 
                         <div>
@@ -320,27 +389,7 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
                             />
                             <InputError message={errors.kategori} className="mt-1" />
                         </div>
-
-                        <div>
-                            <InputLabel htmlFor="kode_prodi" value="Program Studi" />
-                            <select
-                                id="kode_prodi"
-                                className="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                value={data.kode_prodi}
-                                onChange={(e) => setData('kode_prodi', e.target.value)}
-                                required
-                            >
-                                <option value="">Pilih program studi</option>
-                                {prodis.map((prodi) => (
-                                    <option key={prodi.kode_prodi} value={prodi.kode_prodi}>
-                                        {prodi.kode_prodi} — {prodi.nama_prodi}
-                                    </option>
-                                ))}
-                            </select>
-                            <InputError message={errors.kode_prodi} className="mt-1" />
-                        </div>
                     </div>
-
                     <div className="mt-6 flex justify-end gap-3">
                         <SecondaryButton onClick={closeModal} type="button">
                             Batal
@@ -359,7 +408,7 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
                         Konfirmasi Hapus
                     </h3>
                     <p className="mt-2 text-sm text-gray-600">
-                        Apakah Anda yakin ingin menghapus jadwal kegiatan <strong>{deleteItem?.nama_kegiatan}</strong> ({deleteItem?.kode_kegiatan})?
+                        Apakah Anda yakin ingin menghapus jenis kegiatan <strong>{deleteItem?.nama_kegiatan}</strong> ({deleteItem?.kode_kegiatan})?
                     </p>
                     <div className="mt-6 flex justify-end gap-3">
                         <SecondaryButton onClick={() => setDeleteItem(null)}>
