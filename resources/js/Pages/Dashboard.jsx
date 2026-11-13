@@ -3,9 +3,11 @@ import { Head, Link, usePage } from '@inertiajs/react';
 
 export default function Dashboard({
     summary = { totalKegiatan: 0, totalDisetujui: 0, totalLapangan: 0, totalKampus: 0, totalJamDisetujui: 0 },
+    dppProdi = null,
 }) {
     const { auth } = usePage().props;
     const isAdmin = auth.user.is_admin;
+    const isDpp = auth.user.is_dpp || auth.user.role === 'dpp';
     const approvalRate = summary.totalKegiatan > 0
         ? Math.round((summary.totalDisetujui / summary.totalKegiatan) * 100)
         : 0;
@@ -22,11 +24,16 @@ export default function Dashboard({
             { label: 'Mahasiswa', href: route('admin.mahasiswa.index'), icon: 'students' },
             { label: 'Jadwal Kegiatan', href: route('master-kegiatan.index'), icon: 'schedule' },
         ]
-        : [
-            { label: 'Tambah Kegiatan', href: route('log-kegiatan.create'), icon: 'attendance' },
-            { label: 'Kegiatan', href: route('log-kegiatan.index'), icon: 'history' },
-            { label: 'Jadwal Kegiatan', href: route('mahasiswa.schedule.index'), icon: 'schedule' },
-        ];
+        : isDpp
+            ? [
+                { label: 'Kegiatan Prodi', href: route('log-kegiatan.index'), icon: 'history' },
+                { label: 'Jadwal Kegiatan', href: route('master-kegiatan.index'), icon: 'schedule' },
+            ]
+            : [
+                { label: 'Tambah Kegiatan', href: route('log-kegiatan.create'), icon: 'attendance' },
+                { label: 'Kegiatan', href: route('log-kegiatan.index'), icon: 'history' },
+                { label: 'Jadwal Kegiatan', href: route('mahasiswa.schedule.index'), icon: 'schedule' },
+            ];
 
     return (
         <AuthenticatedLayout>
@@ -37,12 +44,14 @@ export default function Dashboard({
                     <header className="portal-dashboard-page-heading">
                         <div>
                             <p className="portal-dashboard-breadcrumb">
-                                Portal {isAdmin ? 'Admin' : 'Mahasiswa'} <span>/</span> Dashboard
+                                Portal {isAdmin ? 'Admin' : isDpp ? 'Dosen Pembimbing' : 'Mahasiswa'} <span>/</span> Dashboard
                             </p>
                             <h1>Dashboard</h1>
                             <p>{isAdmin
                                 ? 'Pantau kegiatan dan perkembangan mahasiswa KKN.'
-                                : 'Pantau aktivitas lapangan dan perkembangan KKN Anda.'}
+                                : isDpp
+                                    ? `Pantau mahasiswa bimbingan${dppProdi ? ` Program Studi ${dppProdi}` : ''}.`
+                                    : 'Pantau aktivitas lapangan dan perkembangan KKN Anda.'}
                             </p>
                         </div>
                     </header>
@@ -54,22 +63,24 @@ export default function Dashboard({
                             <span>
                                 {isAdmin
                                     ? 'Tinjau kegiatan dan pantau perkembangan mahasiswa.'
-                                    : 'Setiap kegiatan yang Anda catat membantu memantau progres program.'}
+                                    : isDpp
+                                        ? `Kelola pemantauan mahasiswa KKN${dppProdi ? ` di ${dppProdi}` : ''}.`
+                                        : 'Setiap kegiatan yang Anda catat membantu memantau progres program.'}
                             </span>
                         </div>
                         <aside className="portal-dashboard-identity">
-                            <span>{isAdmin ? 'AKUN' : 'NRP / NIM'}</span>
-                            <strong>{isAdmin ? 'Admin KKN' : auth.user.nim || 'Mahasiswa'}</strong>
-                            <small>{isAdmin ? 'Administrator' : 'Mahasiswa KKN 2026'}</small>
+                            <span>{isAdmin ? 'AKUN' : isDpp ? 'PROGRAM STUDI' : 'NRP / NIM'}</span>
+                            <strong>{isAdmin ? 'Admin KKN' : isDpp ? (dppProdi || 'Belum diatur') : auth.user.nim || 'Mahasiswa'}</strong>
+                            <small>{isAdmin ? 'Administrator' : isDpp ? 'Dosen Pembimbing' : 'Mahasiswa KKN 2026'}</small>
                         </aside>
                     </section>
 
                     <section className="portal-dashboard-overview">
                         <article className="portal-stat-card portal-stat-card-orange">
                             <span className="portal-stat-icon" aria-hidden="true">▤</span>
-                            <p>Total Kegiatan</p>
-                            <strong>{summary.totalKegiatan}</strong>
-                            <small>kegiatan tercatat</small>
+                            <p>{isDpp ? 'Mahasiswa Bimbingan' : 'Total Kegiatan'}</p>
+                            <strong>{isDpp ? (summary.totalMahasiswa ?? 0) : summary.totalKegiatan}</strong>
+                            <small>{isDpp ? `mahasiswa${dppProdi ? ` di ${dppProdi}` : ' dalam prodi Anda'}` : 'kegiatan tercatat'}</small>
                         </article>
                         <article className="portal-stat-card portal-stat-card-success">
                             <span className="portal-stat-icon" aria-hidden="true">✓</span>
@@ -79,15 +90,24 @@ export default function Dashboard({
                         </article>
                         <article className="portal-stat-card portal-stat-card-info">
                             <span className="portal-stat-icon" aria-hidden="true">◷</span>
-                            <p>Total Jam Disetujui</p>
-                            <strong>{totalJamLabel}</strong>
-                            <small>jam kegiatan yang disetujui</small>
+                            <p>{!isAdmin && !isDpp ? 'Kegiatan Lapangan' : 'Total Jam Disetujui'}</p>
+                            <strong>{!isAdmin && !isDpp ? summary.totalLapangan ?? 0 : totalJamLabel}</strong>
+                            <small>{!isAdmin && !isDpp ? 'kegiatan tercatat di lapangan' : 'jam kegiatan yang disetujui'}</small>
                         </article>
                         <article className="portal-dashboard-quick-card">
-                            <div className="portal-dashboard-panel-kicker">AKSES CEPAT</div>
-                            <h2>Menu</h2>
-                            <p>Buka halaman yang sering Anda perlukan.</p>
-                            <div className="portal-dashboard-quick-links">
+                            {!isAdmin && !isDpp ? (
+                                <>
+                                    <div className="portal-dashboard-panel-kicker">AKUMULASI KEGIATAN</div>
+                                    <h2>Total Jam Disetujui</h2>
+                                    <strong className="mt-3 block text-xl font-bold text-emerald-700">{totalJamLabel} jam</strong>
+                                    <p>Jumlah durasi dari seluruh kegiatan yang telah disetujui.</p>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="portal-dashboard-panel-kicker">AKSES CEPAT</div>
+                                    <h2>Menu</h2>
+                                    <p>Buka halaman yang sering Anda perlukan.</p>
+                                    <div className="portal-dashboard-quick-links">
                                 {shortcuts.map((shortcut) => (
                                     <Link key={shortcut.label} href={shortcut.href}>
                                         <span aria-hidden="true">
@@ -96,7 +116,9 @@ export default function Dashboard({
                                         {shortcut.label}
                                     </Link>
                                 ))}
-                            </div>
+                                    </div>
+                                </>
+                            )}
                         </article>
                     </section>
 

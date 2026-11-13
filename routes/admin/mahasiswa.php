@@ -1,13 +1,21 @@
 <?php
 
+use App\Http\Controllers\Admin\DppManagementController;
 use App\Http\Controllers\Admin\MahasiswaManagementController;
 use App\Http\Controllers\Admin\MahasiswaMonitoringController;
 use App\Models\LogKegiatan;
 use App\Models\Peserta;
-use App\Http\Controllers\Admin\DppManagementController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+Route::middleware(['auth', 'dpp'])->prefix('dpp')->name('dpp.')->group(function () {
+    Route::get('/mahasiswa', [MahasiswaMonitoringController::class, 'index'])
+        ->name('mahasiswa.index');
+
+    Route::get('/mahasiswa/{peserta}', [MahasiswaMonitoringController::class, 'show'])
+        ->name('mahasiswa.show');
+});
 
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/analitik', function () {

@@ -5,6 +5,7 @@ use App\Http\Controllers\MasterKegiatanController;
 use App\Http\Controllers\ProdiController;
 use App\Http\Controllers\ProfileController;
 use App\Models\LogKegiatan;
+use App\Models\Peserta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -15,24 +16,38 @@ Route::get('/', function () {
 
 Route::get('/dashboard', function (Request $request) {
     $user = $request->user();
+    $isDpp = $user?->isDpp() ?? false;
+    $dppKodeProdi = $isDpp ? $user->dppProfile?->kode_prodi : null;
 
     $pesertaId = $user?->peserta?->id;
     $logs = LogKegiatan::query()
-        ->when(! $user?->isAdmin(), fn ($query) => $query->where('peserta_id', $pesertaId ?? 0));
+        ->when($isDpp, fn ($query) => $query->whereHas('peserta', fn ($pesertaQuery) => $pesertaQuery->where('kode_prodi', $dppKodeProdi ?? '')))
+        ->when(! $user?->isAdmin() && ! $isDpp, fn ($query) => $query->where('peserta_id', $pesertaId ?? 0));
+
+    $summary = [
+        'totalKegiatan' => (clone $logs)->count(),
+        'totalDisetujui' => (clone $logs)->where('status', 'disetujui')->count(),
+        'totalLapangan' => (clone $logs)->where('lokasi_kegiatan', 'Lapangan')->count(),
+        'totalKampus' => (clone $logs)->where('lokasi_kegiatan', 'Kampus ITENAS')->count(),
+    ];
 
     $totalJamDisetujui = round(
         (clone $logs)->where('status', 'disetujui')->get()->sum(fn (LogKegiatan $log) => $log->durasiJam()),
         1
     );
 
+    $summary['totalJamDisetujui'] = $totalJamDisetujui;
+
+    if ($isDpp) {
+        $summary['totalMahasiswa'] = Peserta::query()
+            ->where('kode_prodi', $dppKodeProdi ?? '')
+            ->whereHas('user', fn ($query) => $query->where('role', 'mahasiswa'))
+            ->count();
+    }
+
     return Inertia::render('Dashboard', [
-        'summary' => [
-            'totalKegiatan' => (clone $logs)->count(),
-            'totalDisetujui' => (clone $logs)->where('status', 'disetujui')->count(),
-            'totalLapangan' => (clone $logs)->where('lokasi_kegiatan', 'Lapangan')->count(),
-            'totalKampus' => (clone $logs)->where('lokasi_kegiatan', 'Kampus ITENAS')->count(),
-            'totalJamDisetujui' => $totalJamDisetujui,
-        ],
+        'summary' => $summary,
+        'dppProdi' => $isDpp ? $user->dppProfile?->prodi?->nama_prodi : null,
     ]);
 })->middleware(['auth'])->name('dashboard');
 

@@ -17,6 +17,10 @@ class MahasiswaMonitoringController extends Controller
      */
     public function index(Request $request): Response
     {
+        $isDpp = $request->user()->isDpp();
+        abort_unless($isDpp || $request->user()->isAdmin(), 403);
+
+        $dppKodeProdi = $isDpp ? $request->user()->dppProfile?->kode_prodi : null;
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
             'kode_prodi' => ['nullable', 'string', 'exists:prodi,kode_prodi'],
@@ -25,10 +29,14 @@ class MahasiswaMonitoringController extends Controller
         ]);
 
         $query = Peserta::query()
-            ->with(['user', 'prodi'])
+            ->with(['user', 'prodi', 'logKegiatans' => fn ($query) => $query->where('status', 'disetujui')])
             ->whereHas('user', function ($q) {
                 $q->where('role', 'mahasiswa');
             });
+
+        if ($isDpp) {
+            $query->where('kode_prodi', $dppKodeProdi ?? '');
+        }
 
         // Filter pencarian berdasarkan nama lengkap, NIM, atau nama akun user
         if ($search = $filters['search'] ?? null) {
@@ -56,9 +64,15 @@ class MahasiswaMonitoringController extends Controller
             });
         }
 
-        $totalCount = Peserta::whereHas('user', function ($q) {
+        $totalCountQuery = Peserta::whereHas('user', function ($q) {
             $q->where('role', 'mahasiswa');
-        })->count();
+        });
+
+        if ($isDpp) {
+            $totalCountQuery->where('kode_prodi', $dppKodeProdi ?? '');
+        }
+
+        $totalCount = $totalCountQuery->count();
 
         $sort = $filters['sort'] ?? 'id';
         $direction = $filters['direction'] ?? 'desc';
@@ -94,23 +108,33 @@ class MahasiswaMonitoringController extends Controller
                 'direction' => $direction,
             ],
             'totalCount' => $totalCount,
+            'isDpp' => $isDpp,
+            'canManage' => ! $isDpp,
         ]);
     }
 
     /**
      * Menampilkan detail profil mahasiswa secara individual.
      */
-    public function show(Peserta $peserta): Response
+    public function show(Request $request, Peserta $peserta): Response
     {
-        $peserta->load(['user', 'prodi']);
+        $user = $request->user();
+        abort_unless($user->isAdmin() || $user->isDpp(), 403);
+
+        $peserta->load(['user', 'prodi', 'logKegiatans' => fn ($query) => $query->where('status', 'disetujui')]);
 
         // Pastikan hanya profil mahasiswa yang dapat diakses
         if (! $peserta->user || ! $peserta->user->isMahasiswa()) {
             abort(404, 'Data mahasiswa tidak ditemukan.');
         }
 
+        if ($user->isDpp()) {
+            abort_unless($peserta->kode_prodi === $user->dppProfile?->kode_prodi, 404);
+        }
+
         return Inertia::render('Admin/Mahasiswa/Show', [
             'mahasiswa' => $this->transformPeserta($peserta),
+            'isDpp' => $user->isDpp(),
         ]);
     }
 
@@ -137,6 +161,7 @@ class MahasiswaMonitoringController extends Controller
             'nim' => $peserta->nim,
             'program_studi' => $legacyProdi,
             'kode_prodi' => $peserta->kode_prodi,
+            'total_jam_disetujui' => round($peserta->logKegiatans->sum(fn ($log) => $log->durasiJam()), 1),
             'prodi' => $prodi,
             'user' => $peserta->user ? [
                 'id' => $peserta->user->id,

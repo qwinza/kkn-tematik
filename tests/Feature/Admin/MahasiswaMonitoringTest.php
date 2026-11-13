@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\LogKegiatan;
 use App\Models\Peserta;
 use App\Models\Prodi;
 use App\Models\User;
@@ -32,6 +33,65 @@ class MahasiswaMonitoringTest extends TestCase
             ->has('filters')
             ->has('totalCount')
         );
+    }
+
+    public function test_admin_can_see_approved_activity_hours_in_student_list(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $peserta = Peserta::factory()->create();
+        LogKegiatan::factory()->create([
+            'peserta_id' => $peserta->id,
+            'status' => 'disetujui',
+            'jam_mulai' => '08:00',
+            'jam_selesai' => '11:30',
+        ]);
+        LogKegiatan::factory()->create([
+            'peserta_id' => $peserta->id,
+            'status' => 'menunggu',
+            'jam_mulai' => '12:00',
+            'jam_selesai' => '14:00',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.mahasiswa.index'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('mahasiswas.data.0.id', $peserta->id)
+                ->where('mahasiswas.data.0.total_jam_disetujui', 3.5)
+                ->where('canManage', true)
+            );
+    }
+
+    public function test_dpp_can_only_see_students_and_approved_hours_in_its_program(): void
+    {
+        $prodi = Prodi::factory()->create();
+        $otherProdi = Prodi::factory()->create();
+        $dpp = User::factory()->dpp()->create();
+        $dpp->dppProfile()->create(['kode_prodi' => $prodi->kode_prodi]);
+        $peserta = Peserta::factory()->create(['kode_prodi' => $prodi->kode_prodi]);
+        $outsideProdi = Peserta::factory()->create(['kode_prodi' => $otherProdi->kode_prodi]);
+
+        LogKegiatan::factory()->create([
+            'peserta_id' => $peserta->id,
+            'status' => 'disetujui',
+            'jam_mulai' => '09:00',
+            'jam_selesai' => '12:00',
+        ]);
+
+        $this->actingAs($dpp)
+            ->get(route('dpp.mahasiswa.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Mahasiswa/Index')
+                ->where('mahasiswas.data.0.id', $peserta->id)
+                ->where('mahasiswas.data.0.total_jam_disetujui', 3)
+                ->where('mahasiswas.total', 1)
+                ->where('isDpp', true)
+                ->where('canManage', false)
+            );
+
+        $this->actingAs($dpp)
+            ->get(route('dpp.mahasiswa.show', $outsideProdi))
+            ->assertNotFound();
     }
 
     public function test_admin_can_open_student_details_using_an_encrypted_route_key(): void

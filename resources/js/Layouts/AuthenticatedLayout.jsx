@@ -91,6 +91,11 @@ export default function AuthenticatedLayout({
             active: route().current('dashboard'),
         },
         {
+            label: 'Mahasiswa',
+            href: route('dpp.mahasiswa.index'),
+            active: route().current('dpp.mahasiswa.*'),
+        },
+        {
             label: 'Kegiatan',
             href: route('log-kegiatan.index'),
             active: route().current('log-kegiatan.*'),
@@ -209,15 +214,6 @@ export default function AuthenticatedLayout({
                                     >
                                         Kegiatan
                                     </NavLink>
-
-                                    {user?.is_mahasiswa && (
-                                        <NavLink
-                                            href={route('mahasiswa.schedule.index')}
-                                            active={route().current('mahasiswa.schedule.*')}
-                                        >
-                                            Riwayat Kehadiran
-                                        </NavLink>
-                                    )}
                                 </div>
                             )}
                         </div>
@@ -543,14 +539,6 @@ export default function AuthenticatedLayout({
                                     Kegiatan
                                 </ResponsiveNavLink>
                             </>
-                        )}
-                        {user?.is_mahasiswa && (
-                            <ResponsiveNavLink
-                                href={route('mahasiswa.schedule.index')}
-                                active={route().current('mahasiswa.schedule.*')}
-                            >
-                                Riwayat Kehadiran
-                            </ResponsiveNavLink>
                         )}
                     </div>
 
