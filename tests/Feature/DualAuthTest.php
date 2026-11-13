@@ -114,6 +114,44 @@ class DualAuthTest extends TestCase
         $response->assertRedirect(route('dashboard', absolute: false));
     }
 
+    public function test_local_mahasiswa_login_uses_campus_api_when_local_password_does_not_match(): void
+    {
+        $nim = '152024038';
+        config([
+            'app.env' => 'local',
+            'services.campus_auth.endpoint' => 'https://campus.example.test/login',
+            'services.campus_auth.api_key' => 'test-api-key',
+        ]);
+        Http::preventStrayRequests();
+        Http::fake([
+            'campus.example.test/login' => Http::response(['success' => true]),
+        ]);
+
+        $user = User::create([
+            'name' => 'Aa Faris Ahmad Shidiq',
+            'nim' => $nim,
+            'password' => Hash::make('unused-local-password'),
+            'role' => 'mahasiswa',
+        ]);
+        Peserta::create([
+            'user_id' => $user->id,
+            'nama_lengkap' => 'Aa Faris Ahmad Shidiq',
+            'nim' => $nim,
+        ]);
+
+        $response = $this->post(route('login'), [
+            'identifier' => $nim,
+            'password' => 'campus-password',
+        ]);
+
+        $this->assertAuthenticatedAs($user->fresh());
+        Http::assertSent(fn ($request) => $request->url() === 'https://campus.example.test/login'
+            && $request['APIKEY'] === 'test-api-key'
+            && $request['username'] === $nim
+            && $request['password'] === 'campus-password');
+        $response->assertRedirect(route('dashboard', absolute: false));
+    }
+
     public function test_unregistered_mahasiswa_cannot_login_or_be_created_automatically(): void
     {
         $nim = '152025091';

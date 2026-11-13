@@ -293,13 +293,13 @@ class LogKegiatanStepperTest extends TestCase
         ]);
 
         $response = $this->actingAs($student)->post(route('log-kegiatan.save-step', $log), [
-            'step' => 2,
+            'step' => 1,
             'tanggal_kehadiran' => '2026-11-02',
             'jam_mulai' => '08:00',
             'jam_selesai' => '12:00',
         ]);
 
-        $this->assertRedirectsToEncryptedLogEdit($response, $log, 3);
+        $this->assertRedirectsToEncryptedLogEdit($response, $log, 2);
         $this->assertDatabaseHas('log_kegiatans', [
             'id' => $log->id,
             'status' => 'ditolak',
@@ -319,11 +319,11 @@ class LogKegiatanStepperTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)->post(route('log-kegiatan.save-step', $log), [
-            'step' => 2,
+            'step' => 1,
             'rencana_kehadiran_id' => $rencana->id,
         ]);
 
-        $this->assertRedirectsToEncryptedLogEdit($response, $log, 3);
+        $this->assertRedirectsToEncryptedLogEdit($response, $log, 2);
         $this->assertDatabaseHas('log_kegiatans', [
             'id' => $log->id,
             'rencana_kehadiran_id' => $rencana->id,
@@ -350,7 +350,7 @@ class LogKegiatanStepperTest extends TestCase
 
         $this->actingAs($student)
             ->post(route('log-kegiatan.save-step', $log), [
-                'step' => 2,
+                'step' => 1,
                 'rencana_kehadiran_id' => $otherRencana->id,
             ])
             ->assertSessionHasErrors('rencana_kehadiran_id');
@@ -389,7 +389,7 @@ class LogKegiatanStepperTest extends TestCase
         ]);
 
         $response = $this->actingAs($student)->post(route('log-kegiatan.save-step', $log), [
-            'step' => 2,
+            'step' => 1,
             'tanggal_kehadiran' => '2026-02-18',
             'jam_mulai' => '08:00',
             'jam_selesai' => '12:00',
@@ -497,36 +497,38 @@ class LogKegiatanStepperTest extends TestCase
         $this->assertModelExists($log);
     }
 
-    public function test_mahasiswa_can_save_7_step_stepper_flow(): void
+    public function test_mahasiswa_can_save_stepper_schedule_and_activity_flow(): void
     {
         $user = User::factory()->mahasiswa()->create();
-        $peserta = Peserta::factory()->create(['user_id' => $user->id]);
+        $prodi = Prodi::factory()->create();
+        $peserta = Peserta::factory()->create(['user_id' => $user->id, 'kode_prodi' => $prodi->kode_prodi]);
+        $master = MasterKegiatan::factory()->create(['kode_prodi' => $prodi->kode_prodi]);
 
-        // Step 1: Save identity
-        $response1 = $this->actingAs($user)->post(route('log-kegiatan.save-step.create'), [
+        // Step 1: Save schedule
+        $this->actingAs($user)->post(route('log-kegiatan.save-step.create'), [
             'step' => 1,
-            'kode_prodi' => $peserta->kode_prodi,
-            'nama_lengkap' => $peserta->nama_lengkap,
-        ]);
-
-        $log = LogKegiatan::where('peserta_id', $peserta->id)->first();
-        $this->assertNotNull($log);
-        $this->assertEquals(2, $log->current_step);
-        $this->assertEquals('draft', $log->status);
-
-        // Step 2: Save schedule
-        $this->actingAs($user)->post(route('log-kegiatan.save-step', $log), [
-            'step' => 2,
             'tanggal_kehadiran' => '2026-02-18',
             'jam_mulai' => '08:00',
             'jam_selesai' => '12:00',
         ]);
 
-        $log->refresh();
+        $log = LogKegiatan::where('peserta_id', $peserta->id)->first();
+        $this->assertNotNull($log);
         $this->assertEquals('2026-02-18', $log->tanggal_kehadiran->format('Y-m-d'));
         $this->assertEquals('08:00', $log->jam_mulai);
         $this->assertEquals('12:00', $log->jam_selesai);
         $this->assertEquals('08:00 - 12:00', $log->jam_kehadiran);
+        $this->assertEquals(2, $log->current_step);
+        $this->assertEquals('draft', $log->status);
+
+        // Step 2: Save activity
+        $this->actingAs($user)->post(route('log-kegiatan.save-step', $log), [
+            'step' => 2,
+            'master_kegiatan_id' => $master->id,
+        ]);
+
+        $log->refresh();
+        $this->assertEquals($master->id, $log->master_kegiatan_id);
         $this->assertEquals(3, $log->current_step);
     }
 
@@ -539,54 +541,29 @@ class LogKegiatanStepperTest extends TestCase
         $log = LogKegiatan::factory()->draft(4)->create(['peserta_id' => $peserta->id]);
 
         $response = $this->actingAs($student)->post(route('log-kegiatan.save-step', $log), [
-            'step' => 5,
+            'step' => 4,
             'foto_kegiatan' => [
                 UploadedFile::fake()->image('foto-satu.jpg'),
                 UploadedFile::fake()->image('foto-dua.jpg'),
             ],
         ]);
-        $this->assertRedirectsToEncryptedLogEdit($response, $log, 6);
+        $this->assertRedirectsToEncryptedLogEdit($response, $log, 5);
 
         $response = $this->actingAs($student)->post(route('log-kegiatan.save-step', $log), [
-            'step' => 6,
+            'step' => 5,
             'deskripsi_luaran' => 'Dokumentasi hasil kegiatan bersama warga desa.',
             'file_luaran' => [
                 UploadedFile::fake()->create('luaran-satu.pdf', 500, 'application/pdf'),
                 UploadedFile::fake()->create('luaran-dua.pdf', 500, 'application/pdf'),
             ],
         ]);
-        $this->assertRedirectsToEncryptedLogEdit($response, $log, 7);
+        $this->assertRedirectsToEncryptedLogEdit($response, $log, 6);
 
         $this->assertSame(2, $log->fotoKegiatanFiles()->count());
         $this->assertSame(2, $log->fileLuaranFiles()->count());
         foreach ($log->files as $file) {
             Storage::disk('public')->assertExists($file->file_path);
         }
-    }
-
-    public function test_participant_can_set_prodi_before_starting_activity_logs(): void
-    {
-        $user = User::factory()->mahasiswa()->create();
-        $prodi = Prodi::factory()->create();
-        $peserta = Peserta::factory()->create(['user_id' => $user->id, 'kode_prodi' => null]);
-
-        $response = $this->actingAs($user)->post(route('log-kegiatan.save-step.create'), [
-            'step' => 1,
-            'kode_prodi' => $prodi->kode_prodi,
-            'nama_lengkap' => 'Nama yang dimanipulasi',
-            'email' => 'palsu@example.com',
-        ]);
-
-        $response->assertRedirect();
-        $this->assertDatabaseHas('pesertas', [
-            'id' => $peserta->id,
-            'kode_prodi' => $prodi->kode_prodi,
-            'nama_lengkap' => $peserta->nama_lengkap,
-        ]);
-        $this->assertDatabaseMissing('pesertas', [
-            'id' => $peserta->id,
-            'nama_lengkap' => 'Nama yang dimanipulasi',
-        ]);
     }
 
     public function test_student_cannot_select_master_activity_from_another_prodi(): void
@@ -597,7 +574,7 @@ class LogKegiatanStepperTest extends TestCase
         $masterKegiatan = MasterKegiatan::factory()->create(['kode_prodi' => $otherProdi->kode_prodi]);
 
         $response = $this->actingAs($student)->post(route('log-kegiatan.save-step.create'), [
-            'step' => 3,
+            'step' => 2,
             'master_kegiatan_id' => $masterKegiatan->id,
         ]);
 
@@ -637,7 +614,7 @@ class LogKegiatanStepperTest extends TestCase
         ]);
 
         $response = $this->actingAs($student)->post(route('log-kegiatan.save-step', $log), [
-            'step' => 7,
+            'step' => 6,
             'action' => 'submit',
         ]);
 
@@ -646,7 +623,7 @@ class LogKegiatanStepperTest extends TestCase
         $this->assertDatabaseHas('log_kegiatans', [
             'id' => $log->id,
             'status' => 'menunggu',
-            'current_step' => 7,
+            'current_step' => 6,
         ]);
     }
 
@@ -903,6 +880,45 @@ class LogKegiatanStepperTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_mahasiswa_can_save_rincian_step_with_keterangan_tempat(): void
+    {
+        $user = User::factory()->mahasiswa()->create();
+        $peserta = Peserta::factory()->create(['user_id' => $user->id]);
+        $log = LogKegiatan::factory()->draft()->create(['peserta_id' => $peserta->id]);
+
+        $response = $this->actingAs($user)->post(route('log-kegiatan.save-step', $log), [
+            'step' => 3,
+            'lokasi_kegiatan' => 'Lapangan',
+            'keterangan_tempat' => 'Balai RW 05',
+            'deskripsi_kegiatan' => 'Melakukan pendataan sampah bersama warga desa.',
+            'latitude' => -6.89750000,
+            'longitude' => 107.63580000,
+        ]);
+
+        $this->assertRedirectsToEncryptedLogEdit($response, $log, 4);
+
+        $log->refresh();
+        $this->assertEquals('Balai RW 05', $log->keterangan_tempat);
+        $this->assertEquals('Lapangan', $log->lokasi_kegiatan);
+        $this->assertEquals('Melakukan pendataan sampah bersama warga desa.', $log->deskripsi_kegiatan);
+        $this->assertEquals(4, $log->current_step);
+    }
+
+    public function test_rincian_step_requires_keterangan_tempat(): void
+    {
+        $user = User::factory()->mahasiswa()->create();
+        $peserta = Peserta::factory()->create(['user_id' => $user->id]);
+        $log = LogKegiatan::factory()->draft()->create(['peserta_id' => $peserta->id]);
+
+        $this->actingAs($user)
+            ->post(route('log-kegiatan.save-step', $log), [
+                'step' => 3,
+                'lokasi_kegiatan' => 'Lapangan',
+                'deskripsi_kegiatan' => 'Deskripsi tanpa keterangan tempat.',
+            ])
+            ->assertSessionHasErrors('keterangan_tempat');
+    }
+
     private function assertRedirectsToEncryptedLogEdit(TestResponse $response, LogKegiatan $log, int $step): void
     {
         $response->assertRedirect();
@@ -916,5 +932,134 @@ class LogKegiatanStepperTest extends TestCase
 
         $this->assertSame((string) $log->getKey(), Crypt::decryptString($encryptedKey));
         $this->assertSame("step={$step}", parse_url($location, PHP_URL_QUERY));
+    }
+    public function test_dpp_only_sees_logs_from_own_prodi(): void
+    {
+        $ownProdi = Prodi::factory()->create();
+        $otherProdi = Prodi::factory()->create();
+
+        $dpp = User::factory()->dpp()->create();
+
+        $dpp->dppProfile()->create([
+            'kode_prodi' => $ownProdi->kode_prodi,
+        ]);
+
+        $ownStudent = User::factory()->mahasiswa()->create();
+        $otherStudent = User::factory()->mahasiswa()->create();
+
+        $ownPeserta = Peserta::factory()->create([
+            'user_id' => $ownStudent->id,
+            'kode_prodi' => $ownProdi->kode_prodi,
+        ]);
+
+        $otherPeserta = Peserta::factory()->create([
+            'user_id' => $otherStudent->id,
+            'kode_prodi' => $otherProdi->kode_prodi,
+        ]);
+
+        $ownLog = LogKegiatan::factory()->create([
+            'peserta_id' => $ownPeserta->id,
+            'status' => 'menunggu',
+        ]);
+
+        LogKegiatan::factory()->create([
+            'peserta_id' => $otherPeserta->id,
+            'status' => 'menunggu',
+        ]);
+
+        $this->actingAs($dpp)
+            ->get(route('log-kegiatan.index', [
+                'kode_prodi' => $otherProdi->kode_prodi,
+            ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('LogKegiatan/Index')
+                ->has('logs.data', 1)
+                ->where('logs.data.0.id', $ownLog->id)
+                ->where('isDpp', true)
+                ->where('isReviewer', true)
+                ->where('pendingCount', 1)
+            );
+    }
+
+    public function test_dpp_can_approve_own_log_but_cannot_approve_other_prodi_log(): void
+    {
+        $ownProdi = Prodi::factory()->create();
+        $otherProdi = Prodi::factory()->create();
+
+        $dpp = User::factory()->dpp()->create();
+
+        $dpp->dppProfile()->create([
+            'kode_prodi' => $ownProdi->kode_prodi,
+        ]);
+
+        $ownStudent = User::factory()->mahasiswa()->create();
+        $otherStudent = User::factory()->mahasiswa()->create();
+
+        $ownPeserta = Peserta::factory()->create([
+            'user_id' => $ownStudent->id,
+            'kode_prodi' => $ownProdi->kode_prodi,
+        ]);
+
+        $otherPeserta = Peserta::factory()->create([
+            'user_id' => $otherStudent->id,
+            'kode_prodi' => $otherProdi->kode_prodi,
+        ]);
+
+        $ownLog = LogKegiatan::factory()->create([
+            'peserta_id' => $ownPeserta->id,
+            'status' => 'menunggu',
+        ]);
+
+        $otherLog = LogKegiatan::factory()->create([
+            'peserta_id' => $otherPeserta->id,
+            'status' => 'menunggu',
+        ]);
+
+        $this->actingAs($dpp)
+            ->post(route('log-kegiatan.approve', $ownLog))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('log_kegiatans', [
+            'id' => $ownLog->id,
+            'status' => 'disetujui',
+        ]);
+
+        $this->post(route('log-kegiatan.approve', $otherLog))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('log_kegiatans', [
+            'id' => $otherLog->id,
+            'status' => 'menunggu',
+        ]);
+    }
+
+    public function test_dpp_cannot_access_another_prodis_log_detail(): void
+    {
+        $ownProdi = Prodi::factory()->create();
+        $otherProdi = Prodi::factory()->create();
+
+        $dpp = User::factory()->dpp()->create();
+
+        $dpp->dppProfile()->create([
+            'kode_prodi' => $ownProdi->kode_prodi,
+        ]);
+
+        $otherStudent = User::factory()->mahasiswa()->create();
+
+        $otherPeserta = Peserta::factory()->create([
+            'user_id' => $otherStudent->id,
+            'kode_prodi' => $otherProdi->kode_prodi,
+        ]);
+
+        $otherLog = LogKegiatan::factory()->create([
+            'peserta_id' => $otherPeserta->id,
+            'status' => 'menunggu',
+        ]);
+
+        $this->actingAs($dpp)
+            ->get(route('log-kegiatan.show', $otherLog))
+            ->assertForbidden();
     }
 }

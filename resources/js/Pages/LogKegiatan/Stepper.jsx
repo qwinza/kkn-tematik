@@ -5,7 +5,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
-export default function LogKegiatanStepper({ log, currentStep = 1, masterKegiatans = [], rencanaKehadirans = [] }) {
+export default function LogKegiatanStepper({ log, currentStep = 1, masterKegiatans = [], rencanaKehadirans = [], student = {} }) {
     const [activeStep, setActiveStep] = useState(Math.min(Math.max((currentStep || 1) - 1, 1), 6));
     const [currentLogId, setCurrentLogId] = useState(log?.id || null);
     const [currentLogRouteKey, setCurrentLogRouteKey] = useState(log?.route_key || null);
@@ -22,23 +22,29 @@ export default function LogKegiatanStepper({ log, currentStep = 1, masterKegiata
         is_draft_only: false,
         action: 'continue',
 
-        // Step 2: Schedule
+        // Identitas peserta (hanya untuk tampilan Tinjau)
+        email: student?.email || log?.peserta?.user?.email || '',
+        nama_lengkap: student?.nama_lengkap || log?.peserta?.nama_lengkap || '',
+        nim: student?.nim || log?.peserta?.nim || '',
+        kode_prodi: student?.kode_prodi || log?.peserta?.kode_prodi || '',
+
+        // Step 1: Schedule
         rencana_kehadiran_id: log?.rencana_kehadiran_id || '',
 
-        // Step 3: Activity
+        // Step 2: Activity
         master_kegiatan_id: log?.master_kegiatan_id || '',
 
-        // Step 4: Details
+        // Step 3: Details
         lokasi_kegiatan: log?.lokasi_kegiatan || 'Lapangan',
-        tipe_lokasi: log?.latitude ? 'manual' : 'otomatis',
+        keterangan_tempat: log?.keterangan_tempat || '',
         latitude: log?.latitude || '',
         longitude: log?.longitude || '',
         deskripsi_kegiatan: log?.deskripsi_kegiatan || '',
 
-        // Step 5: Evidence
+        // Step 4: Evidence
         foto_kegiatan: [],
 
-        // Step 6: Outputs
+        // Step 5: Outputs
         deskripsi_luaran: log?.deskripsi_luaran || '',
         file_luaran: [],
     });
@@ -160,6 +166,10 @@ export default function LogKegiatanStepper({ log, currentStep = 1, masterKegiata
                 return;
             }
         } else if (activeStep === 3) {
+            if (!form.data.keterangan_tempat) {
+                setStepValidationError('Keterangan tempat wajib diisi.');
+                return;
+            }
             if (!form.data.deskripsi_kegiatan) {
                 setStepValidationError('Deskripsi rincian kegiatan wajib diisi.');
                 return;
@@ -201,7 +211,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, masterKegiata
     const handleFinalSubmit = (e) => {
         e?.preventDefault();
         setStepValidationError(null);
-        saveCurrentStep(7, false, 'submit');
+        saveCurrentStep(6, false, 'submit');
     };
 
     const steps = [
@@ -212,6 +222,9 @@ export default function LogKegiatanStepper({ log, currentStep = 1, masterKegiata
         { number: 5, label: 'Luaran' },
         { number: 6, label: 'Tinjau' },
     ];
+
+    // Hanya tahap yang sudah tercapai yang boleh dibuka lewat tombol stepper.
+    const maxUnlockedStep = Math.max(log?.current_step ?? 1, activeStep);
 
     const currentActivityObj = masterKegiatans.find((k) => k.id === Number(form.data.master_kegiatan_id)) || log?.master_kegiatan;
     const selectedRencanaKehadiran = rencanaKehadirans.find(
@@ -243,20 +256,26 @@ export default function LogKegiatanStepper({ log, currentStep = 1, masterKegiata
                             {steps.map((step) => {
                                 const isCurrent = activeStep === step.number;
                                 const isCompleted = activeStep > step.number || ['menunggu', 'disetujui', 'ditolak'].includes(log?.status);
+                                const isLocked = step.number > maxUnlockedStep;
 
                                 return (
                                     <div key={step.number} className="relative z-10 flex flex-col items-center">
                                         <button
                                             type="button"
+                                            disabled={isLocked}
                                             onClick={() => {
                                                 setStepValidationError(null);
                                                 setActiveStep(step.number);
                                             }}
-                                            className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                                            className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold transition-all shadow-xs ${
+                                                isLocked ? 'cursor-not-allowed' : 'cursor-pointer'
+                                            } ${
                                                 isCurrent
                                                     ? 'bg-[#064e3b] text-white ring-4 ring-emerald-100 ring-offset-1'
                                                     : isCompleted
                                                     ? 'bg-[#ecfdf5] border-2 border-[#059669] text-[#059669]'
+                                                    : isLocked
+                                                    ? 'bg-white border-2 border-gray-200 text-gray-300'
                                                     : 'bg-white border-2 border-gray-200 text-gray-500 hover:border-emerald-500'
                                             }`}
                                         >
@@ -274,6 +293,8 @@ export default function LogKegiatanStepper({ log, currentStep = 1, masterKegiata
                                                     ? 'text-[#064e3b] font-bold'
                                                     : isCompleted
                                                     ? 'text-gray-700'
+                                                    : isLocked
+                                                    ? 'text-gray-300'
                                                     : 'text-gray-400'
                                             }`}
                                         >
@@ -437,75 +458,61 @@ export default function LogKegiatanStepper({ log, currentStep = 1, masterKegiata
                                         <InputError message={form.errors.lokasi_kegiatan} className="mt-1" />
                                     </div>
 
-                                    {/* GPS Coordinate options */}
-                                    <div className="rounded-2xl border border-gray-100 bg-[#f9fafb] p-5">
-                                        <div className="text-xs font-semibold text-gray-700">Metode Koordinat Lokasi (GPS)</div>
-                                        <div className="mt-2 flex gap-4 text-xs">
-                                            <label className="inline-flex items-center">
-                                                <input
-                                                    type="radio"
-                                                    name="tipe_lokasi"
-                                                    value="otomatis"
-                                                    checked={form.data.tipe_lokasi === 'otomatis'}
-                                                    onChange={(e) => form.setData('tipe_lokasi', e.target.value)}
-                                                    className="text-emerald-600 focus:ring-emerald-500"
-                                                />
-                                                <span className="ms-1.5 font-medium text-gray-700">1. Lokasi saat ini (GPS perangkat)</span>
-                                            </label>
-                                            <label className="inline-flex items-center">
-                                                <input
-                                                    type="radio"
-                                                    name="tipe_lokasi"
-                                                    value="manual"
-                                                    checked={form.data.tipe_lokasi === 'manual'}
-                                                    onChange={(e) => form.setData('tipe_lokasi', e.target.value)}
-                                                    className="text-emerald-600 focus:ring-emerald-500"
-                                                />
-                                                <span className="ms-1.5 font-medium text-gray-700">2. Input Manual</span>
-                                            </label>
-                                        </div>
+                                    <div>
+                                        <InputLabel htmlFor="keterangan_tempat" value="Keterangan Tempat *" className="text-xs font-semibold text-gray-700" />
+                                        <TextInput
+                                            id="keterangan_tempat"
+                                            type="text"
+                                            className="mt-1.5 block w-full rounded-xl border-gray-200 text-sm focus:border-emerald-600 focus:ring-emerald-600"
+                                            placeholder="Contoh: Balai RW 05, TPS 3R Sarimukti, Kantor Kelurahan..."
+                                            value={form.data.keterangan_tempat}
+                                            onChange={(e) => form.setData('keterangan_tempat', e.target.value)}
+                                        />
+                                        <InputError message={form.errors.keterangan_tempat} className="mt-1" />
+                                    </div>
 
-                                        {form.data.tipe_lokasi === 'otomatis' && (
-                                            <div className="mt-3">
-                                                <button
-                                                    type="button"
-                                                    onClick={handleGetCurrentLocation}
-                                                    disabled={geoLoading}
-                                                    className="rounded-lg bg-white border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                                                >
-                                                    {geoLoading ? 'Mendeteksi lokasi...' : '📍 Gunakan lokasi saat ini'}
-                                                </button>
-                                                {geoMessage && (
-                                                    <p className={`mt-2 text-xs ${geoMessage.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>
-                                                        {geoMessage.text}
-                                                    </p>
-                                                )}
-                                            </div>
-                                        )}
+                                    {/* Koordinat GPS perangkat */}
+                                    <div className="rounded-2xl border border-gray-100 bg-[#f9fafb] p-5">
+                                        <div className="text-xs font-semibold text-gray-700">Koordinat Lokasi (GPS perangkat)</div>
+                                        <p className="mt-1 text-xs text-gray-500">Koordinat terisi otomatis dari GPS perangkat Anda.</p>
+
+                                        <div className="mt-3">
+                                            <button
+                                                type="button"
+                                                onClick={handleGetCurrentLocation}
+                                                disabled={geoLoading}
+                                                className="rounded-lg bg-white border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                                            >
+                                                {geoLoading ? 'Mendeteksi lokasi...' : '📍 Gunakan lokasi saat ini'}
+                                            </button>
+                                            {geoMessage && (
+                                                <p className={`mt-2 text-xs ${geoMessage.type === 'success' ? 'text-emerald-600' : 'text-red-600'}`}>
+                                                    {geoMessage.text}
+                                                </p>
+                                            )}
+                                        </div>
 
                                         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                                             <div>
                                                 <InputLabel htmlFor="latitude" value="Garis lintang" className="text-xs text-gray-600" />
                                                 <TextInput
                                                     id="latitude"
-                                                    type="number"
-                                                    step="any"
-                                                    className="mt-1 block w-full rounded-xl border-gray-200 text-xs"
+                                                    type="text"
+                                                    className="mt-1 block w-full rounded-xl border-gray-200 bg-gray-100 text-xs text-gray-600"
                                                     placeholder="-6.8975000"
                                                     value={form.data.latitude}
-                                                    onChange={(e) => form.setData('latitude', e.target.value)}
+                                                    readOnly
                                                 />
                                             </div>
                                             <div>
                                                 <InputLabel htmlFor="longitude" value="Garis bujur" className="text-xs text-gray-600" />
                                                 <TextInput
                                                     id="longitude"
-                                                    type="number"
-                                                    step="any"
-                                                    className="mt-1 block w-full rounded-xl border-gray-200 text-xs"
+                                                    type="text"
+                                                    className="mt-1 block w-full rounded-xl border-gray-200 bg-gray-100 text-xs text-gray-600"
                                                     placeholder="107.6358000"
                                                     value={form.data.longitude}
-                                                    onChange={(e) => form.setData('longitude', e.target.value)}
+                                                    readOnly
                                                 />
                                             </div>
                                         </div>
@@ -598,7 +605,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, masterKegiata
                                             id="deskripsi_luaran"
                                             rows={4}
                                             className="mt-1.5 block w-full rounded-xl border-gray-200 text-sm focus:border-emerald-600 focus:ring-emerald-600"
-                                            placeholder="Tuliskan luaran atau hasil konkret kegiatan (misal: draf peta sampah, data kuesioner, catatan singkat)..."
+                                            placeholder="Deskripsikan kegiatan yang telah dilakukan (misal: kerja bakti membersihkan saluran air, pendataan sampah warga, penyusunan draf laporan kegiatan)."
                                             value={form.data.deskripsi_luaran}
                                             onChange={(e) => form.setData('deskripsi_luaran', e.target.value)}
                                             required
@@ -675,6 +682,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, masterKegiata
                                         <div className="font-bold text-gray-800 mb-2">3. Rincian dan lokasi</div>
                                         <div className="text-xs text-gray-600 space-y-1">
                                             <div><strong>Lokasi:</strong> {form.data.lokasi_kegiatan} {form.data.latitude ? `(${form.data.latitude}, ${form.data.longitude})` : ''}</div>
+                                            <div><strong>Keterangan tempat:</strong> {form.data.keterangan_tempat || '-'}</div>
                                             <div><strong>Rincian kegiatan:</strong> {form.data.deskripsi_kegiatan}</div>
                                         </div>
                                     </div>

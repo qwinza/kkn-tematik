@@ -9,6 +9,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
@@ -50,7 +51,7 @@ class AuthController extends Controller
 
         // 1. Cek apakah input adalah email. Jika ya, autentikasi sebagai Admin (Database Lokal).
         if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
-            return $this->handleAdminLogin($request, $identifier, $password);
+            return $this->handleStaffLogin($request, $identifier, $password);
         }
 
         // 2. Jika input berupa angka/NIM, lakukan simulasi hit API kampus ITENAS.
@@ -77,13 +78,19 @@ class AuthController extends Controller
     }
 
     /**
-     * Logika autentikasi Admin menggunakan database lokal.
+     * Autentikasi Superadmin dan DPP menggunakan database lokal.
      *
      * @throws ValidationException
      */
-    protected function handleAdminLogin(Request $request, string $email, string $password): RedirectResponse
-    {
-        if (! Auth::attempt(['email' => $email, 'password' => $password], $request->boolean('remember'))) {
+    protected function handleStaffLogin(
+        Request $request,
+        string $email,
+        string $password
+    ): RedirectResponse {
+        if (! Auth::attempt(
+            ['email' => $email, 'password' => $password],
+            $request->boolean('remember')
+        )) {
             $this->hitRateLimiter($email, $request->ip());
 
             throw ValidationException::withMessages([
@@ -95,13 +102,23 @@ class AuthController extends Controller
         /** @var User $user */
         $user = Auth::user();
 
-        if (! $user->isAdmin()) {
+        if (! $user->isAdmin() && ! $user->isDpp()) {
             Auth::logout();
             $this->hitRateLimiter($email, $request->ip());
 
             throw ValidationException::withMessages([
-                'identifier' => 'Akses ditolak. Email hanya diperuntukkan untuk akun Admin.',
-                'email' => 'Akses ditolak. Email hanya diperuntukkan untuk akun Admin.',
+                'identifier' => 'Akses ditolak. Akun ini tidak diperuntukkan untuk login melalui email.',
+                'email' => 'Akses ditolak. Akun ini tidak diperuntukkan untuk login melalui email.',
+            ]);
+        }
+
+        if ($user->isDpp() && ! $user->dppProfile()->exists()) {
+            Auth::logout();
+            $this->hitRateLimiter($email, $request->ip());
+
+            throw ValidationException::withMessages([
+                'identifier' => 'Profil DPP belum dikaitkan dengan program studi.',
+                'email' => 'Profil DPP belum dikaitkan dengan program studi.',
             ]);
         }
 
@@ -131,6 +148,17 @@ class AuthController extends Controller
                 'identifier' => trans('auth.failed'),
                 'email' => trans('auth.failed'),
             ]);
+        }
+
+        // Fallback pengembangan: login mahasiswa pakai password lokal saat APP_ENV=local.
+        if (app()->environment('local')) {
+            if (Hash::check($password, $peserta->user->password)) {
+                $this->clearRateLimiter($nim, $request->ip());
+                Auth::login($peserta->user, $request->boolean('remember'));
+                $request->session()->regenerate();
+
+                return redirect()->intended(route('dashboard', absolute: false));
+            }
         }
 
         $endpoint = config('services.campus_auth.endpoint');

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Mahasiswa;
 
 use App\Http\Controllers\Controller;
 use App\Models\Peserta;
+use App\Models\RencanaKehadiran;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -73,7 +74,7 @@ class RencanaKehadiranController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'tanggal_rencana' => ['required', 'date', 'after_or_equal:today'],
+            'tanggal_rencana' => ['required', 'date'],
             'jam_kehadiran' => ['required', Rule::in(self::VALID_SESSIONS)],
         ]);
 
@@ -98,5 +99,36 @@ class RencanaKehadiranController extends Controller
         return redirect()
             ->route($redirectRoute)
             ->with('success', 'Rencana kehadiran berhasil disimpan.');
+    }
+
+    /**
+     * Memperbarui (reschedule) rencana kehadiran milik mahasiswa terautentikasi.
+     */
+    public function update(Request $request, RencanaKehadiran $rencanaKehadiran): RedirectResponse
+    {
+        $user = $request->user();
+
+        /** @var Peserta|null $peserta */
+        $peserta = $user->peserta;
+
+        abort_unless($peserta && $rencanaKehadiran->peserta_id === $peserta->id, 403);
+
+        $validated = $request->validate([
+            'tanggal_rencana' => ['required', 'date'],
+            'jam_kehadiran' => ['required', Rule::in(self::VALID_SESSIONS)],
+        ]);
+
+        $rencanaKehadiran->update([
+            'tanggal_rencana' => $validated['tanggal_rencana'],
+            'jam_kehadiran' => $validated['jam_kehadiran'],
+        ]);
+
+        $redirectRoute = request()->routeIs('mahasiswa.schedule.update')
+            ? 'mahasiswa.schedule.index'
+            : 'mahasiswa.rencana-kehadiran.index';
+
+        return redirect()
+            ->route($redirectRoute)
+            ->with('success', 'Jadwal kehadiran berhasil diperbarui.');
     }
 }

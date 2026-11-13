@@ -187,4 +187,155 @@ class MasterKegiatanTest extends TestCase
         $response->assertSessionHas('error');
         $this->assertDatabaseHas('master_kegiatans', ['id' => $kegiatan->id]);
     }
+    public function test_dpp_only_sees_master_kegiatan_from_own_prodi(): void
+    {
+        $ownProdi = Prodi::factory()->create();
+        $otherProdi = Prodi::factory()->create();
+
+        $dpp = User::factory()->dpp()->create();
+
+        $dpp->dppProfile()->create([
+            'kode_prodi' => $ownProdi->kode_prodi,
+        ]);
+
+        $ownActivity = MasterKegiatan::factory()->create([
+            'kode_prodi' => $ownProdi->kode_prodi,
+        ]);
+
+        MasterKegiatan::factory()->create([
+            'kode_prodi' => $otherProdi->kode_prodi,
+        ]);
+
+        $this->actingAs($dpp)
+            ->get(route('master-kegiatan.index', [
+                'kode_prodi' => $otherProdi->kode_prodi,
+            ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('MasterKegiatan/Index')
+                ->has('kegiatans.data', 1)
+                ->where('kegiatans.data.0.id', $ownActivity->id)
+                ->where('canManage', true)
+                ->where('isDpp', true)
+                ->has('prodis', 1)
+                ->where('prodis.0.kode_prodi', $ownProdi->kode_prodi)
+            );
+    }
+
+    public function test_dpp_can_create_master_kegiatan_only_for_own_prodi(): void
+    {
+        $ownProdi = Prodi::factory()->create();
+        $otherProdi = Prodi::factory()->create();
+
+        $dpp = User::factory()->dpp()->create();
+
+        $dpp->dppProfile()->create([
+            'kode_prodi' => $ownProdi->kode_prodi,
+        ]);
+
+        $this->actingAs($dpp)
+            ->post(route('master-kegiatan.store'), [
+                'kode_kegiatan' => 'DPP-001',
+                'nama_kegiatan' => 'Kegiatan Prodi DPP',
+                'kategori' => 'Pemberdayaan',
+                'kode_prodi' => $otherProdi->kode_prodi,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('master_kegiatans', [
+            'kode_kegiatan' => 'DPP-001',
+            'kode_prodi' => $ownProdi->kode_prodi,
+        ]);
+
+        $this->assertDatabaseMissing('master_kegiatans', [
+            'kode_kegiatan' => 'DPP-001',
+            'kode_prodi' => $otherProdi->kode_prodi,
+        ]);
+    }
+
+    public function test_dpp_cannot_update_master_kegiatan_from_another_prodi(): void
+    {
+        $ownProdi = Prodi::factory()->create();
+        $otherProdi = Prodi::factory()->create();
+
+        $dpp = User::factory()->dpp()->create();
+
+        $dpp->dppProfile()->create([
+            'kode_prodi' => $ownProdi->kode_prodi,
+        ]);
+
+        $otherActivity = MasterKegiatan::factory()->create([
+            'kode_prodi' => $otherProdi->kode_prodi,
+        ]);
+
+        $this->actingAs($dpp)
+            ->put(route('master-kegiatan.update', $otherActivity), [
+                'kode_kegiatan' => 'DPP-UPDATE',
+                'nama_kegiatan' => 'Percobaan Perubahan',
+                'kategori' => 'Umum',
+                'kode_prodi' => $ownProdi->kode_prodi,
+            ])
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('master_kegiatans', [
+            'id' => $otherActivity->id,
+            'kode_prodi' => $otherProdi->kode_prodi,
+        ]);
+    }
+
+    public function test_dpp_cannot_delete_master_kegiatan_from_another_prodi(): void
+    {
+        $ownProdi = Prodi::factory()->create();
+        $otherProdi = Prodi::factory()->create();
+
+        $dpp = User::factory()->dpp()->create();
+
+        $dpp->dppProfile()->create([
+            'kode_prodi' => $ownProdi->kode_prodi,
+        ]);
+
+        $otherActivity = MasterKegiatan::factory()->create([
+            'kode_prodi' => $otherProdi->kode_prodi,
+        ]);
+
+        $this->actingAs($dpp)
+            ->delete(route('master-kegiatan.destroy', $otherActivity))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('master_kegiatans', [
+            'id' => $otherActivity->id,
+        ]);
+    }
+
+    public function test_dpp_can_update_master_kegiatan_from_own_prodi(): void
+    {
+        $ownProdi = Prodi::factory()->create();
+
+        $dpp = User::factory()->dpp()->create();
+
+        $dpp->dppProfile()->create([
+            'kode_prodi' => $ownProdi->kode_prodi,
+        ]);
+
+        $activity = MasterKegiatan::factory()->create([
+            'kode_prodi' => $ownProdi->kode_prodi,
+        ]);
+
+        $this->actingAs($dpp)
+            ->put(route('master-kegiatan.update', $activity), [
+                'kode_kegiatan' => 'DPP-UPDATED',
+                'nama_kegiatan' => 'Kegiatan Diperbarui',
+                'kategori' => 'Sosial',
+                'kode_prodi' => $ownProdi->kode_prodi,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('master_kegiatans', [
+            'id' => $activity->id,
+            'kode_kegiatan' => 'DPP-UPDATED',
+            'kode_prodi' => $ownProdi->kode_prodi,
+        ]);
+    }
 }

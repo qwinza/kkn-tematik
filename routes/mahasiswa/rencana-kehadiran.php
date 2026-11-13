@@ -15,10 +15,16 @@ Route::middleware(['auth', 'mahasiswa'])
         Route::post('/schedule', [RencanaKehadiranController::class, 'store'])
             ->name('schedule.store');
 
+        Route::put('/schedule/{rencanaKehadiran}', [RencanaKehadiranController::class, 'update'])
+            ->name('schedule.update');
+
         // Kompatibilitas dengan URL lama
         Route::get('/rencana-kehadiran', [RencanaKehadiranController::class, 'index'])
             ->name('rencana-kehadiran.index');
 
         Route::post('/rencana-kehadiran', [RencanaKehadiranController::class, 'store'])
             ->name('rencana-kehadiran.store');
+
+        Route::put('/rencana-kehadiran/{rencanaKehadiran}', [RencanaKehadiranController::class, 'update'])
+            ->name('rencana-kehadiran.update');
     });

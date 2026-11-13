@@ -1,12 +1,21 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
 
-export default function Dashboard({ summary = { totalKegiatan: 0, totalDisetujui: 0 } }) {
+export default function Dashboard({
+    summary = { totalKegiatan: 0, totalDisetujui: 0, totalLapangan: 0, totalKampus: 0, totalJamDisetujui: 0 },
+}) {
     const { auth } = usePage().props;
     const isAdmin = auth.user.is_admin;
     const approvalRate = summary.totalKegiatan > 0
         ? Math.round((summary.totalDisetujui / summary.totalKegiatan) * 100)
         : 0;
+    const locationRate = (value) => (summary.totalKegiatan > 0
+        ? Math.round((value / summary.totalKegiatan) * 100)
+        : 0);
+    const lapanganRate = locationRate(summary.totalLapangan ?? 0);
+    const kampusRate = locationRate(summary.totalKampus ?? 0);
+    const totalJam = Number(summary.totalJamDisetujui ?? 0);
+    const totalJamLabel = Number.isInteger(totalJam) ? totalJam : totalJam.toFixed(1);
     const shortcuts = isAdmin
         ? [
             { label: 'Kegiatan', href: route('log-kegiatan.index'), icon: 'report' },
@@ -68,6 +77,12 @@ export default function Dashboard({ summary = { totalKegiatan: 0, totalDisetujui
                             <strong>{summary.totalDisetujui}</strong>
                             <small>kegiatan terverifikasi</small>
                         </article>
+                        <article className="portal-stat-card portal-stat-card-info">
+                            <span className="portal-stat-icon" aria-hidden="true">◷</span>
+                            <p>Total Jam Disetujui</p>
+                            <strong>{totalJamLabel}</strong>
+                            <small>jam kegiatan yang disetujui</small>
+                        </article>
                         <article className="portal-dashboard-quick-card">
                             <div className="portal-dashboard-panel-kicker">AKSES CEPAT</div>
                             <h2>Menu</h2>
@@ -121,6 +136,35 @@ export default function Dashboard({ summary = { totalKegiatan: 0, totalDisetujui
                             <Link href={route('log-kegiatan.index')}>
                                 Lihat kegiatan <span aria-hidden="true"> →</span>
                             </Link>
+                        </article>
+
+                        <article className="portal-dashboard-panel portal-dashboard-location">
+                            <div>
+                                <p className="portal-dashboard-panel-kicker">LOKASI</p>
+                                <h2>Sebaran Lokasi</h2>
+                            </div>
+                            <div className="portal-dashboard-location-list">
+                                <div className="portal-dashboard-location-item">
+                                    <div className="portal-dashboard-location-head">
+                                        <span>Di Lapangan</span>
+                                        <strong>{lapanganRate}%</strong>
+                                    </div>
+                                    <div className="portal-dashboard-progress-track is-field">
+                                        <span style={{ width: `${lapanganRate}%` }} />
+                                    </div>
+                                    <small>{summary.totalLapangan ?? 0} kegiatan</small>
+                                </div>
+                                <div className="portal-dashboard-location-item">
+                                    <div className="portal-dashboard-location-head">
+                                        <span>Di Kampus</span>
+                                        <strong>{kampusRate}%</strong>
+                                    </div>
+                                    <div className="portal-dashboard-progress-track is-campus">
+                                        <span style={{ width: `${kampusRate}%` }} />
+                                    </div>
+                                    <small>{summary.totalKampus ?? 0} kegiatan</small>
+                                </div>
+                            </div>
                         </article>
                     </section>
                 </div>

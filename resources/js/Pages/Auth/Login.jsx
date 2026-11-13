@@ -49,7 +49,7 @@ export default function Login({ status }) {
                             <div className="login-mobile-brand size-md">
                                 <img
                                     className="login-itenas-wordmark"
-                                    src="/images/itenasresik.jpeg"
+                                    src="/images/itenasresik-trim.png"
                                     alt="ITENAS RESIK"
                                 />
                             </div>
