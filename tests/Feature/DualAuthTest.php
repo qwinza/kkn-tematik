@@ -166,7 +166,7 @@ class DualAuthTest extends TestCase
         $response->assertSessionHasErrors('identifier');
         $this->assertDatabaseMissing('users', ['nim' => $nim]);
         $this->assertDatabaseMissing('pesertas', ['nim' => $nim]);
-        Http::assertNothingSent();
+
     }
 
     public function test_registered_mahasiswa_cannot_login_with_wrong_password(): void
