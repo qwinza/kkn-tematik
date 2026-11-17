@@ -494,6 +494,25 @@ export default function LogKegiatanIndex({
                                     Rekap Jam Python
                                 </a>
                             )}
+                            {!canReview && (
+                                <a
+                                    href={route('log-kegiatan.export-student-pdf')}
+                                    title="Unduh seluruh riwayat kegiatan Anda dalam format PDF"
+                                    className="inline-flex min-h-10 items-center gap-2 rounded-md border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-800 hover:bg-indigo-100"
+                                >
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="1.8"
+                                        className="h-4 w-4"
+                                        aria-hidden="true"
+                                    >
+                                        <path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v4h14v-4" />
+                                    </svg>
+                                    Unduh Laporan PDF
+                                </a>
+                            )}
                         </div>
                     </div>
 

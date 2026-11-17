@@ -27,6 +27,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 class LogKegiatanController extends Controller
 {
@@ -238,6 +239,79 @@ class LogKegiatanController extends Controller
             fclose($output);
         }, 'rekap-jam-mahasiswa-python-'.now()->format('Ymd-His').'.csv', [
             'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
+     * Export seluruh riwayat kegiatan milik mahasiswa yang sedang login ke PDF.
+     */
+    public function exportStudentPdf(
+        Request $request,
+        PythonAnalyticsService $python
+    ): HttpResponse {
+        $user = $request->user();
+
+        abort_unless($user && $user->isMahasiswa(), 403);
+
+        $peserta = $user->peserta;
+
+        abort_unless($peserta, 404, 'Profil peserta tidak ditemukan.');
+
+        $logs = $peserta->logKegiatans()
+            ->with('masterKegiatan')
+            ->orderByDesc('tanggal_kehadiran')
+            ->orderByDesc('id')
+            ->get();
+
+        $payload = [
+            'mahasiswa' => [
+                'nama' => $peserta->nama_lengkap,
+                'nim' => $peserta->nim,
+                'prodi' => $peserta->prodi?->nama_prodi ?? 'Belum ditentukan',
+            ],
+            'kegiatan' => $logs->map(function (LogKegiatan $log): array {
+                return [
+                    'nama_kegiatan' => $log->masterKegiatan?->nama_kegiatan
+                        ?? 'Kegiatan belum dipilih',
+                    'tanggal' => $log->tanggal_kehadiran?->format('Y-m-d'),
+                    'jam_mulai' => $log->jam_mulai,
+                    'jam_selesai' => $log->jam_selesai,
+                    'jam_kehadiran' => $log->jam_kehadiran,
+                    'durasi_jam' => $log->durasiJam(),
+                    'status' => $log->status,
+                    'deskripsi_kegiatan' => $log->deskripsi_kegiatan,
+                    'lokasi' => implode(' - ', array_filter([
+                        $log->lokasi_kegiatan,
+                        $log->keterangan_tempat,
+                    ], fn ($value) => is_string($value) && trim($value) !== '')),
+                ];
+            })->all(),
+        ];
+
+        try {
+            $pdf = $python->generateStudentActivityPdf($payload);
+        } catch (RuntimeException $exception) {
+            Log::error('Student activity PDF export failed.', [
+                'user_id' => $user->id,
+                'exception' => $exception,
+            ]);
+
+            abort(
+                503,
+                'Laporan PDF belum dapat dibuat. Pastikan Python dan ReportLab tersedia.'
+            );
+        }
+
+        $safeNim = preg_replace('/[^A-Za-z0-9_-]/', '', $peserta->nim)
+            ?: 'mahasiswa';
+
+        $fileName = 'laporan-kegiatan-kkn-'.$safeNim.'-'.now()->format('Ymd-His').'.pdf';
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$fileName.'"',
+            'Content-Length' => (string) strlen($pdf),
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 

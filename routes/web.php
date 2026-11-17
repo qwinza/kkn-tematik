@@ -85,6 +85,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/log-kegiatan/export-rekap-jam-python', [LogKegiatanController::class, 'exportPythonSummary'])
         ->name('log-kegiatan.export-python-summary');
 
+    Route::get('/log-kegiatan/export-pdf', [LogKegiatanController::class, 'exportStudentPdf'])
+        ->name('log-kegiatan.export-student-pdf');
+
     Route::post('/log-kegiatan/approve-all', [LogKegiatanController::class, 'approveAll'])
         ->name('log-kegiatan.approve-all');
     Route::post('/log-kegiatan/step-1', [LogKegiatanController::class, 'saveStep1'])->name('log-kegiatan.step-1');
