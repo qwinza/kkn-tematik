@@ -321,7 +321,7 @@ def generate_student_activity_pdf(data: dict[str, object]) -> bytes:
         if description != "-":
             details.append(description)
 
-        if location != "-":
+        if location and location != "-":
             details.append(f"Lokasi: {location}")
 
         activity_content = f"<b>{activity_name}</b>"
