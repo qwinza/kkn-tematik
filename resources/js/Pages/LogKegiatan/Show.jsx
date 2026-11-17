@@ -5,7 +5,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import confirmWithSweetAlert from '@/Components/confirmWithSweetAlert';
 
-export default function LogKegiatanShow({ log, isAdmin }) {
+export default function LogKegiatanShow({ log, isAdmin, isDpp = false }) {
     const [isApproving, setIsApproving] = useState(false);
     const [isRejecting, setIsRejecting] = useState(false);
     const hasCoords = log.latitude && log.longitude;
@@ -60,7 +60,7 @@ export default function LogKegiatanShow({ log, isAdmin }) {
                         <Link href={route('log-kegiatan.index')}>
                             <SecondaryButton>Kembali</SecondaryButton>
                         </Link>
-                        {!isAdmin && ['draft', 'ditolak'].includes(log.status) && (
+                        {!isAdmin && !isDpp && ['draft', 'ditolak'].includes(log.status) && (
                             <Link href={route('log-kegiatan.edit', { log_kegiatan: log.route_key, step: log.current_step })}>
                                 <PrimaryButton>{log.status === 'ditolak' ? 'Perbaiki Kegiatan' : 'Ubah Kegiatan'}</PrimaryButton>
                             </Link>

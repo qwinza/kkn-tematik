@@ -9,6 +9,8 @@ export default function Dashboard({
     const { auth } = usePage().props;
     const isAdmin = auth.user.is_admin;
     const isDosen = auth.user.is_dosen;
+    const isDpp = auth.user.is_dpp;
+    const supervisorLabel = isDpp ? 'DPP' : 'Dosen Pembimbing';
     const isSupervisor = isAdmin || isDosen;
     const approvalRate = summary.totalKegiatan > 0
         ? Math.round((summary.totalDisetujui / summary.totalKegiatan) * 100)
@@ -52,7 +54,7 @@ export default function Dashboard({
                     <header className="portal-dashboard-page-heading">
                         <div>
                             <p className="portal-dashboard-breadcrumb">
-                                Portal {isAdmin ? 'Admin' : isDosen ? 'Dosen Pembimbing' : 'Mahasiswa'} <span>/</span> Dashboard
+                                Portal {isAdmin ? 'Admin' : isDosen ? supervisorLabel : 'Mahasiswa'} <span>/</span> Dashboard
                             </p>
                             <h1>Dashboard</h1>
                             <p>{isAdmin
@@ -79,7 +81,7 @@ export default function Dashboard({
                         <aside className="portal-dashboard-identity">
                             <span>{isSupervisor ? 'AKUN' : 'NRP / NIM'}</span>
                             <strong>{isAdmin ? 'Admin KKN' : isDosen ? managedProdi || 'Dosen KKN' : auth.user.nim || 'Mahasiswa'}</strong>
-                            <small>{isAdmin ? 'Administrator' : isDosen ? 'Dosen Pembimbing' : 'Mahasiswa KKN 2026'}</small>
+                            <small>{isAdmin ? 'Administrator' : isDosen ? supervisorLabel : 'Mahasiswa KKN 2026'}</small>
                         </aside>
                     </section>
 
