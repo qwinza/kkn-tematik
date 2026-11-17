@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Peserta;
 use App\Models\Prodi;
 use App\Models\User;
+use App\Models\DppAccessRequest;
+use App\Services\DosenSikadAuthService;
+use RuntimeException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,45 +35,69 @@ class AuthController extends Controller
     }
 
     /**
-     * Handle proses login dengan pemisahan autentikasi Admin dan Mahasiswa.
+     * Menangani autentikasi Admin, Mahasiswa, dan Dosen.
      *
      * @throws ValidationException
      */
     public function login(Request $request): RedirectResponse
     {
         $request->validate([
-            'identifier' => ['required_without:email', 'string'],
-            'email' => ['required_without:identifier', 'string'],
+            'identifier' => ['required_without:email', 'string', 'max:255'],
+            'email' => ['nullable', 'string', 'max:255'],
             'password' => ['required', 'string'],
         ]);
 
-        $identifier = trim((string) ($request->input('identifier') ?? $request->input('email')));
+        $identifier = trim(
+            (string) ($request->input('identifier') ?? $request->input('email'))
+        );
+
         $password = (string) $request->input('password');
 
         $this->ensureIsNotRateLimited($identifier, $request->ip());
 
-        // 1. Cek apakah input adalah email. Jika ya, autentikasi sebagai Admin (Database Lokal).
-        if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
-            return $this->handleStaffLogin($request, $identifier, $password);
+        // Email hanya diarahkan ke Admin jika terdaftar sebagai akun Admin lokal.
+        $isAdminAccount = filter_var($identifier, FILTER_VALIDATE_EMAIL)
+            && User::query()
+                ->where('email', $identifier)
+                ->where('role', 'admin')
+                ->exists();
+
+        if ($isAdminAccount) {
+            return $this->handleStaffLogin(
+                $request,
+                $identifier,
+                $password
+            );
         }
 
-        // 2. Jika input berupa angka/NIM, lakukan simulasi hit API kampus ITENAS.
-        if (preg_match('/^[0-9]+$/', $identifier)) {
-            return $this->handleMahasiswaLogin($request, $identifier, $password);
+        // Prioritaskan NIM yang terdaftar sebagai mahasiswa.
+        $isRegisteredMahasiswa = preg_match('/^[0-9]+$/', $identifier) === 1
+            && Peserta::query()
+                ->where('nim', $identifier)
+                ->whereHas('user', fn ($query) => $query->where('role', 'mahasiswa'))
+                ->exists();
+
+        if ($isRegisteredMahasiswa) {
+            return $this->handleMahasiswaLogin(
+                $request,
+                $identifier,
+                $password
+            );
         }
 
-        $this->hitRateLimiter($identifier, $request->ip());
+        // Identitas lainnya, termasuk username dosen numerik,
+        // diverifikasi melalui API SIKAD.
 
-        throw ValidationException::withMessages([
-            'identifier' => 'Format login tidak valid. Masukkan Email untuk Admin atau NIM untuk Mahasiswa.',
-            'email' => 'Format login tidak valid. Masukkan Email untuk Admin atau NIM untuk Mahasiswa.',
-        ]);
+        // Identitas lainnya diverifikasi melalui API SIKAD Dosen.
+        return $this->handleDosenLogin(
+            $request,
+            $identifier,
+            $password
+        );
     }
 
     /**
      * Alias method store untuk kompatibilitas route Breeze.
-     *
-     * @throws ValidationException
      */
     public function store(Request $request): RedirectResponse
     {
@@ -78,7 +105,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Autentikasi Superadmin dan DPP menggunakan database lokal.
+     * Autentikasi Admin menggunakan database lokal.
      *
      * @throws ValidationException
      */
@@ -95,37 +122,167 @@ class AuthController extends Controller
 
             throw ValidationException::withMessages([
                 'identifier' => trans('auth.failed'),
-                'email' => trans('auth.failed'),
             ]);
         }
 
         /** @var User $user */
         $user = Auth::user();
 
-        if (! $user->isAdmin() && ! $user->isDpp()) {
+        if (! $user->isAdmin()) {
             Auth::logout();
+
             $this->hitRateLimiter($email, $request->ip());
 
             throw ValidationException::withMessages([
-                'identifier' => 'Akses ditolak. Akun ini tidak diperuntukkan untuk login melalui email.',
-                'email' => 'Akses ditolak. Akun ini tidak diperuntukkan untuk login melalui email.',
-            ]);
-        }
-
-        if ($user->isDpp() && ! $user->dppProfile()->exists()) {
-            Auth::logout();
-            $this->hitRateLimiter($email, $request->ip());
-
-            throw ValidationException::withMessages([
-                'identifier' => 'Profil DPP belum dikaitkan dengan program studi.',
-                'email' => 'Profil DPP belum dikaitkan dengan program studi.',
+                'identifier' => 'Akun ini tidak memiliki akses login Admin.',
             ]);
         }
 
         $this->clearRateLimiter($email, $request->ip());
+
         $request->session()->regenerate();
 
         return redirect()->intended(route('dashboard', absolute: false));
+    }
+
+    /**
+     * Autentikasi dosen melalui API SIKAD dan proses persetujuan Admin.
+     *
+     * @throws ValidationException
+     */
+    protected function handleDosenLogin(
+        Request $request,
+        string $username,
+        string $password
+    ): RedirectResponse {
+        try {
+            $identity = app(DosenSikadAuthService::class)
+                ->authenticate($username, $password);
+        } catch (ConnectionException) {
+            $this->hitRateLimiter($username, $request->ip());
+
+            throw ValidationException::withMessages([
+                'identifier' => 'Layanan SIKAD tidak dapat dihubungi. Silakan coba lagi.',
+            ]);
+        } catch (RuntimeException $exception) {
+            report($exception);
+
+            throw ValidationException::withMessages([
+                'identifier' => 'Konfigurasi autentikasi dosen belum tersedia.',
+            ]);
+        }
+
+        if (! $identity) {
+            $this->hitRateLimiter($username, $request->ip());
+
+            throw ValidationException::withMessages([
+                'identifier' => 'Username atau password SIKAD tidak valid.',
+            ]);
+        }
+
+        $nomorDosen = $identity['nomor_dosen'];
+
+        $accessRequest = DppAccessRequest::query()
+            ->where('nomor_dosen', $nomorDosen)
+            ->first();
+
+        $usernameOwner = DppAccessRequest::query()
+            ->where('username_sikad', $username)
+            ->first();
+
+        // Mencegah username yang sama digunakan oleh identitas dosen berbeda.
+        if (
+            $usernameOwner &&
+            $usernameOwner->nomor_dosen !== $nomorDosen
+        ) {
+            $this->hitRateLimiter($username, $request->ip());
+
+            throw ValidationException::withMessages([
+                'identifier' => 'Identitas akun tidak cocok. Hubungi Admin.',
+            ]);
+        }
+
+        if (! $accessRequest) {
+            $accessRequest = $usernameOwner;
+        }
+
+        $requestData = [
+            'username_sikad' => $username,
+            'nomor_dosen' => $nomorDosen,
+            'nama' => $identity['nama'],
+            'kode_fakultas_sikad' => $identity['kode_fakultas_sikad'],
+            'kode_prodi_sikad' => $identity['kode_prodi_sikad'],
+            'nidn' => $identity['nidn'],
+            'gelar_depan' => $identity['gelar_depan'],
+            'gelar_belakang' => $identity['gelar_belakang'],
+            'status_sikad' => $identity['status_sikad'],
+        ];
+
+        if ($accessRequest) {
+            $accessRequest->fill($requestData)->save();
+        } else {
+            $accessRequest = DppAccessRequest::create([
+                ...$requestData,
+                'approval_status' => DppAccessRequest::STATUS_MENUNGGU,
+            ]);
+        }
+
+        // Permintaan baru atau yang masih menunggu persetujuan.
+        if ($accessRequest->isPending()) {
+            $this->clearRateLimiter($username, $request->ip());
+
+            return redirect()
+                ->route('login')
+                ->with(
+                    'status',
+                    'Identitas dosen berhasil diverifikasi. Silakan tunggu persetujuan Admin sebelum dapat mengakses sistem.'
+                );
+        }
+
+        // Permintaan yang sudah ditolak tidak boleh masuk dashboard.
+        if ($accessRequest->isRejected()) {
+            $this->clearRateLimiter($username, $request->ip());
+
+            throw ValidationException::withMessages([
+                'identifier' => 'Permintaan akses Anda ditolak. Silakan hubungi Admin.',
+            ]);
+        }
+
+        // Hanya permintaan yang disetujui yang dapat masuk.
+        if ($accessRequest->isApproved()) {
+            $user = $accessRequest->user;
+
+            if (
+                ! $user ||
+                ! $user->isDpp() ||
+                ! $user->dppProfile()->exists()
+            ) {
+                throw ValidationException::withMessages([
+                    'identifier' => 'Akun DPP belum dikonfigurasi dengan benar. Hubungi Admin.',
+                ]);
+            }
+
+            $user->update([
+                'name' => $identity['nama'],
+            ]);
+
+            $this->clearRateLimiter($username, $request->ip());
+
+            Auth::login(
+                $user,
+                $request->boolean('remember')
+            );
+
+            $request->session()->regenerate();
+
+            return redirect()->intended(
+                route('dashboard', absolute: false)
+            );
+        }
+
+        throw ValidationException::withMessages([
+            'identifier' => 'Status permintaan akses tidak dikenali. Hubungi Admin.',
+        ]);
     }
 
     /**

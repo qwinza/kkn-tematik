@@ -75,9 +75,7 @@ export default function Login({ status }) {
                             >
                                 {/* IDENTIFIER */}
                                 <div className="login-field">
-                                    <label htmlFor="identifier">
-                                        NIM
-                                    </label>
+                                    <label htmlFor="identifier">NIM / Username / Email</label>
 
                                     <div
                                         className={`login-input-wrapper ${
@@ -104,7 +102,7 @@ export default function Login({ status }) {
                                             name="identifier"
                                             type="text"
                                             value={data.identifier}
-                                            placeholder="XXXXXXXXX"
+                                            placeholder="Masukkan NIM, username, atau email"
                                             autoComplete="username"
                                             aria-invalid={Boolean(identifierError)}
                                             aria-describedby={

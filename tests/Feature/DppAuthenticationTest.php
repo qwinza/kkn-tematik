@@ -12,7 +12,7 @@ class DppAuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_dpp_can_login_using_email_and_local_password(): void
+    public function test_dpp_cannot_login_using_legacy_email_and_local_password(): void
     {
         $prodi = Prodi::factory()->create();
 
@@ -25,24 +25,26 @@ class DppAuthenticationTest extends TestCase
             'kode_prodi' => $prodi->kode_prodi,
         ]);
 
-        $response = $this->post('/login', [
+        $response = $this->post(route('login'), [
+            'login_type' => 'admin',
             'identifier' => 'dpp@example.com',
             'password' => 'password123',
         ]);
 
-        $response->assertRedirect(route('dashboard'));
+        $response->assertSessionHasErrors('identifier');
 
-        $this->assertAuthenticatedAs($dpp);
+        $this->assertGuest();
     }
 
-    public function test_dpp_without_profile_cannot_login(): void
+    public function test_dpp_without_profile_cannot_login_using_email(): void
     {
         User::factory()->dpp()->create([
             'email' => 'dpp@example.com',
             'password' => Hash::make('password123'),
         ]);
 
-        $response = $this->post('/login', [
+        $response = $this->post(route('login'), [
+            'login_type' => 'admin',
             'identifier' => 'dpp@example.com',
             'password' => 'password123',
         ]);
@@ -59,7 +61,8 @@ class DppAuthenticationTest extends TestCase
             'password' => Hash::make('password123'),
         ]);
 
-        $response = $this->post('/login', [
+        $response = $this->post(route('login'), [
+            'login_type' => 'admin',
             'identifier' => 'mahasiswa@example.com',
             'password' => 'password123',
         ]);
