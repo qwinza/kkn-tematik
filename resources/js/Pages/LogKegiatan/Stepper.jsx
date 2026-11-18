@@ -6,7 +6,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
 export default function LogKegiatanStepper({ log, currentStep = 1, masterKegiatans = [], rencanaKehadirans = [], student = {} }) {
-    const [activeStep, setActiveStep] = useState(Math.min(Math.max((currentStep || 1) - 1, 1), 6));
+    const [activeStep, setActiveStep] = useState(currentStep || 1);
     const [currentLogId, setCurrentLogId] = useState(log?.id || null);
     const [currentLogRouteKey, setCurrentLogRouteKey] = useState(log?.route_key || null);
     const [stepValidationError, setStepValidationError] = useState(null);
@@ -18,7 +18,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, masterKegiata
     // Main Stepper Form state
     const form = useForm({
         log_id: currentLogId,
-        step: activeStep + 1,
+        step: activeStep,
         is_draft_only: false,
         action: 'continue',
 
@@ -54,7 +54,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, masterKegiata
     // Synchronize activeStep and currentLogId when props change
     useEffect(() => {
         if (currentStep) {
-            setActiveStep(Math.min(Math.max(currentStep - 1, 1), 6));
+            setActiveStep(currentStep);
         }
     }, [currentStep]);
 
@@ -193,7 +193,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, masterKegiata
         }
 
         // Save this step to backend
-        const currentStepBeingSaved = activeStep + 1;
+        const currentStepBeingSaved = activeStep;
         saveCurrentStep(currentStepBeingSaved, false, 'continue');
 
         // Advance to next step in UI immediately
@@ -205,7 +205,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, masterKegiata
     const handleSaveDraft = (e) => {
         e?.preventDefault();
         setStepValidationError(null);
-        saveCurrentStep(activeStep + 1, true, 'draft');
+        saveCurrentStep(activeStep, true, 'draft');
     };
 
     const handleFinalSubmit = (e) => {

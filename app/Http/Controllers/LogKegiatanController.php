@@ -507,6 +507,20 @@ class LogKegiatanController extends Controller
         }
 
         $peserta = $user->peserta;
+
+        // Lanjutkan draft yang belum selesai alih-alih membuat baris baru.
+        $existingDraft = $peserta->logKegiatans()
+            ->where('status', 'draft')
+            ->latest('id')
+            ->first();
+
+        if ($existingDraft) {
+            return redirect()->route('log-kegiatan.edit', [
+                'log_kegiatan' => $existingDraft,
+                'step' => min(max($existingDraft->current_step ?: 1, 1), 6),
+            ]);
+        }
+
         $masterKegiatans = MasterKegiatan::query()
             ->where('kode_prodi', $peserta->kode_prodi)
             ->orderBy('kode_kegiatan')
@@ -561,13 +575,20 @@ class LogKegiatanController extends Controller
             $logKegiatan = LogKegiatan::find($request->input('log_id'));
         }
 
-        // Jika record log belum ada, buat draft awal di step 1
+        // Jika record log belum ada, pakai draft yang masih berjalan bila ada.
         if (! $logKegiatan || ! $logKegiatan->exists) {
-            $logKegiatan = LogKegiatan::create([
-                'peserta_id' => $peserta->id,
-                'status' => 'draft',
-                'current_step' => 1,
-            ]);
+            $logKegiatan = $peserta->logKegiatans()
+                ->where('status', 'draft')
+                ->latest('id')
+                ->first();
+
+            if (! $logKegiatan) {
+                $logKegiatan = LogKegiatan::create([
+                    'peserta_id' => $peserta->id,
+                    'status' => 'draft',
+                    'current_step' => 1,
+                ]);
+            }
         } else {
             $this->authorizeOwner($user, $logKegiatan);
             $this->ensureDraft($logKegiatan);

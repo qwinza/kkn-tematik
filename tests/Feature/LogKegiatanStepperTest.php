@@ -143,6 +143,38 @@ class LogKegiatanStepperTest extends TestCase
         );
     }
 
+    public function test_tambah_kegiatan_resumes_existing_draft(): void
+    {
+        $user = User::factory()->mahasiswa()->create();
+        $peserta = Peserta::factory()->create(['user_id' => $user->id]);
+        $draft = LogKegiatan::factory()->draft(2)->create(['peserta_id' => $peserta->id]);
+
+        $response = $this->actingAs($user)->get(route('log-kegiatan.create'));
+
+        $this->assertRedirectsToEncryptedLogEdit($response, $draft, 2);
+    }
+
+    public function test_saving_first_step_reuses_running_draft_instead_of_creating_new_row(): void
+    {
+        $user = User::factory()->mahasiswa()->create();
+        $peserta = Peserta::factory()->create(['user_id' => $user->id]);
+        $draft = LogKegiatan::factory()->draft(1)->create(['peserta_id' => $peserta->id]);
+
+        $this->actingAs($user)->post(route('log-kegiatan.save-step.create'), [
+            'step' => 1,
+            'tanggal_kehadiran' => '2026-11-05',
+            'jam_mulai' => '07:00',
+            'jam_selesai' => '10:00',
+            'lokasi_kegiatan' => 'Lapangan',
+        ]);
+
+        $this->assertSame(1, LogKegiatan::where('peserta_id', $peserta->id)->count());
+        $this->assertDatabaseHas('log_kegiatans', [
+            'id' => $draft->id,
+            'tanggal_kehadiran' => '2026-11-05',
+        ]);
+    }
+
     public function test_mahasiswa_can_save_step_2_with_photo_upload(): void
     {
         Storage::fake('public');
