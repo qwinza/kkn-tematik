@@ -12,16 +12,8 @@ use RuntimeException;
 
 class MahasiswaSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     *
-     * Catatan: Sesuaikan nama tabel tujuan ($targetTable) jika nama tabel migrasi Anda berbeda (misal: 'mahasiswas' atau 'pesertas').
-     */
     public function run(): void
     {
-        $targetTable = 'mahasiswas'; // Ganti dengan nama tabel yang sesuai jika berbeda
-        $now = now();
-
         $mahasiswas = [
             ['nama_lengkap' => 'Muhammad Rafif Fauzi Kurniawan', 'nim' => '112025008', 'email' => 'muhammad.rafif14@mhs.itenas.ac.id', 'angkatan' => 2025, 'no_telepon' => '085817335581', 'kode_prodi' => 'EL'],
             ['nama_lengkap' => 'Bintang Adzhar Maulana', 'nim' => '112025009', 'email' => 'bintang.adzhar@mhs.itenas.ac.id', 'angkatan' => 2025, 'no_telepon' => '085862318592', 'kode_prodi' => 'EL'],
@@ -41,7 +33,7 @@ class MahasiswaSeeder extends Seeder
             ['nama_lengkap' => 'Ageng Prayoga Putra', 'nim' => '122023034', 'email' => 'yogaputra221s@gmail.com', 'angkatan' => 2023, 'no_telepon' => '085947224469', 'kode_prodi' => 'MS'],
             ['nama_lengkap' => 'Muhammad Fariz Arya Teddya', 'nim' => '122023046', 'email' => 'farizaryatd14@gmail.com', 'angkatan' => 2023, 'no_telepon' => '085351042508', 'kode_prodi' => 'MS'],
             ['nama_lengkap' => 'Firhan Ali Amriansyah', 'nim' => '122024003', 'email' => 'aliamran2006@gmail.com', 'angkatan' => 2024, 'no_telepon' => '087778816842', 'kode_prodi' => 'MS'],
-            ['nama_lengkap' => 'Dandi Ahmad Darmawan', 'nim' => '122024006', 'email' => 'dandiahmad2005@gmail.com.com', 'angkatan' => 2024, 'no_telepon' => '081287810824', 'kode_prodi' => 'MS'],
+            ['nama_lengkap' => 'Dandi Ahmad Darmawan', 'nim' => '122024006', 'email' => 'dandiahmad2005@gmail.com', 'angkatan' => 2024, 'no_telepon' => '081287810824', 'kode_prodi' => 'MS'],
             ['nama_lengkap' => 'Rizal ismailla ramdhany', 'nim' => '122024008', 'email' => 'rizalismailla.ram@gmail.com', 'angkatan' => 2024, 'no_telepon' => '085161629315', 'kode_prodi' => 'MS'],
             ['nama_lengkap' => 'Faris El-Fatih', 'nim' => '122024015', 'email' => 'farismarshmello@gmail.com', 'angkatan' => 2024, 'no_telepon' => '081804569518', 'kode_prodi' => 'MS'],
             ['nama_lengkap' => 'Mochammad Deryl', 'nim' => '122024016', 'email' => 'derylmuhammad72@gmail.com', 'angkatan' => 2024, 'no_telepon' => '085720784615', 'kode_prodi' => 'MS'],
@@ -106,7 +98,7 @@ class MahasiswaSeeder extends Seeder
             ['nama_lengkap' => 'Muhammad Qasidul Ilmi', 'nim' => '122025031', 'email' => 'muhammad.qasidul@mhs.itenas.ac.id', 'angkatan' => 2025, 'no_telepon' => '081223012403', 'kode_prodi' => 'MS'],
             ['nama_lengkap' => 'Muhammad Fahmy Awaludin', 'nim' => '132022047', 'email' => 'muhammad.fahmy@mhs.itenas.ac.id', 'angkatan' => 2022, 'no_telepon' => '081214983439', 'kode_prodi' => 'TI'],
             ['nama_lengkap' => 'Rafi Zaky Sholeh Fauzan', 'nim' => '132023016', 'email' => 'rafi.zaky@mhs.itenas.ac.id', 'angkatan' => 2023, 'no_telepon' => '083190100679', 'kode_prodi' => 'TI'],
-            ['nama_lengkap' => 'Muhammad Davi Pratama', 'nim' => '132023072', 'email' => 'muhammad.davi@mhs.itenas.ac,id', 'angkatan' => 2023, 'no_telepon' => '081323491084', 'kode_prodi' => 'TI'],
+            ['nama_lengkap' => 'Muhammad Davi Pratama', 'nim' => '132023072', 'email' => 'muhammad.davi@mhs.itenas.ac.id', 'angkatan' => 2023, 'no_telepon' => '081323491084', 'kode_prodi' => 'TI'],
             ['nama_lengkap' => 'Hummam Ahmad Ubay', 'nim' => '132023076', 'email' => 'ahmadubay613@gmail.com', 'angkatan' => 2023, 'no_telepon' => '089648149067', 'kode_prodi' => 'TI'],
             ['nama_lengkap' => 'Gilang Prasetia Nugraha', 'nim' => '132023084', 'email' => 'gilang.prasetia@mhs.itenas.ac.id', 'angkatan' => 2023, 'no_telepon' => '081299245578', 'kode_prodi' => 'TI'],
             ['nama_lengkap' => 'Fakhir Abrar Hersa Nasution', 'nim' => '132023095', 'email' => 'fakhir.abrar@mhs.itenas.ac.id', 'angkatan' => 2023, 'no_telepon' => '087737245404', 'kode_prodi' => 'TI'],
@@ -133,7 +125,7 @@ class MahasiswaSeeder extends Seeder
             ['nama_lengkap' => 'Annisa Nurul Fitria', 'nim' => '142025020', 'email' => 'annisa.nurul@mhs.itenas.ac.id', 'angkatan' => 2025, 'no_telepon' => '08813001252', 'kode_prodi' => 'TK'],
             ['nama_lengkap' => 'Reva Nabilah Setiadi', 'nim' => '142025021', 'email' => 'reva.nabilah@mhs.itenas.ac.id', 'angkatan' => 2025, 'no_telepon' => '082129243400', 'kode_prodi' => 'TK'],
             ['nama_lengkap' => 'Hani Malihah', 'nim' => '142025023', 'email' => 'hani.malihah@mhs.itenas.ac.id', 'angkatan' => 2025, 'no_telepon' => '083812890720', 'kode_prodi' => 'TK'],
-            ['nama_lengkap' => 'Shindy Ame)lia Putri', 'nim' => '142025027', 'email' => 'shindy.amelia@mhs.itenas.ac.id', 'angkatan' => 2025, 'no_telepon' => '082119030421', 'kode_prodi' => 'TK'],
+            ['nama_lengkap' => 'Shindy Amelia Putri', 'nim' => '142025027', 'email' => 'shindy.amelia@mhs.itenas.ac.id', 'angkatan' => 2025, 'no_telepon' => '082119030421', 'kode_prodi' => 'TK'],
             ['nama_lengkap' => 'Dinda Ainun Marjiah', 'nim' => '142025030', 'email' => 'dinda.ainun@mhs.itenas.ac.id', 'angkatan' => 2025, 'no_telepon' => '088222391100', 'kode_prodi' => 'TK'],
             ['nama_lengkap' => 'Risna Nurul Janah', 'nim' => '142025031', 'email' => 'risna.nurul@mhs.itenas.ac.id', 'angkatan' => 2025, 'no_telepon' => '085215188609', 'kode_prodi' => 'TK'],
             ['nama_lengkap' => 'Laila Nur Fadhilah', 'nim' => '142025033', 'email' => 'laila.nur@mhs.itenas.ac.id', 'angkatan' => 2025, 'no_telepon' => '089646951332', 'kode_prodi' => 'TK'],
