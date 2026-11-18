@@ -14,7 +14,7 @@ class EnsurePasswordIsChanged
 
         if (
             $user
-            && ($user->isMahasiswa() || $user->isDpp())
+            && $user->isMahasiswa()
             && $user->must_change_password
             && ! $request->routeIs('password.first-login.*', 'logout')
         ) {

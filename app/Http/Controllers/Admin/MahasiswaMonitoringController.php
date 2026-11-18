@@ -20,7 +20,16 @@ class MahasiswaMonitoringController extends Controller
         $isDpp = $request->user()->isDpp();
         abort_unless($isDpp || $request->user()->isAdmin(), 403);
 
-        $dppKodeProdi = $isDpp ? $request->user()->dppProfile?->kode_prodi : null;
+        $dppProdi = $isDpp ? $request->user()->dppProfile?->prodi : null;
+
+        abort_unless(
+            ! $isDpp || $dppProdi,
+            403,
+            'Profil DPP belum memiliki program studi.'
+        );
+
+        $dppKodeProdi = $dppProdi?->kode_prodi;
+        $dppNamaProdi = $dppProdi?->nama_prodi;
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
             'kode_prodi' => ['nullable', 'string', 'exists:prodi,kode_prodi'],
@@ -35,7 +44,17 @@ class MahasiswaMonitoringController extends Controller
             });
 
         if ($isDpp) {
-            $query->where('kode_prodi', $dppKodeProdi ?? '');
+            $query->where(function ($prodiQuery) use (
+                $dppKodeProdi,
+                $dppNamaProdi
+            ) {
+                $prodiQuery->where('kode_prodi', $dppKodeProdi)
+                    ->orWhere(function ($legacyQuery) use ($dppNamaProdi) {
+                        $legacyQuery
+                            ->whereNull('kode_prodi')
+                            ->where('program_studi', $dppNamaProdi);
+                    });
+            });
         }
 
         // Filter pencarian berdasarkan nama lengkap, NIM, atau nama akun user
@@ -69,7 +88,17 @@ class MahasiswaMonitoringController extends Controller
         });
 
         if ($isDpp) {
-            $totalCountQuery->where('kode_prodi', $dppKodeProdi ?? '');
+            $totalCountQuery->where(function ($prodiQuery) use (
+                $dppKodeProdi,
+                $dppNamaProdi
+            ) {
+                $prodiQuery->where('kode_prodi', $dppKodeProdi)
+                    ->orWhere(function ($legacyQuery) use ($dppNamaProdi) {
+                        $legacyQuery
+                            ->whereNull('kode_prodi')
+                            ->where('program_studi', $dppNamaProdi);
+                    });
+            });
         }
 
         $totalCount = $totalCountQuery->count();
@@ -96,7 +125,12 @@ class MahasiswaMonitoringController extends Controller
             ->withQueryString()
             ->through(fn (Peserta $peserta) => $this->transformPeserta($peserta));
 
-        $prodis = Prodi::orderBy('nama_prodi')
+        $prodis = Prodi::query()
+            ->when(
+                $isDpp,
+                fn ($query) => $query->where('kode_prodi', $dppKodeProdi)
+            )
+            ->orderBy('nama_prodi')
             ->get(['kode_prodi', 'nama_prodi', 'fakultas']);
 
         return Inertia::render('Admin/Mahasiswa/Index', [
@@ -129,7 +163,26 @@ class MahasiswaMonitoringController extends Controller
         }
 
         if ($user->isDpp()) {
-            abort_unless($peserta->kode_prodi === $user->dppProfile?->kode_prodi, 404);
+            $dppProdi = $user->dppProfile?->prodi;
+
+            abort_unless(
+                $dppProdi,
+                403,
+                'Profil DPP belum memiliki program studi.'
+            );
+
+            $belongsToDppProdi =
+                $peserta->kode_prodi === $dppProdi->kode_prodi
+                || (
+                    $peserta->kode_prodi === null
+                    && $peserta->program_studi === $dppProdi->nama_prodi
+                );
+
+            abort_unless(
+                $belongsToDppProdi,
+                404,
+                'Data mahasiswa tidak ditemukan.'
+            );
         }
 
         return Inertia::render('Admin/Mahasiswa/Show', [

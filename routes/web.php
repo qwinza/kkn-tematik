@@ -15,15 +15,55 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+
 Route::get('/dashboard', function (Request $request) {
     $user = $request->user();
     $isDpp = $user?->isDpp() ?? false;
-    $dppKodeProdi = $isDpp ? $user->dppProfile?->kode_prodi : null;
+
+    $dppProdi = $isDpp
+        ? $user->dppProfile?->prodi
+        : null;
+
+    abort_unless(
+        ! $isDpp || $dppProdi,
+        403,
+        'Profil DPP belum memiliki program studi.'
+    );
+
+    $dppKodeProdi = $dppProdi?->kode_prodi;
+    $dppNamaProdi = $dppProdi?->nama_prodi;
+
+    $constrainDppProdi = function ($query) use (
+        $dppKodeProdi,
+        $dppNamaProdi
+    ): void {
+        $query->where(function ($prodiQuery) use (
+            $dppKodeProdi,
+            $dppNamaProdi
+        ) {
+            $prodiQuery->where('kode_prodi', $dppKodeProdi)
+                ->orWhere(function ($legacyQuery) use ($dppNamaProdi) {
+                    $legacyQuery
+                        ->whereNull('kode_prodi')
+                        ->where('program_studi', $dppNamaProdi);
+                });
+        });
+    };
 
     $pesertaId = $user?->peserta?->id;
+
     $logs = LogKegiatan::query()
-        ->when($isDpp, fn ($query) => $query->whereHas('peserta', fn ($pesertaQuery) => $pesertaQuery->where('kode_prodi', $dppKodeProdi ?? '')))
-        ->when(! $user?->isAdmin() && ! $isDpp, fn ($query) => $query->where('peserta_id', $pesertaId ?? 0));
+        ->when(
+            $isDpp,
+            fn ($query) => $query->whereHas(
+                'peserta',
+                $constrainDppProdi
+            )
+        )
+        ->when(
+            ! $user?->isAdmin() && ! $isDpp,
+            fn ($query) => $query->where('peserta_id', $pesertaId ?? 0)
+        );
 
     $summary = [
         'totalKegiatan' => (clone $logs)->count(),
@@ -33,7 +73,9 @@ Route::get('/dashboard', function (Request $request) {
     ];
 
     $totalJamDisetujui = round(
-        (clone $logs)->where('status', 'disetujui')->get()->sum(fn (LogKegiatan $log) => $log->durasiJam()),
+        (clone $logs)->where('status', 'disetujui')
+            ->get()
+            ->sum(fn ($log) => $log->durasiJam()),
         1
     );
 
@@ -41,16 +83,17 @@ Route::get('/dashboard', function (Request $request) {
 
     if ($isDpp) {
         $summary['totalMahasiswa'] = Peserta::query()
-            ->where('kode_prodi', $dppKodeProdi ?? '')
             ->whereHas('user', fn ($query) => $query->where('role', 'mahasiswa'))
+            ->where($constrainDppProdi)
             ->count();
     }
 
     return Inertia::render('Dashboard', [
         'summary' => $summary,
-        'dppProdi' => $isDpp ? $user->dppProfile?->prodi?->nama_prodi : null,
+        'dppProdi' => $dppProdi?->nama_prodi,
     ]);
 })->middleware(['auth'])->name('dashboard');
+
 
 Route::get('/analisis-progres-kkn', [ProgressAnalysisController::class, 'index'])
     ->middleware(['auth'])

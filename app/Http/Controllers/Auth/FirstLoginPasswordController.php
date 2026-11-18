@@ -17,8 +17,9 @@ class FirstLoginPasswordController extends Controller
         $user = $request->user();
 
         abort_unless(
-            $user && ($user->isMahasiswa() || $user->isDpp()),
-            403
+            $user && $user->isMahasiswa(),
+            403,
+            'Fitur perubahan password pertama hanya berlaku untuk mahasiswa.'
         );
 
         if (! $user->must_change_password) {
@@ -33,8 +34,9 @@ class FirstLoginPasswordController extends Controller
         $user = $request->user();
 
         abort_unless(
-            $user && ($user->isMahasiswa() || $user->isDpp()),
-            403
+            $user && $user->isMahasiswa(),
+            403,
+            'Fitur perubahan password pertama hanya berlaku untuk mahasiswa.'
         );
 
         if (! $user->must_change_password) {

@@ -15,12 +15,20 @@ class PasswordController extends Controller
      */
     public function update(Request $request): RedirectResponse
     {
+        $user = $request->user();
+
+        abort_if(
+            $user->isDpp(),
+            403,
+            'Password akun DPP dikelola melalui SIKAD.'
+        );
+
         $validated = $request->validate([
             'current_password' => ['required', 'current_password'],
             'password' => ['required', Password::defaults(), 'confirmed'],
         ]);
 
-        $request->user()->update([
+        $user->update([
             'password' => Hash::make($validated['password']),
         ]);
 

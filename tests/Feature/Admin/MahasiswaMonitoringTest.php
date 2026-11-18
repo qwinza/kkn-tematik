@@ -534,4 +534,94 @@ class MahasiswaMonitoringTest extends TestCase
                 ->missing('mahasiswas.data.0.user.password')
             );
     }
+
+    public function test_dpp_can_see_legacy_students_from_own_program_only(): void
+    {
+        $prodi = Prodi::factory()->create([
+            'nama_prodi' => 'Teknik Informatika',
+        ]);
+
+        $otherProdi = Prodi::factory()->create([
+            'nama_prodi' => 'Arsitektur',
+        ]);
+
+        $dpp = User::factory()->dpp()->create();
+
+        $dpp->dppProfile()->create([
+            'kode_prodi' => $prodi->kode_prodi,
+        ]);
+
+        $legacyUser = User::factory()->mahasiswa()->create();
+
+        $legacyPeserta = Peserta::factory()->create([
+            'user_id' => $legacyUser->id,
+            'kode_prodi' => null,
+            'program_studi' => 'Teknik Informatika',
+        ]);
+
+        $outsideUser = User::factory()->mahasiswa()->create();
+
+        Peserta::factory()->create([
+            'user_id' => $outsideUser->id,
+            'kode_prodi' => null,
+            'program_studi' => 'Arsitektur',
+        ]);
+
+        $this->actingAs($dpp)
+            ->get(route('dpp.mahasiswa.index'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Mahasiswa/Index')
+                ->has('mahasiswas.data', 1)
+                ->where('mahasiswas.data.0.id', $legacyPeserta->id)
+                ->where('totalCount', 1)
+                ->has('prodis', 1)
+                ->where('prodis.0.kode_prodi', $prodi->kode_prodi)
+            );
+    }
+
+    public function test_dpp_can_view_legacy_student_detail_only_from_own_program(): void
+    {
+        $prodi = Prodi::factory()->create([
+            'nama_prodi' => 'Teknik Informatika',
+        ]);
+
+        $dpp = User::factory()->dpp()->create();
+
+        $dpp->dppProfile()->create([
+            'kode_prodi' => $prodi->kode_prodi,
+        ]);
+
+        $legacyUser = User::factory()->mahasiswa()->create();
+
+        $legacyPeserta = Peserta::factory()->create([
+            'user_id' => $legacyUser->id,
+            'kode_prodi' => null,
+            'program_studi' => 'Teknik Informatika',
+        ]);
+
+        $outsideProdi = Prodi::factory()->create([
+            'nama_prodi' => 'Arsitektur',
+        ]);
+
+        $outsideUser = User::factory()->mahasiswa()->create();
+
+        $outsidePeserta = Peserta::factory()->create([
+            'user_id' => $outsideUser->id,
+            'kode_prodi' => null,
+            'program_studi' => $outsideProdi->nama_prodi,
+        ]);
+
+        $this->actingAs($dpp)
+            ->get(route('dpp.mahasiswa.show', $legacyPeserta))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Mahasiswa/Show')
+                ->where('mahasiswa.id', $legacyPeserta->id)
+            );
+
+        $this->actingAs($dpp)
+            ->get(route('dpp.mahasiswa.show', $outsidePeserta))
+            ->assertNotFound();
+    }
 }

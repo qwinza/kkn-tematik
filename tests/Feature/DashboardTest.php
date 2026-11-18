@@ -146,4 +146,57 @@ class DashboardTest extends TestCase
                 ->where('summary.totalJamDisetujui', 6.5)
             );
     }
+    public function test_dpp_dashboard_includes_legacy_students_and_activities_from_own_program(): void
+    {
+        $prodi = Prodi::factory()->create([
+            'nama_prodi' => 'Teknik Informatika',
+        ]);
+
+        $otherProdi = Prodi::factory()->create([
+            'nama_prodi' => 'Arsitektur',
+        ]);
+
+        $dpp = User::factory()->dpp()->create();
+
+        $dpp->dppProfile()->create([
+            'kode_prodi' => $prodi->kode_prodi,
+        ]);
+
+        $legacyUser = User::factory()->mahasiswa()->create();
+
+        $legacyPeserta = Peserta::factory()->create([
+            'user_id' => $legacyUser->id,
+            'kode_prodi' => null,
+            'program_studi' => 'Teknik Informatika',
+        ]);
+
+        $outsideUser = User::factory()->mahasiswa()->create();
+
+        $outsidePeserta = Peserta::factory()->create([
+            'user_id' => $outsideUser->id,
+            'kode_prodi' => null,
+            'program_studi' => 'Arsitektur',
+        ]);
+
+        LogKegiatan::factory()->create([
+            'peserta_id' => $legacyPeserta->id,
+            'status' => 'disetujui',
+        ]);
+
+        LogKegiatan::factory()->create([
+            'peserta_id' => $outsidePeserta->id,
+            'status' => 'disetujui',
+        ]);
+
+        $this->actingAs($dpp)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Dashboard')
+                ->where('dppProdi', 'Teknik Informatika')
+                ->where('summary.totalMahasiswa', 1)
+                ->where('summary.totalKegiatan', 1)
+                ->where('summary.totalDisetujui', 1)
+            );
+    }
 }
