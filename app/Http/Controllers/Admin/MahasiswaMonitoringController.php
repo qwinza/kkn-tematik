@@ -17,6 +17,7 @@ class MahasiswaMonitoringController extends Controller
      */
     public function index(Request $request): Response
     {
+<<<<<<< HEAD
         $user = $request->user();
         $isAdmin = $user?->isAdmin() ?? false;
         $isDosen = $user?->isDosen() ?? false;
@@ -24,6 +25,21 @@ class MahasiswaMonitoringController extends Controller
 
         abort_unless($isAdmin || ($isDosen && $user->prodi()->exists()), 403);
 
+=======
+        $isDpp = $request->user()->isDpp();
+        abort_unless($isDpp || $request->user()->isAdmin(), 403);
+
+        $dppProdi = $isDpp ? $request->user()->dppProfile?->prodi : null;
+
+        abort_unless(
+            ! $isDpp || $dppProdi,
+            403,
+            'Profil DPP belum memiliki program studi.'
+        );
+
+        $dppKodeProdi = $dppProdi?->kode_prodi;
+        $dppNamaProdi = $dppProdi?->nama_prodi;
+>>>>>>> origin/devs
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
             'kode_prodi' => ['nullable', 'string', 'exists:prodi,kode_prodi'],
@@ -36,14 +52,32 @@ class MahasiswaMonitoringController extends Controller
         }
 
         $query = Peserta::query()
+<<<<<<< HEAD
             ->with(['user', 'prodi'])
             ->when($isDosen, fn ($query) => $query->where(function ($prodiQuery) use ($user, $dosenProdiName): void {
                 $prodiQuery->where('kode_prodi', $user->kode_prodi)
                     ->orWhere('program_studi', $dosenProdiName);
             }))
+=======
+            ->with(['user', 'prodi', 'logKegiatans' => fn ($query) => $query->where('status', 'disetujui')])
+>>>>>>> origin/devs
             ->whereHas('user', function ($q) {
                 $q->where('role', 'mahasiswa');
             });
+
+        if ($isDpp) {
+            $query->where(function ($prodiQuery) use (
+                $dppKodeProdi,
+                $dppNamaProdi
+            ) {
+                $prodiQuery->where('kode_prodi', $dppKodeProdi)
+                    ->orWhere(function ($legacyQuery) use ($dppNamaProdi) {
+                        $legacyQuery
+                            ->whereNull('kode_prodi')
+                            ->where('program_studi', $dppNamaProdi);
+                    });
+            });
+        }
 
         // Filter pencarian berdasarkan nama lengkap, NIM, atau nama akun user
         if ($search = $filters['search'] ?? null) {
@@ -71,6 +105,7 @@ class MahasiswaMonitoringController extends Controller
             });
         }
 
+<<<<<<< HEAD
         $totalCount = Peserta::query()
             ->whereHas('user', fn ($q) => $q->where('role', 'mahasiswa'))
             ->when($isDosen, fn ($query) => $query->where(function ($prodiQuery) use ($user, $dosenProdiName): void {
@@ -78,6 +113,27 @@ class MahasiswaMonitoringController extends Controller
                     ->orWhere('program_studi', $dosenProdiName);
             }))
             ->count();
+=======
+        $totalCountQuery = Peserta::whereHas('user', function ($q) {
+            $q->where('role', 'mahasiswa');
+        });
+
+        if ($isDpp) {
+            $totalCountQuery->where(function ($prodiQuery) use (
+                $dppKodeProdi,
+                $dppNamaProdi
+            ) {
+                $prodiQuery->where('kode_prodi', $dppKodeProdi)
+                    ->orWhere(function ($legacyQuery) use ($dppNamaProdi) {
+                        $legacyQuery
+                            ->whereNull('kode_prodi')
+                            ->where('program_studi', $dppNamaProdi);
+                    });
+            });
+        }
+
+        $totalCount = $totalCountQuery->count();
+>>>>>>> origin/devs
 
         $sort = $filters['sort'] ?? 'id';
         $direction = $filters['direction'] ?? 'desc';
@@ -101,9 +157,19 @@ class MahasiswaMonitoringController extends Controller
             ->withQueryString()
             ->through(fn (Peserta $peserta) => $this->transformPeserta($peserta));
 
+<<<<<<< HEAD
         $prodis = $isDosen
             ? $user->prodi()->get(['kode_prodi', 'nama_prodi', 'fakultas'])
             : Prodi::orderBy('nama_prodi')->get(['kode_prodi', 'nama_prodi', 'fakultas']);
+=======
+        $prodis = Prodi::query()
+            ->when(
+                $isDpp,
+                fn ($query) => $query->where('kode_prodi', $dppKodeProdi)
+            )
+            ->orderBy('nama_prodi')
+            ->get(['kode_prodi', 'nama_prodi', 'fakultas']);
+>>>>>>> origin/devs
 
         return Inertia::render('Admin/Mahasiswa/Index', [
             'mahasiswas' => $mahasiswas,
@@ -114,9 +180,14 @@ class MahasiswaMonitoringController extends Controller
                 'direction' => $direction,
             ],
             'totalCount' => $totalCount,
+<<<<<<< HEAD
             'canManage' => $isAdmin,
             'portalRole' => $isDosen ? 'Dosen Pembimbing' : 'Admin',
             'routePrefix' => $isDosen ? 'dosen.mahasiswa' : 'admin.mahasiswa',
+=======
+            'isDpp' => $isDpp,
+            'canManage' => ! $isDpp,
+>>>>>>> origin/devs
         ]);
     }
 
@@ -126,29 +197,63 @@ class MahasiswaMonitoringController extends Controller
     public function show(Request $request, Peserta $peserta): Response
     {
         $user = $request->user();
+<<<<<<< HEAD
         $isAdmin = $user?->isAdmin() ?? false;
         $isDosen = $user?->isDosen() ?? false;
 
         abort_unless($isAdmin || $isDosen, 403);
 
         $peserta->load(['user', 'prodi']);
+=======
+        abort_unless($user->isAdmin() || $user->isDpp(), 403);
+
+        $peserta->load(['user', 'prodi', 'logKegiatans' => fn ($query) => $query->where('status', 'disetujui')]);
+>>>>>>> origin/devs
 
         // Pastikan hanya profil mahasiswa yang dapat diakses
         if (! $peserta->user || ! $peserta->user->isMahasiswa()) {
             abort(404, 'Data mahasiswa tidak ditemukan.');
         }
 
+<<<<<<< HEAD
         $dosenProdiName = $isDosen ? $user->prodi?->nama_prodi : null;
 
         if ($isDosen && $peserta->kode_prodi !== $user->kode_prodi && $peserta->program_studi !== $dosenProdiName) {
             abort(404, 'Data mahasiswa tidak ditemukan.');
+=======
+        if ($user->isDpp()) {
+            $dppProdi = $user->dppProfile?->prodi;
+
+            abort_unless(
+                $dppProdi,
+                403,
+                'Profil DPP belum memiliki program studi.'
+            );
+
+            $belongsToDppProdi =
+                $peserta->kode_prodi === $dppProdi->kode_prodi
+                || (
+                    $peserta->kode_prodi === null
+                    && $peserta->program_studi === $dppProdi->nama_prodi
+                );
+
+            abort_unless(
+                $belongsToDppProdi,
+                404,
+                'Data mahasiswa tidak ditemukan.'
+            );
+>>>>>>> origin/devs
         }
 
         return Inertia::render('Admin/Mahasiswa/Show', [
             'mahasiswa' => $this->transformPeserta($peserta),
+<<<<<<< HEAD
             'canManage' => $isAdmin,
             'portalRole' => $isDosen ? 'Dosen Pembimbing' : 'Admin',
             'routePrefix' => $isDosen ? 'dosen.mahasiswa' : 'admin.mahasiswa',
+=======
+            'isDpp' => $user->isDpp(),
+>>>>>>> origin/devs
         ]);
     }
 
@@ -175,6 +280,7 @@ class MahasiswaMonitoringController extends Controller
             'nim' => $peserta->nim,
             'program_studi' => $legacyProdi,
             'kode_prodi' => $peserta->kode_prodi,
+            'total_jam_disetujui' => round($peserta->logKegiatans->sum(fn ($log) => $log->durasiJam()), 1),
             'prodi' => $prodi,
             'user' => $peserta->user ? [
                 'id' => $peserta->user->id,

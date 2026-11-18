@@ -10,7 +10,11 @@ import confirmWithSweetAlert from '@/Components/confirmWithSweetAlert';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
+<<<<<<< HEAD
 export default function Index({ mahasiswas, prodis, filters, totalCount, canManage = true, portalRole = 'Admin', routePrefix = 'admin.mahasiswa' }) {
+=======
+export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp = false, canManage = true }) {
+>>>>>>> origin/devs
     const [search, setSearch] = useState(filters.search || '');
     const [kodeProdi, setKodeProdi] = useState(filters.kode_prodi || '');
     const filterTimer = useRef(null);
@@ -167,6 +171,7 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, canMana
                     <header className="portal-dashboard-page-heading portal-admin-students-heading">
                         <div>
                             <p className="portal-dashboard-breadcrumb">
+<<<<<<< HEAD
                                 Portal {portalRole} <span>/</span> {canManage ? 'Mahasiswa' : 'Mahasiswa Bimbingan'}
                             </p>
                             <h1>{canManage ? 'Mahasiswa' : 'Mahasiswa Bimbingan'}</h1>
@@ -174,6 +179,12 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, canMana
                                 ? 'Kelola data peserta dan program studi mahasiswa KKN.'
                                 : 'Pantau mahasiswa KKN pada program studi bimbingan Anda.'}
                             </p>
+=======
+                                Portal {isDpp ? 'Dosen Pembimbing' : 'Admin'} <span>/</span> Mahasiswa
+                            </p>
+                            <h1>Mahasiswa</h1>
+                            <p>{isDpp ? 'Pantau mahasiswa dan total jam kegiatan yang disetujui di prodi Anda.' : 'Kelola data peserta dan program studi mahasiswa KKN.'}</p>
+>>>>>>> origin/devs
                         </div>
 
                         <div className="flex items-center gap-3">
@@ -181,16 +192,22 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, canMana
                                 {canManage ? 'Total Mahasiswa Terdaftar:' : 'Mahasiswa Bimbingan:'} <strong>{totalCount}</strong>
                             </span>
 
+<<<<<<< HEAD
                             {canManage && (
                                 <PrimaryButton onClick={openCreateModal}>
                                     + Tambah Mahasiswa
                                 </PrimaryButton>
                             )}
+=======
+                            {canManage && <PrimaryButton onClick={openCreateModal}>
+                                + Tambah Mahasiswa
+                            </PrimaryButton>}
+>>>>>>> origin/devs
                         </div>
                     </header>
 
                     {/* Filter & Search Bar */}
-                    <div className="portal-admin-students-filter">
+                    {!isDpp && <div className="portal-admin-students-filter">
                         <div className="portal-admin-students-filter-fields">
                             {/* Input Pencarian */}
                             <div className="portal-admin-students-search">
@@ -248,7 +265,7 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, canMana
                                 </div>
                             )}
                         </div>
-                    </div>
+                    </div>}
 
                     {/* Tabel Mahasiswa */}
                     <div className="portal-admin-students-table-card">
@@ -265,11 +282,12 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, canMana
                                         <SortableHeading label="NIM" column="nim" sort={filters.sort} direction={filters.direction} onSort={handleSort} />
                                         <SortableHeading label="Program Studi" column="prodi" sort={filters.sort} direction={filters.direction} onSort={handleSort} />
                                         <SortableHeading label="Fakultas" column="fakultas" sort={filters.sort} direction={filters.direction} onSort={handleSort} />
-                                        <th
+                                        <th scope="col">Total Jam Disetujui</th>
+                                        {(canManage || isDpp) && <th
                                             scope="col"
                                         >
                                             Aksi
-                                        </th>
+                                        </th>}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -316,8 +334,15 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, canMana
                                                             {fakultas}
                                                         </span>
                                                     </td>
+<<<<<<< HEAD
                                                     <td className="portal-admin-students-actions">
                                                         {canManage ? (
+=======
+                                                    <td className="whitespace-nowrap px-4 py-4 font-semibold text-gray-900">
+                                                        {mhs.total_jam_disetujui ?? 0} jam
+                                                    </td>
+                                                    {(canManage || isDpp) && <td className="portal-admin-students-actions">
+>>>>>>> origin/devs
                                                         <div className="portal-admin-students-action-menu">
                                                             <button
                                                                 type="button"
@@ -334,12 +359,16 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, canMana
                                                             {openActionMenu === mhs.id && (
                                                                 <div className="portal-admin-students-menu" role="menu">
                                                                     <Link
+<<<<<<< HEAD
                                                                         href={route(`${routePrefix}.show`, mhs.route_key)}
+=======
+                                                                        href={route(isDpp ? 'dpp.mahasiswa.show' : 'admin.mahasiswa.show', mhs.route_key)}
+>>>>>>> origin/devs
                                                                         className="portal-admin-students-menu-item"
                                                                         role="menuitem"
                                                                         onClick={() => setOpenActionMenu(null)}
                                                                     >Detail</Link>
-                                                                    <button
+                                                                    {canManage && <button
                                                                         type="button"
                                                                         className="portal-admin-students-menu-item"
                                                                         role="menuitem"
@@ -347,8 +376,8 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, canMana
                                                                             setOpenActionMenu(null);
                                                                             openEditModal(mhs);
                                                                         }}
-                                                                    >Edit</button>
-                                                                    <button
+                                                                    >Edit</button>}
+                                                                    {canManage && <button
                                                                         type="button"
                                                                         className="portal-admin-students-menu-item is-danger"
                                                                         role="menuitem"
@@ -356,10 +385,11 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, canMana
                                                                             setOpenActionMenu(null);
                                                                             handleDelete(mhs);
                                                                         }}
-                                                                    >Hapus</button>
+                                                                    >Hapus</button>}
                                                                 </div>
                                                             )}
                                                         </div>
+<<<<<<< HEAD
                                                         ) : (
                                                             <Link
                                                                 href={route(`${routePrefix}.show`, mhs.route_key)}
@@ -369,13 +399,16 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, canMana
                                                             </Link>
                                                         )}
                                                     </td>
+=======
+                                                    </td>}
+>>>>>>> origin/devs
                                                 </tr>
                                             );
                                         })
                                     ) : (
                                         <tr>
                                             <td
-                                                colSpan={6}
+                                                colSpan={canManage || isDpp ? 7 : 6}
                                                 className="portal-admin-students-empty"
                                             >
                                                 Tidak ada data mahasiswa yang ditemukan.

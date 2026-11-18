@@ -18,9 +18,14 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $user = $request->user();
+
         return Inertia::render('Profile/Edit', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => session('status'),
+            'isDpp' => $user->isDpp(),
+            'canManageLocalPassword' => ! $user->isDpp(),
+            'canDeleteAccount' => ! $user->isDpp(),
         ]);
     }
 
@@ -45,11 +50,17 @@ class ProfileController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $user = $request->user();
+
+        abort_if(
+            $user->isDpp(),
+            403,
+            'Akun DPP dikelola oleh Admin dan menggunakan autentikasi SIKAD.'
+        );
+
         $request->validate([
             'password' => ['required', 'current_password'],
         ]);
-
-        $user = $request->user();
 
         Auth::logout();
 

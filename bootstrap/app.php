@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\EnsureUserIsDosen;
 use App\Http\Middleware\EnsureUserIsMahasiswa;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\EnsureUserIsDpp;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -28,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => EnsureUserIsAdmin::class,
             'dosen' => EnsureUserIsDosen::class,
             'mahasiswa' => EnsureUserIsMahasiswa::class,
+            'dpp' => EnsureUserIsDpp::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -4,6 +4,7 @@ use App\Http\Controllers\LogKegiatanController;
 use App\Http\Controllers\MasterKegiatanController;
 use App\Http\Controllers\ProdiController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProgressAnalysisController;
 use App\Models\LogKegiatan;
 use App\Models\Peserta;
 use Illuminate\Http\Request;
@@ -15,24 +16,84 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+
 Route::get('/dashboard', function (Request $request) {
     $user = $request->user();
+<<<<<<< HEAD
     $isAdmin = $user?->isAdmin() ?? false;
     $isDosen = $user?->isDosen() ?? false;
     $dosenProdiName = $isDosen ? $user->prodi?->nama_prodi : null;
+=======
+    $isDpp = $user?->isDpp() ?? false;
+
+    $dppProdi = $isDpp
+        ? $user->dppProfile?->prodi
+        : null;
+
+    abort_unless(
+        ! $isDpp || $dppProdi,
+        403,
+        'Profil DPP belum memiliki program studi.'
+    );
+
+    $dppKodeProdi = $dppProdi?->kode_prodi;
+    $dppNamaProdi = $dppProdi?->nama_prodi;
+
+    $constrainDppProdi = function ($query) use (
+        $dppKodeProdi,
+        $dppNamaProdi
+    ): void {
+        $query->where(function ($prodiQuery) use (
+            $dppKodeProdi,
+            $dppNamaProdi
+        ) {
+            $prodiQuery->where('kode_prodi', $dppKodeProdi)
+                ->orWhere(function ($legacyQuery) use ($dppNamaProdi) {
+                    $legacyQuery
+                        ->whereNull('kode_prodi')
+                        ->where('program_studi', $dppNamaProdi);
+                });
+        });
+    };
+>>>>>>> origin/devs
 
     $pesertaId = $user?->peserta?->id;
+
     $logs = LogKegiatan::query()
+<<<<<<< HEAD
         ->when($isDosen, fn ($query) => $query->whereHas('peserta', fn ($pesertaQuery) => $pesertaQuery
             ->where('kode_prodi', $user->kode_prodi)
             ->orWhere('program_studi', $dosenProdiName)))
         ->when(! $isAdmin && ! $isDosen, fn ($query) => $query->where('peserta_id', $pesertaId ?? 0));
+=======
+        ->when(
+            $isDpp,
+            fn ($query) => $query->whereHas(
+                'peserta',
+                $constrainDppProdi
+            )
+        )
+        ->when(
+            ! $user?->isAdmin() && ! $isDpp,
+            fn ($query) => $query->where('peserta_id', $pesertaId ?? 0)
+        );
+
+    $summary = [
+        'totalKegiatan' => (clone $logs)->count(),
+        'totalDisetujui' => (clone $logs)->where('status', 'disetujui')->count(),
+        'totalLapangan' => (clone $logs)->where('lokasi_kegiatan', 'Lapangan')->count(),
+        'totalKampus' => (clone $logs)->where('lokasi_kegiatan', 'Kampus ITENAS')->count(),
+    ];
+>>>>>>> origin/devs
 
     $totalJamDisetujui = round(
-        (clone $logs)->where('status', 'disetujui')->get()->sum(fn (LogKegiatan $log) => $log->durasiJam()),
+        (clone $logs)->where('status', 'disetujui')
+            ->get()
+            ->sum(fn ($log) => $log->durasiJam()),
         1
     );
 
+<<<<<<< HEAD
     $summary = [
         'totalKegiatan' => (clone $logs)->count(),
         'totalDisetujui' => (clone $logs)->where('status', 'disetujui')->count(),
@@ -89,14 +150,32 @@ Route::get('/dashboard', function (Request $request) {
             'totalLaporanDitolak' => $reportsByStatus->get('ditolak', 0),
             'mahasiswaPerFakultas' => $studentsPerFaculty,
         ];
+=======
+    $summary['totalJamDisetujui'] = $totalJamDisetujui;
+
+    if ($isDpp) {
+        $summary['totalMahasiswa'] = Peserta::query()
+            ->whereHas('user', fn ($query) => $query->where('role', 'mahasiswa'))
+            ->where($constrainDppProdi)
+            ->count();
+>>>>>>> origin/devs
     }
 
     return Inertia::render('Dashboard', [
         'summary' => $summary,
+<<<<<<< HEAD
         'analytics' => $analytics,
         'managedProdi' => $isDosen ? $user->prodi?->nama_prodi : null,
+=======
+        'dppProdi' => $dppProdi?->nama_prodi,
+>>>>>>> origin/devs
     ]);
 })->middleware(['auth'])->name('dashboard');
+
+
+Route::get('/analisis-progres-kkn', [ProgressAnalysisController::class, 'index'])
+    ->middleware(['auth'])
+    ->name('progress-analysis.index');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -123,12 +202,19 @@ Route::middleware('auth')->group(function () {
     Route::post('/log-kegiatan/{log_kegiatan}/reject', [LogKegiatanController::class, 'reject'])->name('log-kegiatan.reject');
     Route::delete('/log-kegiatan/{log_kegiatan}', [LogKegiatanController::class, 'destroy'])->name('log-kegiatan.destroy');
     Route::get('/log-kegiatan/export', [LogKegiatanController::class, 'export'])
-        ->middleware('admin')
         ->name('log-kegiatan.export');
+<<<<<<< HEAD
     Route::get('/log-kegiatan/export-pdf', [LogKegiatanController::class, 'exportPdf'])
         ->name('log-kegiatan.export-pdf');
+=======
+    Route::get('/log-kegiatan/export-rekap-jam-python', [LogKegiatanController::class, 'exportPythonSummary'])
+        ->name('log-kegiatan.export-python-summary');
+
+    Route::get('/log-kegiatan/export-pdf', [LogKegiatanController::class, 'exportStudentPdf'])
+        ->name('log-kegiatan.export-student-pdf');
+
+>>>>>>> origin/devs
     Route::post('/log-kegiatan/approve-all', [LogKegiatanController::class, 'approveAll'])
-        ->middleware('admin')
         ->name('log-kegiatan.approve-all');
     Route::post('/log-kegiatan/step-1', [LogKegiatanController::class, 'saveStep1'])->name('log-kegiatan.step-1');
     Route::post('/log-kegiatan/{log_kegiatan}/step-1', [LogKegiatanController::class, 'saveStep1'])->name('log-kegiatan.step-1.update');

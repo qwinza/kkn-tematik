@@ -1,10 +1,17 @@
+
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
 import DeleteUserForm from './Partials/DeleteUserForm';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
 
-export default function Edit({ mustVerifyEmail, status }) {
+export default function Edit({
+    mustVerifyEmail,
+    status,
+    isDpp,
+    canManageLocalPassword,
+    canDeleteAccount,
+}) {
     return (
         <AuthenticatedLayout
             header={
@@ -25,13 +32,33 @@ export default function Edit({ mustVerifyEmail, status }) {
                         />
                     </div>
 
-                    <div className="portal-profile-card bg-white p-4 shadow sm:rounded-lg sm:p-8">
-                        <UpdatePasswordForm className="max-w-xl" />
-                    </div>
+                    {canManageLocalPassword && (
+                        <div className="portal-profile-card bg-white p-4 shadow sm:rounded-lg sm:p-8">
+                            <UpdatePasswordForm className="max-w-xl" />
+                        </div>
+                    )}
 
-                    <div className="portal-profile-card portal-profile-danger bg-white p-4 shadow sm:rounded-lg sm:p-8">
-                        <DeleteUserForm className="max-w-xl" />
-                    </div>
+                    {isDpp && (
+                        <div className="portal-profile-card bg-white p-4 shadow sm:rounded-lg sm:p-8">
+                            <section className="max-w-xl">
+                                <h2 className="text-lg font-medium text-gray-900">
+                                    Pengelolaan Password
+                                </h2>
+
+                                <p className="mt-2 text-sm text-gray-600">
+                                    Akun DPP menggunakan autentikasi SIKAD.
+                                    Password Anda dikelola melalui layanan
+                                    SIKAD ITENAS, bukan melalui aplikasi RESIK.
+                                </p>
+                            </section>
+                        </div>
+                    )}
+
+                    {canDeleteAccount && (
+                        <div className="portal-profile-card portal-profile-danger bg-white p-4 shadow sm:rounded-lg sm:p-8">
+                            <DeleteUserForm className="max-w-xl" />
+                        </div>
+                    )}
                 </div>
             </div>
         </AuthenticatedLayout>

@@ -8,16 +8,17 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnsurePasswordIsChanged
 {
-    /**
-     * Prevent newly provisioned students from using the application
-     * until they replace their temporary password.
-     */
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
 
         if (
+<<<<<<< HEAD
             ($user?->isMahasiswa() || $user?->isDpp())
+=======
+            $user
+            && $user->isMahasiswa()
+>>>>>>> origin/devs
             && $user->must_change_password
             && ! $request->routeIs('password.first-login.*', 'logout')
         ) {

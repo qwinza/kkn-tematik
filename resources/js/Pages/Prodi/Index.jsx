@@ -120,7 +120,7 @@ export default function ProdiIndex({ prodis = [], fakultasOptions = [], filters 
                                         <SortableHeading label="Nama Prodi" column="nama_prodi" sort={filters.sort} direction={filters.direction} onSort={handleSort} className="px-6 py-3" />
                                         <SortableHeading label="Fakultas" column="fakultas" sort={filters.sort} direction={filters.direction} onSort={handleSort} className="px-6 py-3" />
                                         <SortableHeading label="Peserta" column="pesertas_count" sort={filters.sort} direction={filters.direction} onSort={handleSort} className="px-6 py-3" />
-                                        <SortableHeading label="Jadwal Kegiatan" column="master_kegiatans_count" sort={filters.sort} direction={filters.direction} onSort={handleSort} className="px-6 py-3" />
+                                        <SortableHeading label="Jenis Kegiatan" column="master_kegiatans_count" sort={filters.sort} direction={filters.direction} onSort={handleSort} className="px-6 py-3" />
                                         <th className="px-6 py-3 text-right">Aksi</th>
                                     </tr>
                                 </thead>

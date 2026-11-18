@@ -6,8 +6,24 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import confirmWithSweetAlert from '@/Components/confirmWithSweetAlert';
 
+<<<<<<< HEAD
 export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdmin, isDpp = false, sessions = [], prodis = [], pendingCount = 0 }) {
     const isSupervisor = isAdmin || isDpp;
+=======
+export default function LogKegiatanIndex({
+    logs,
+    masterKegiatans,
+    filters,
+    isAdmin,
+    isDpp = false,
+    isReviewer = false,
+    sessions = [],
+    prodis = [],
+    pendingCount = 0
+}) {
+    const canReview = Boolean(isReviewer || isAdmin || isDpp);
+
+>>>>>>> origin/devs
     const [search, setSearch] = useState(filters?.search || '');
     const [status, setStatus] = useState(filters?.status || '');
     const [masterId, setMasterId] = useState(filters?.master_kegiatan_id || '');
@@ -17,6 +33,8 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
     const [processingId, setProcessingId] = useState(null);
     const [isApprovingAll, setIsApprovingAll] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
+    const [openActionMenu, setOpenActionMenu] = useState(null);
+
     const isInitialFilter = useRef(true);
 
     useEffect(() => {
@@ -26,38 +44,58 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
         }
 
         const timeout = setTimeout(() => {
-            router.get(route('log-kegiatan.index'), {
-                search: search || undefined,
-                status: status || undefined,
-                master_kegiatan_id: masterId || undefined,
-                kode_prodi: kodeProdi || undefined,
-                tanggal: date || undefined,
-                sesi: session || undefined,
-                sort: filters?.sort,
-                direction: filters?.direction,
-            }, { preserveState: true, preserveScroll: true, replace: true });
+            router.get(
+                route('log-kegiatan.index'),
+                {
+                    search: search || undefined,
+                    status: status || undefined,
+                    master_kegiatan_id: masterId || undefined,
+                    kode_prodi: kodeProdi || undefined,
+                    tanggal: date || undefined,
+                    sesi: session || undefined,
+                    sort: filters?.sort,
+                    direction: filters?.direction,
+                },
+                {
+                    preserveState: true,
+                    preserveScroll: true,
+                    replace: true,
+                }
+            );
         }, 300);
 
         return () => clearTimeout(timeout);
     }, [search, status, masterId, kodeProdi, date, session]);
 
     const handleSort = (column) => {
-        const direction = filters?.sort === column && filters?.direction === 'asc' ? 'desc' : 'asc';
+        const direction =
+            filters?.sort === column && filters?.direction === 'asc'
+                ? 'desc'
+                : 'asc';
 
-        router.get(route('log-kegiatan.index'), {
-            search: search || undefined,
-            status: status || undefined,
-            master_kegiatan_id: masterId || undefined,
-            kode_prodi: kodeProdi || undefined,
-            tanggal: date || undefined,
-            sesi: session || undefined,
-            sort: column,
-            direction,
-        }, { preserveState: true, preserveScroll: true, replace: true });
+        router.get(
+            route('log-kegiatan.index'),
+            {
+                search: search || undefined,
+                status: status || undefined,
+                master_kegiatan_id: masterId || undefined,
+                kode_prodi: kodeProdi || undefined,
+                tanggal: date || undefined,
+                sesi: session || undefined,
+                sort: column,
+                direction,
+            },
+            {
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            }
+        );
     };
 
     const handleStatusAction = async (action, item) => {
         const isApprove = action === 'approve';
+
         const confirmed = await confirmWithSweetAlert({
             title: isApprove ? 'Setujui laporan ini?' : 'Tolak laporan ini?',
             text: isApprove
@@ -66,6 +104,7 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
             confirmButtonText: isApprove ? 'Ya, setujui' : 'Ya, tolak',
             icon: isApprove ? 'question' : 'warning',
         });
+
         if (!confirmed) return;
 
         router.post(route(`log-kegiatan.${action}`, item.route_key), {}, {
@@ -99,18 +138,22 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
 
         if (!confirmed) return;
 
-        router.post(route('log-kegiatan.approve-all'), {
-            search: search || undefined,
-            status: status || undefined,
-            master_kegiatan_id: masterId || undefined,
-            kode_prodi: kodeProdi || undefined,
-            tanggal: date || undefined,
-            sesi: session || undefined,
-        }, {
-            preserveScroll: true,
-            onStart: () => setIsApprovingAll(true),
-            onFinish: () => setIsApprovingAll(false),
-        });
+        router.post(
+            route('log-kegiatan.approve-all'),
+            {
+                search: search || undefined,
+                status: status || undefined,
+                master_kegiatan_id: masterId || undefined,
+                kode_prodi: kodeProdi || undefined,
+                tanggal: date || undefined,
+                sesi: session || undefined,
+            },
+            {
+                preserveScroll: true,
+                onStart: () => setIsApprovingAll(true),
+                onFinish: () => setIsApprovingAll(false),
+            }
+        );
     };
 
     const handleReset = () => {
@@ -122,8 +165,17 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
         setSession('');
     };
 
-    const activeFilterCount = [search, status, masterId, kodeProdi, date, session].filter(Boolean).length;
+    const activeFilterCount = [
+        search,
+        status,
+        masterId,
+        ...(isAdmin ? [kodeProdi] : []),
+        date,
+        session,
+    ].filter(Boolean).length;
+
     const isFiltered = activeFilterCount > 0;
+
     const exportFilters = {
         search: search || undefined,
         status: status || undefined,
@@ -137,19 +189,37 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
         <AuthenticatedLayout>
             <Head title={isSupervisor ? 'Riwayat Kegiatan Mahasiswa' : 'Kegiatan'} />
 
+<<<<<<< HEAD
             <div className={`portal-logs-page py-8${isSupervisor ? ' portal-logs-admin' : ' portal-logs-student'}`}>
                 <div className="portal-logs-content mx-auto max-w-7xl sm:px-6 lg:px-8">
                     <header className={`portal-dashboard-page-heading ${isSupervisor ? 'portal-logs-admin-heading' : 'portal-logs-student-heading'}`}>
+=======
+            <div className={`portal-logs-page py-8${canReview ? ' portal-logs-admin' : ' portal-logs-student'}`}>
+                <div className="portal-logs-content mx-auto max-w-7xl sm:px-6 lg:px-8">
+                    <header className={`portal-dashboard-page-heading ${canReview ? 'portal-logs-admin-heading' : 'portal-logs-student-heading'}`}>
+>>>>>>> origin/devs
                         <div>
                             <p className="portal-dashboard-breadcrumb">
                                 Portal {isAdmin ? 'Admin' : isDpp ? 'DPP' : 'Mahasiswa'} <span>/</span> Kegiatan
                             </p>
+<<<<<<< HEAD
                             <h1>{isSupervisor ? 'Riwayat Kegiatan Mahasiswa' : 'Kegiatan'}</h1>
                             <p>{isAdmin
                                 ? 'Memantau kegiatan mahasiswa KKN yang telah diajukan.'
                                 : isDpp
                                     ? 'Memantau riwayat kegiatan mahasiswa pada program studi Anda.'
                                 : 'Lihat dan kelola catatan kegiatan KKN Anda.'}
+=======
+
+                            <h1>Kegiatan</h1>
+
+                            <p>
+                                {isAdmin
+                                    ? 'Memantau kegiatan mahasiswa KKN yang telah diajukan.'
+                                    : isDpp
+                                        ? 'Memantau dan memproses laporan kegiatan mahasiswa KKN dari program studi Anda.'
+                                        : 'Lihat dan kelola catatan kegiatan KKN Anda.'}
+>>>>>>> origin/devs
                             </p>
                         </div>
                     </header>
@@ -162,13 +232,32 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                 onClick={() => setShowFilters((isOpen) => !isOpen)}
                                 aria-haspopup="dialog"
                                 aria-expanded={showFilters}
-                                className={`inline-flex h-10 items-center gap-2 rounded-md px-4 text-sm font-semibold ${showFilters ? 'bg-indigo-700 text-white' : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
+                                className={`inline-flex h-10 items-center gap-2 rounded-md px-4 text-sm font-semibold ${
+                                    showFilters
+                                        ? 'bg-indigo-700 text-white'
+                                        : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                                }`}
                             >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden="true">
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.8"
+                                    className="h-4 w-4"
+                                    aria-hidden="true"
+                                >
                                     <path d="M4 5h16l-6.5 7.5V19l-3 1v-7.5L4 5Z" />
                                 </svg>
+
                                 Filters
-                                <span className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs ${showFilters ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700'}`}>
+
+                                <span
+                                    className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs ${
+                                        showFilters
+                                            ? 'bg-white/20 text-white'
+                                            : 'bg-gray-100 text-gray-700'
+                                    }`}
+                                >
                                     {activeFilterCount}
                                 </span>
                             </button>
@@ -180,14 +269,24 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                     className="absolute left-0 top-full z-30 mt-2 max-h-[75vh] w-80 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg border border-gray-200 bg-white p-5 shadow-xl"
                                 >
                                     <header className="mb-5 flex items-center justify-between">
-                                        <h2 className="text-base font-semibold text-gray-900">Filters</h2>
+                                        <h2 className="text-base font-semibold text-gray-900">
+                                            Filters
+                                        </h2>
+
                                         <button
                                             type="button"
                                             onClick={() => setShowFilters(false)}
                                             aria-label="Tutup filter"
                                             className="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-800"
                                         >
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true">
+                                            <svg
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2"
+                                                className="h-4 w-4"
+                                                aria-hidden="true"
+                                            >
                                                 <path d="m6 6 12 12M18 6 6 18" />
                                             </svg>
                                         </button>
@@ -195,9 +294,13 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
 
                                     <div className="space-y-4">
                                         <div>
-                                            <label htmlFor="filter-search" className="mb-1.5 block text-sm font-medium text-gray-700">
+                                            <label
+                                                htmlFor="filter-search"
+                                                className="mb-1.5 block text-sm font-medium text-gray-700"
+                                            >
                                                 Nama / NRP / rincian
                                             </label>
+
                                             <TextInput
                                                 id="filter-search"
                                                 type="search"
@@ -209,7 +312,13 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                         </div>
 
                                         <div>
-                                            <label htmlFor="filter-status" className="mb-1.5 block text-sm font-medium text-gray-700">Status</label>
+                                            <label
+                                                htmlFor="filter-status"
+                                                className="mb-1.5 block text-sm font-medium text-gray-700"
+                                            >
+                                                Status
+                                            </label>
+
                                             <select
                                                 id="filter-status"
                                                 className="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -217,17 +326,35 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                                 onChange={(event) => setStatus(event.target.value)}
                                             >
                                                 <option value="">Semua Status</option>
+<<<<<<< HEAD
                                                 {!isSupervisor && <option value="draft">Draf</option>}
+=======
+
+                                                {!canReview && (
+                                                    <option value="draft">Draf</option>
+                                                )}
+
+>>>>>>> origin/devs
                                                 <option value="menunggu">Menunggu</option>
                                                 <option value="disetujui">Disetujui</option>
                                                 <option value="ditolak">Ditolak</option>
                                             </select>
                                         </div>
 
+<<<<<<< HEAD
                                         {isSupervisor && (
+=======
+                                        {canReview && (
+>>>>>>> origin/devs
                                             <>
                                                 <div>
-                                                    <label htmlFor="filter-date" className="mb-1.5 block text-sm font-medium text-gray-700">Tanggal</label>
+                                                    <label
+                                                        htmlFor="filter-date"
+                                                        className="mb-1.5 block text-sm font-medium text-gray-700"
+                                                    >
+                                                        Tanggal
+                                                    </label>
+
                                                     <input
                                                         id="filter-date"
                                                         type="date"
@@ -238,7 +365,13 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                                 </div>
 
                                                 <div>
-                                                    <label htmlFor="filter-session" className="mb-1.5 block text-sm font-medium text-gray-700">Waktu</label>
+                                                    <label
+                                                        htmlFor="filter-session"
+                                                        className="mb-1.5 block text-sm font-medium text-gray-700"
+                                                    >
+                                                        Waktu
+                                                    </label>
+
                                                     <select
                                                         id="filter-session"
                                                         className="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -246,9 +379,14 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                                         onChange={(event) => setSession(event.target.value)}
                                                     >
                                                         <option value="">Semua Waktu</option>
+
                                                         {sessions.map((item) => (
                                                             <option key={item} value={item}>
-                                                                {item.endsWith('(Pagi)') ? 'Pagi' : item.endsWith('(Siang)') ? 'Siang' : 'Sore'}
+                                                                {item.endsWith('(Pagi)')
+                                                                    ? 'Pagi'
+                                                                    : item.endsWith('(Siang)')
+                                                                        ? 'Siang'
+                                                                        : 'Sore'}
                                                             </option>
                                                         ))}
                                                     </select>
@@ -257,7 +395,13 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                         )}
 
                                         <div>
-                                            <label htmlFor="filter-activity" className="mb-1.5 block text-sm font-medium text-gray-700">Kegiatan</label>
+                                            <label
+                                                htmlFor="filter-activity"
+                                                className="mb-1.5 block text-sm font-medium text-gray-700"
+                                            >
+                                                Kegiatan
+                                            </label>
+
                                             <select
                                                 id="filter-activity"
                                                 className="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -265,6 +409,7 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                                 onChange={(event) => setMasterId(event.target.value)}
                                             >
                                                 <option value="">Semua Kegiatan</option>
+
                                                 {masterKegiatans?.map((kegiatan) => (
                                                     <option key={kegiatan.id} value={kegiatan.id}>
                                                         {kegiatan.kode_kegiatan} - {kegiatan.nama_kegiatan}
@@ -275,7 +420,13 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
 
                                         {isAdmin && (
                                             <div>
-                                                <label htmlFor="filter-prodi" className="mb-1.5 block text-sm font-medium text-gray-700">Program Studi</label>
+                                                <label
+                                                    htmlFor="filter-prodi"
+                                                    className="mb-1.5 block text-sm font-medium text-gray-700"
+                                                >
+                                                    Program Studi
+                                                </label>
+
                                                 <select
                                                     id="filter-prodi"
                                                     className="w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -283,6 +434,7 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                                     onChange={(event) => setKodeProdi(event.target.value)}
                                                 >
                                                     <option value="">Semua Program Studi</option>
+
                                                     {prodis.map((prodi) => (
                                                         <option key={prodi.kode_prodi} value={prodi.kode_prodi}>
                                                             {prodi.nama_prodi}
@@ -302,6 +454,7 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                         >
                                             Bersihkan filter
                                         </button>
+
                                         <button
                                             type="button"
                                             onClick={() => setShowFilters(false)}
@@ -315,31 +468,51 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2">
-                            {isAdmin && pendingCount > 0 && (
+                            {canReview && pendingCount > 0 && (
                                 <button
                                     type="button"
                                     onClick={handleApproveAll}
                                     disabled={isApprovingAll}
                                     className="inline-flex min-h-10 items-center gap-2 rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
-                                    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4" aria-hidden="true">
+                                    <svg
+                                        viewBox="0 0 20 20"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="2"
+                                        className="h-4 w-4"
+                                        aria-hidden="true"
+                                    >
                                         <path d="m3 10 4 4 10-10" />
                                     </svg>
-                                    {isApprovingAll ? 'Memproses...' : `Setujui semua (${pendingCount})`}
+
+                                    {isApprovingAll
+                                        ? 'Memproses...'
+                                        : `Setujui semua (${pendingCount})`}
                                 </button>
                             )}
-                            {isAdmin && (
+
+                            {canReview && (
                                 <a
                                     href={route('log-kegiatan.export', exportFilters)}
                                     title="Unduh laporan disetujui dalam format Excel"
                                     className="inline-flex min-h-10 items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                                 >
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden="true">
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="1.8"
+                                        className="h-4 w-4"
+                                        aria-hidden="true"
+                                    >
                                         <path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v4h14v-4" />
                                     </svg>
+
                                     Export Excel
                                 </a>
                             )}
+<<<<<<< HEAD
                             {(isAdmin || isDpp) && (
                                 <a
                                     href={route('log-kegiatan.export-pdf', exportFilters)}
@@ -350,6 +523,35 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                         <path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v4h14v-4" />
                                     </svg>
                                     Ekspor PDF
+=======
+
+                            {canReview && (
+                                <a
+                                    href={route('log-kegiatan.export-python-summary', exportFilters)}
+                                    title="Unduh total jam kegiatan disetujui per mahasiswa"
+                                    className="inline-flex min-h-10 items-center gap-2 rounded-md border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100"
+                                >
+                                    Rekap Jam Python
+                                </a>
+                            )}
+                            {!canReview && (
+                                <a
+                                    href={route('log-kegiatan.export-student-pdf')}
+                                    title="Unduh seluruh riwayat kegiatan Anda dalam format PDF"
+                                    className="inline-flex min-h-10 items-center gap-2 rounded-md border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-800 hover:bg-indigo-100"
+                                >
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="1.8"
+                                        className="h-4 w-4"
+                                        aria-hidden="true"
+                                    >
+                                        <path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v4h14v-4" />
+                                    </svg>
+                                    Unduh Laporan PDF
+>>>>>>> origin/devs
                                 </a>
                             )}
                         </div>
@@ -361,6 +563,7 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                             <table className="portal-data-table min-w-full divide-y divide-gray-200 text-left text-sm text-gray-700">
                                 <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
                                     <tr>
+<<<<<<< HEAD
                                         <th scope="col" className="px-6 py-3">No</th>
                                         {isSupervisor && <SortableHeading label="Mahasiswa" column="mahasiswa" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />}
                                         <SortableHeading label="Kegiatan" column="kegiatan" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
@@ -368,8 +571,65 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                         <SortableHeading label="Status" column="status" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
                                         <SortableHeading label="Tahap pengisian" column="current_step" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
                                         <th scope="col" className="px-6 py-3 text-right">Aksi</th>
+=======
+                                        <th scope="col" className="px-6 py-3">
+                                            No
+                                        </th>
+
+                                        {canReview && (
+                                            <SortableHeading
+                                                label="Mahasiswa"
+                                                column="mahasiswa"
+                                                sort={filters?.sort}
+                                                direction={filters?.direction}
+                                                onSort={handleSort}
+                                                className="px-6 py-3"
+                                            />
+                                        )}
+
+                                        <SortableHeading
+                                            label="Kegiatan"
+                                            column="kegiatan"
+                                            sort={filters?.sort}
+                                            direction={filters?.direction}
+                                            onSort={handleSort}
+                                            className="px-6 py-3"
+                                        />
+
+                                        <SortableHeading
+                                            label="Waktu & Lokasi"
+                                            column="tanggal_kehadiran"
+                                            sort={filters?.sort}
+                                            direction={filters?.direction}
+                                            onSort={handleSort}
+                                            className="px-6 py-3"
+                                        />
+
+                                        <SortableHeading
+                                            label="Status"
+                                            column="status"
+                                            sort={filters?.sort}
+                                            direction={filters?.direction}
+                                            onSort={handleSort}
+                                            className="px-6 py-3"
+                                        />
+
+                                        <SortableHeading
+                                            label="Tahap pengisian"
+                                            column="current_step"
+                                            sort={filters?.sort}
+                                            direction={filters?.direction}
+                                            onSort={handleSort}
+                                            className="px-6 py-3"
+                                        />
+
+                                        <th scope="col" className="px-6 py-3 text-right">
+                                            Aksi
+                                        </th>
+>>>>>>> origin/devs
                                     </tr>
                                 </thead>
+
                                 <tbody className="divide-y divide-gray-200 bg-white">
                                     {logs.data && logs.data.length > 0 ? (
                                         logs.data.map((item, index) => (
@@ -377,37 +637,51 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                                 <td className="whitespace-nowrap px-6 py-4 font-medium text-gray-900">
                                                     {(logs.current_page - 1) * logs.per_page + index + 1}
                                                 </td>
+<<<<<<< HEAD
                                                 {isSupervisor && (
+=======
+
+                                                {canReview && (
+>>>>>>> origin/devs
                                                     <td className="whitespace-nowrap px-6 py-4">
                                                         <div className="font-semibold text-gray-900">
                                                             {item.peserta?.nama_lengkap ?? '-'}
                                                         </div>
+
                                                         <div className="text-xs text-gray-500">
                                                             NIM: {item.peserta?.nim ?? '-'}
                                                         </div>
                                                     </td>
                                                 )}
+
                                                 <td className="px-6 py-4">
                                                     <div className="font-medium text-indigo-700">
                                                         {item.master_kegiatan?.nama_kegiatan ?? 'Kegiatan belum dipilih'}
                                                     </div>
+
                                                     {item.master_kegiatan?.kode_kegiatan && (
-                                                        <div className="text-xs text-gray-500 font-mono">
+                                                        <div className="text-xs font-mono text-gray-500">
                                                             {item.master_kegiatan.kode_kegiatan}
                                                         </div>
                                                     )}
                                                 </td>
+
                                                 <td className="whitespace-nowrap px-6 py-4">
                                                     <div className="text-gray-900">
                                                         {item.tanggal_kehadiran || 'Tanggal belum diisi'}
                                                     </div>
+
                                                     <div className="text-xs text-gray-500">
                                                         {item.jam_kehadiran || 'Waktu belum diisi'}
                                                     </div>
+
                                                     <div className="text-xs text-gray-500">
-                                                        {item.lokasi_kegiatan ? `📍 ${item.lokasi_kegiatan}` : 'Lokasi belum diisi'}
+                                                        {item.lokasi_kegiatan
+                                                            ? `📍 ${item.lokasi_kegiatan}`
+                                                            : 'Lokasi belum diisi'}
                                                     </div>
                                                 </td>
+
                                                 <td className="whitespace-nowrap px-6 py-4">
                                                     {item.status === 'disetujui' ? (
                                                         <span className="inline-flex rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-800">
@@ -427,12 +701,15 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                                         </span>
                                                     )}
                                                 </td>
+
                                                 <td className="whitespace-nowrap px-6 py-4">
                                                     <span className="inline-flex items-center gap-1 rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
                                                         Tahap {item.current_step} dari 6
                                                     </span>
                                                 </td>
+
                                                 <td className="whitespace-nowrap px-6 py-4 text-right">
+<<<<<<< HEAD
                                                     <div className="inline-flex items-center gap-2">
                                                         <Link
                                                             href={route('log-kegiatan.show', item.route_key)}
@@ -480,6 +757,65 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                                                     </svg>
                                                                 </button>
                                                             </>
+=======
+                                                    <div className="portal-admin-students-action-menu">
+                                                        <button
+                                                            type="button"
+                                                            className="portal-admin-students-menu-toggle"
+                                                            aria-label={`Buka aksi untuk log ${item.id}`}
+                                                            aria-haspopup="menu"
+                                                            aria-expanded={openActionMenu === item.id}
+                                                            onClick={() => setOpenActionMenu(openActionMenu === item.id ? null : item.id)}
+                                                        >
+                                                            <svg viewBox="0 0 20 20" aria-hidden="true" className="portal-admin-students-menu-icon">
+                                                                <path d="M3 5h14M3 10h14M3 15h14" />
+                                                            </svg>
+                                                        </button>
+                                                        {openActionMenu === item.id && (
+                                                            <div className="portal-admin-students-menu" role="menu">
+                                                                <Link
+                                                                    href={route('log-kegiatan.show', item.route_key)}
+                                                                    className="portal-admin-students-menu-item"
+                                                                    role="menuitem"
+                                                                    onClick={() => setOpenActionMenu(null)}
+                                                                >Detail</Link>
+                                                                {!canReview && item.status === 'draft' && (
+                                                                    <button
+                                                                        type="button"
+                                                                        className="portal-admin-students-menu-item is-danger"
+                                                                        role="menuitem"
+                                                                        onClick={() => {
+                                                                            setOpenActionMenu(null);
+                                                                            handleDeleteDraft(item);
+                                                                        }}
+                                                                    >Hapus draft</button>
+                                                                )}
+                                                                {canReview && item.status === 'menunggu' && (
+                                                                    <>
+                                                                        <button
+                                                                            type="button"
+                                                                            className="portal-admin-students-menu-item"
+                                                                            role="menuitem"
+                                                                            disabled={processingId === item.id}
+                                                                            onClick={() => {
+                                                                                setOpenActionMenu(null);
+                                                                                handleStatusAction('approve', item);
+                                                                            }}
+                                                                        >Setujui</button>
+                                                                        <button
+                                                                            type="button"
+                                                                            className="portal-admin-students-menu-item is-danger"
+                                                                            role="menuitem"
+                                                                            disabled={processingId === item.id}
+                                                                            onClick={() => {
+                                                                                setOpenActionMenu(null);
+                                                                                handleStatusAction('reject', item);
+                                                                            }}
+                                                                        >Tolak</button>
+                                                                    </>
+                                                                )}
+                                                            </div>
+>>>>>>> origin/devs
                                                         )}
                                                     </div>
                                                 </td>
@@ -487,7 +823,14 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                         ))
                                     ) : (
                                         <tr>
+<<<<<<< HEAD
                                             <td colSpan={isSupervisor ? 7 : 6} className="py-8 text-center text-gray-500">
+=======
+                                            <td
+                                                colSpan={canReview ? 7 : 6}
+                                                className="py-8 text-center text-gray-500"
+                                            >
+>>>>>>> origin/devs
                                                 Belum ada catatan log kegiatan.
                                             </td>
                                         </tr>
@@ -502,6 +845,7 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                 <div className="text-xs text-gray-500">
                                     Menampilkan {logs.from ?? 0} - {logs.to ?? 0} dari {logs.total} data
                                 </div>
+
                                 <div className="flex gap-1">
                                     {logs.links.map((link, idx) => (
                                         <button
@@ -512,8 +856,8 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                                 link.active
                                                     ? 'bg-indigo-600 text-white'
                                                     : link.url
-                                                    ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                                    : 'cursor-not-allowed text-gray-400'
+                                                        ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                        : 'cursor-not-allowed text-gray-400'
                                             }`}
                                             dangerouslySetInnerHTML={{ __html: link.label }}
                                         />
@@ -524,7 +868,6 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                     </div>
                 </div>
             </div>
-
         </AuthenticatedLayout>
     );
 }
