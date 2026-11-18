@@ -17,7 +17,6 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
     const [modalState, setModalState] = useState({ isOpen: false, mode: 'create', item: null });
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
-        kode_kegiatan: '',
         nama_kegiatan: '',
         kategori: '',
         kode_prodi: '',
@@ -58,7 +57,6 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
     const openEditModal = (item) => {
         clearErrors();
         setData({
-            kode_kegiatan: item.kode_kegiatan,
             nama_kegiatan: item.nama_kegiatan,
             kategori: item.kategori,
             kode_prodi: item.kode_prodi,
@@ -131,7 +129,7 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
                             <TextInput
                                 type="text"
                                 className="w-full"
-                                placeholder="Cari kode, kegiatan, kategori, atau prodi..."
+                                placeholder="Cari program studi, nama kegiatan, atau kategori..."
                                 value={search}
                                 onChange={(e) => {
                                     const value = e.target.value;
@@ -183,11 +181,9 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
                                 <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
                                     <tr>
                                         <th scope="col" className="px-6 py-3">No</th>
-                                        <SortableHeading label="Kode" column="kode_kegiatan" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
+                                        <SortableHeading label="Program Studi" column="prodi" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
                                         <SortableHeading label="Nama Kegiatan" column="nama_kegiatan" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
                                         <SortableHeading label="Kategori" column="kategori" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
-                                        <SortableHeading label="Prodi" column="prodi" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
-                                        <SortableHeading label="Jumlah Log" column="log_kegiatans_count" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
                                         {canManage && (
                                             <th scope="col" className="px-6 py-3 text-right">Aksi</th>
                                         )}
@@ -200,9 +196,7 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
                                                 <td className="whitespace-nowrap px-6 py-4 font-medium text-gray-900">
                                                     {(kegiatans.current_page - 1) * kegiatans.per_page + index + 1}
                                                 </td>
-                                                <td className="whitespace-nowrap px-6 py-4 font-mono font-semibold text-indigo-600">
-                                                    {item.kode_kegiatan}
-                                                </td>
+                                                <td className="px-6 py-4">{item.prodi?.nama_prodi ?? item.kode_prodi}</td>
                                                 <td className="px-6 py-4 font-medium text-gray-800">
                                                     <div>{item.nama_kegiatan}</div>
                                                     <span className={`portal-master-kegiatan-status${item.is_active ? ' is-active' : ' is-inactive'}`}>
@@ -213,10 +207,6 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
                                                     <span className="inline-flex rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-800">
                                                         {item.kategori}
                                                     </span>
-                                                </td>
-                                                <td className="px-6 py-4">{item.prodi?.nama_prodi ?? item.kode_prodi}</td>
-                                                <td className="whitespace-nowrap px-6 py-4 text-gray-500">
-                                                    {item.log_kegiatans_count ?? 0} log
                                                 </td>
                                                 {canManage && (
                                                     <td className="whitespace-nowrap px-6 py-4 text-right space-x-2">
@@ -247,7 +237,7 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={canManage ? 7 : 6} className="py-8 text-center text-gray-500">
+                                            <td colSpan={canManage ? 5 : 4} className="py-8 text-center text-gray-500">
                                                 Belum ada data jadwal kegiatan.
                                             </td>
                                         </tr>
@@ -297,17 +287,22 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
 
                     <div className="mt-6 space-y-4">
                         <div>
-                            <InputLabel htmlFor="kode_kegiatan" value="Kode Kegiatan" />
-                            <TextInput
-                                id="kode_kegiatan"
-                                type="text"
-                                className="mt-1 block w-full"
-                                placeholder="Contoh: KKN-001"
-                                value={data.kode_kegiatan}
-                                onChange={(e) => setData('kode_kegiatan', e.target.value)}
+                            <InputLabel htmlFor="kode_prodi" value="Program Studi" />
+                            <select
+                                id="kode_prodi"
+                                className="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                value={data.kode_prodi}
+                                onChange={(e) => setData('kode_prodi', e.target.value)}
                                 required
-                            />
-                            <InputError message={errors.kode_kegiatan} className="mt-1" />
+                            >
+                                <option value="">Pilih program studi</option>
+                                {prodis.map((prodi) => (
+                                    <option key={prodi.kode_prodi} value={prodi.kode_prodi}>
+                                        {prodi.kode_prodi} — {prodi.nama_prodi}
+                                    </option>
+                                ))}
+                            </select>
+                            <InputError message={errors.kode_prodi} className="mt-1" />
                         </div>
 
                         <div>
@@ -336,25 +331,6 @@ export default function MasterKegiatanIndex({ kegiatans, filters, canManage, pro
                                 required
                             />
                             <InputError message={errors.kategori} className="mt-1" />
-                        </div>
-
-                        <div>
-                            <InputLabel htmlFor="kode_prodi" value="Program Studi" />
-                            <select
-                                id="kode_prodi"
-                                className="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                value={data.kode_prodi}
-                                onChange={(e) => setData('kode_prodi', e.target.value)}
-                                required
-                            >
-                                <option value="">Pilih program studi</option>
-                                {prodis.map((prodi) => (
-                                    <option key={prodi.kode_prodi} value={prodi.kode_prodi}>
-                                        {prodi.kode_prodi} — {prodi.nama_prodi}
-                                    </option>
-                                ))}
-                            </select>
-                            <InputError message={errors.kode_prodi} className="mt-1" />
                         </div>
                     </div>
 

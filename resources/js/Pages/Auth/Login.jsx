@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import SweetAlertNotifications from '@/Components/SweetAlertNotifications';
 import { Head, Link, useForm } from '@inertiajs/react';
+import Swal from 'sweetalert2';
+import { getDppApprovalStorageKey } from '@/Components/dppApproval';
 
 export default function Login({ status }) {
     const [showPassword, setShowPassword] = useState(false);
@@ -22,6 +24,22 @@ export default function Login({ status }) {
 
     function submit(event) {
         event.preventDefault();
+
+        const approvalStatus = window.localStorage.getItem(
+            getDppApprovalStorageKey(data.identifier)
+        );
+
+        if (approvalStatus === 'pending') {
+            Swal.fire({
+                title: 'Menunggu Persetujuan Admin',
+                text: 'Akun DPP Anda belum disetujui. Silakan tunggu acc admin sebelum login.',
+                icon: 'info',
+                confirmButtonText: 'Mengerti',
+                confirmButtonColor: '#064e3b',
+            });
+
+            return;
+        }
 
         post(route('login'), {
             onFinish: () => reset('password'),

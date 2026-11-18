@@ -7,12 +7,14 @@ import SecondaryButton from '@/Components/SecondaryButton';
 import DangerButton from '@/Components/DangerButton';
 import TextInput from '@/Components/TextInput';
 import confirmWithSweetAlert from '@/Components/confirmWithSweetAlert';
+import { getDppApprovalStorageKey } from '@/Components/dppApproval';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
 export default function Index({ dpps, prodis, filters, totalCount }) {
     const [search, setSearch] = useState(filters.search || '');
     const [kodeProdi, setKodeProdi] = useState(filters.kode_prodi || '');
+    const [approvalStatuses, setApprovalStatuses] = useState({});
     const [modalState, setModalState] = useState({
         isOpen: false,
         mode: 'create',
@@ -46,6 +48,27 @@ export default function Index({ dpps, prodis, filters, totalCount }) {
     useEffect(() => {
         return () => clearTimeout(filterTimer.current);
     }, []);
+
+    useEffect(() => {
+        const nextStatuses = {};
+
+        dpps.data.forEach((item) => {
+            const storageKey = getDppApprovalStorageKey(item.email);
+            const savedStatus = window.localStorage.getItem(storageKey);
+
+            if (savedStatus === 'approved' || savedStatus === 'pending') {
+                nextStatuses[item.id] = savedStatus;
+            } else {
+                window.localStorage.setItem(storageKey, 'pending');
+                nextStatuses[item.id] = 'pending';
+            }
+        });
+
+        setApprovalStatuses((currentStatuses) => ({
+            ...currentStatuses,
+            ...nextStatuses,
+        }));
+    }, [dpps.data]);
 
     const applyFilters = (nextSearch, nextKodeProdi, delay = 300) => {
         clearTimeout(filterTimer.current);
@@ -191,6 +214,31 @@ export default function Index({ dpps, prodis, filters, totalCount }) {
         });
     };
 
+    const updateApprovalStatus = async (item) => {
+        const currentStatus = approvalStatuses[item.id] || 'pending';
+        const nextStatus = currentStatus === 'approved' ? 'pending' : 'approved';
+        const isApproving = nextStatus === 'approved';
+        const confirmed = await confirmWithSweetAlert({
+            title: isApproving ? 'Setujui akun DPP?' : 'Batalkan persetujuan?',
+            text: isApproving
+                ? `Akun ${item.name} dapat melanjutkan login pada browser ini.`
+                : `Akun ${item.name} akan kembali berstatus menunggu persetujuan.`,
+            icon: 'question',
+            confirmButtonText: isApproving ? 'Ya, setujui' : 'Ya, batalkan',
+        });
+
+        if (!confirmed) return;
+
+        window.localStorage.setItem(
+            getDppApprovalStorageKey(item.email),
+            nextStatus
+        );
+        setApprovalStatuses((currentStatuses) => ({
+            ...currentStatuses,
+            [item.id]: nextStatus,
+        }));
+    };
+
     const isFiltered = Boolean(search || kodeProdi);
 
     return (
@@ -207,6 +255,11 @@ export default function Index({ dpps, prodis, filters, totalCount }) {
                             <h1>Manajemen DPP</h1>
                             <p>
                                 Kelola akun DPP dan penugasan program studi.
+                            </p>
+                            <p className="mt-2 max-w-3xl rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                                Status persetujuan ini hanya disimpan di browser
+                                ini untuk tampilan front end. Penguncian login
+                                yang sesungguhnya memerlukan dukungan backend.
                             </p>
                         </div>
 
@@ -276,6 +329,7 @@ export default function Index({ dpps, prodis, filters, totalCount }) {
                                         <th className="px-6 py-4">Nama DPP</th>
                                         <th className="px-6 py-4">Email</th>
                                         <th className="px-6 py-4">Program Studi</th>
+                                        <th className="px-6 py-4">Persetujuan</th>
                                         <th className="px-6 py-4">Status Password</th>
                                         <th className="px-6 py-4 text-right">Aksi</th>
                                     </tr>
@@ -312,6 +366,18 @@ export default function Index({ dpps, prodis, filters, totalCount }) {
                                                     </div>
                                                 </td>
 
+                                                <td className="whitespace-nowrap px-6 py-4">
+                                                    {approvalStatuses[item.id] === 'approved' ? (
+                                                        <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800">
+                                                            Disetujui
+                                                        </span>
+                                                    ) : (
+                                                        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+                                                            Menunggu acc
+                                                        </span>
+                                                    )}
+                                                </td>
+
                                                 <td className="px-6 py-4">
                                                     {item.must_change_password ? (
                                                         <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-800">
@@ -326,6 +392,15 @@ export default function Index({ dpps, prodis, filters, totalCount }) {
 
                                                 <td className="whitespace-nowrap px-6 py-4 text-right">
                                                     <div className="flex flex-wrap justify-end gap-2">
+                                                        <SecondaryButton
+                                                            type="button"
+                                                            onClick={() => updateApprovalStatus(item)}
+                                                        >
+                                                            {approvalStatuses[item.id] === 'approved'
+                                                                ? 'Batalkan acc'
+                                                                : 'Setujui akun'}
+                                                        </SecondaryButton>
+
                                                         <SecondaryButton
                                                             type="button"
                                                             onClick={() => openEditModal(item)}
@@ -353,7 +428,7 @@ export default function Index({ dpps, prodis, filters, totalCount }) {
                                     ) : (
                                         <tr>
                                             <td
-                                                colSpan={6}
+                                                colSpan={7}
                                                 className="px-6 py-10 text-center text-gray-500"
                                             >
                                                 Belum ada akun DPP yang ditemukan.

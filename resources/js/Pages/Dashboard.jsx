@@ -27,6 +27,18 @@ export default function Dashboard({
     ];
     const analyticsFacultyMax = Math.max(...(analytics?.mahasiswaPerFakultas ?? []).map((faculty) => faculty.total), 1);
     const percentageOf = (value, total) => (total > 0 ? Math.round((value / total) * 100) : 0);
+    const activityHistoryHref = isDpp || isAdmin
+        ? route('log-kegiatan.index')
+        : isDosen
+            ? route('dosen.mahasiswa.index')
+            : route('log-kegiatan.index');
+    const activityHistoryLabel = isDpp
+        ? 'Lihat riwayat kegiatan'
+        : isDosen
+            ? 'Lihat mahasiswa'
+            : isAdmin
+                ? 'Lihat kegiatan'
+                : 'Lihat kegiatan';
     const totalJam = Number(summary.totalJamDisetujui ?? 0);
     const totalJamLabel = Number.isInteger(totalJam) ? totalJam : totalJam.toFixed(1);
     const shortcuts = isAdmin
@@ -132,10 +144,16 @@ export default function Dashboard({
                                     Terdapat {summary.totalKegiatan} kegiatan tercatat.
                                 </p>
                             ) : (
-                                <p>Belum ada kegiatan yang tercatat.</p>
+                                <div className="portal-dashboard-empty-state">
+                                    <span className="portal-dashboard-empty-icon" aria-hidden="true">◷</span>
+                                    <div>
+                                        <strong>Belum ada aktivitas</strong>
+                                        <p>Laporan kegiatan mahasiswa akan muncul di sini setelah tercatat.</p>
+                                    </div>
+                                </div>
                             )}
-                            <Link href={isDosen ? route('dosen.mahasiswa.index') : route('log-kegiatan.index')}>
-                                {isDosen ? 'Lihat mahasiswa' : 'Lihat kegiatan'}
+                            <Link href={activityHistoryHref}>
+                                {activityHistoryLabel}
                                 <span aria-hidden="true"> →</span>
                             </Link>
                         </article>
@@ -149,8 +167,14 @@ export default function Dashboard({
                                         <strong>{analytics?.totalMahasiswa ?? 0}</strong>
                                     </div>
                                 </div>
-                                {!analytics || analytics.mahasiswaPerFakultas.length === 0 ? (
-                                    <p className="portal-dashboard-analytics-empty">Belum ada data mahasiswa.</p>
+                                {!analytics || analytics.totalMahasiswa === 0 || analytics.mahasiswaPerFakultas.length === 0 ? (
+                                    <div className="portal-dashboard-empty-state">
+                                        <span className="portal-dashboard-empty-icon" aria-hidden="true">♙</span>
+                                        <div>
+                                            <strong>Belum ada data sebaran</strong>
+                                            <p>Sebaran mahasiswa akan tampil setelah mahasiswa terdaftar.</p>
+                                        </div>
+                                    </div>
                                 ) : (
                                     <div className="portal-dashboard-analytics-rows">
                                         {analytics.mahasiswaPerFakultas.map((faculty) => {
@@ -200,7 +224,13 @@ export default function Dashboard({
                                     </div>
                                 </div>
                                 {!analytics || analytics.totalLaporan === 0 ? (
-                                    <p className="portal-dashboard-analytics-empty">Belum ada laporan terkirim.</p>
+                                    <div className="portal-dashboard-empty-state">
+                                        <span className="portal-dashboard-empty-icon" aria-hidden="true">✓</span>
+                                        <div>
+                                            <strong>Belum ada laporan</strong>
+                                            <p>Status verifikasi akan tampil setelah laporan kegiatan dikirim.</p>
+                                        </div>
+                                    </div>
                                 ) : (
                                     <div className="portal-dashboard-analytics-rows">
                                         {analyticsReportStatuses.map((status) => {
