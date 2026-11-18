@@ -125,6 +125,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/log-kegiatan/export', [LogKegiatanController::class, 'export'])
         ->middleware('admin')
         ->name('log-kegiatan.export');
+    Route::get('/log-kegiatan/export-pdf', [LogKegiatanController::class, 'exportPdf'])
+        ->name('log-kegiatan.export-pdf');
     Route::post('/log-kegiatan/approve-all', [LogKegiatanController::class, 'approveAll'])
         ->middleware('admin')
         ->name('log-kegiatan.approve-all');

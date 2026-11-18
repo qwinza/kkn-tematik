@@ -31,7 +31,17 @@ class KegiatanSeeder extends Seeder
             ['kode_prodi' => 'DP',  'nama_prodi' => 'Desain Produk',                'fakultas' => 'FAD'],
         ];
 
-        DB::table('prodi')->insert($prodi);
+        foreach ($prodi as $item) {
+            DB::table('prodi')->updateOrInsert(
+                ['kode_prodi' => $item['kode_prodi']],
+                [
+                    'nama_prodi' => $item['nama_prodi'],
+                    'fakultas' => $item['fakultas'],
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]
+            );
+        }
 
         $kegiatans = [
             ['kode_kegiatan' => 'ARS-01', 'nama_kegiatan' => 'Identifikasi & Pemetaan Spasial Foto Udara Drone', 'kategori' => 'Pemetaan & Riset', 'kode_prodi' => 'ARS'],
@@ -96,6 +106,17 @@ class KegiatanSeeder extends Seeder
             ['kode_kegiatan' => 'TK-05', 'nama_kegiatan' => 'Pelatihan Operasional Reaktor Warga & Penyusunan SOP', 'kategori' => 'Pelatihan & Sosialisasi', 'kode_prodi' => 'TK'],
         ];
 
-        DB::table('master_kegiatans')->insert($kegiatans);
+        foreach ($kegiatans as $kegiatan) {
+            DB::table('master_kegiatans')->updateOrInsert(
+                ['kode_kegiatan' => $kegiatan['kode_kegiatan']],
+                [
+                    'nama_kegiatan' => $kegiatan['nama_kegiatan'],
+                    'kategori' => $kegiatan['kategori'],
+                    'kode_prodi' => $kegiatan['kode_prodi'],
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]
+            );
+        }
     }
 }

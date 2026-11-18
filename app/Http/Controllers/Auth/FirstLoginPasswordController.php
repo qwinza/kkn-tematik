@@ -16,7 +16,7 @@ class FirstLoginPasswordController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user?->isMahasiswa(), 403);
+        abort_unless($user?->isMahasiswa() || $user?->isDpp(), 403);
 
         if (! $user->must_change_password) {
             return redirect()->route('dashboard');
@@ -29,7 +29,7 @@ class FirstLoginPasswordController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user?->isMahasiswa(), 403);
+        abort_unless($user?->isMahasiswa() || $user?->isDpp(), 403);
 
         if (! $user->must_change_password) {
             return redirect()->route('dashboard');

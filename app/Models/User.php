@@ -76,6 +76,11 @@ class User extends Authenticatable
 
     public function isDosen(): bool
     {
-        return $this->role === 'dosen';
+        return in_array($this->role, ['dosen', 'dpp'], true);
+    }
+
+    public function isDpp(): bool
+    {
+        return $this->role === 'dpp';
     }
 }

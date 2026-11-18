@@ -17,7 +17,7 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
         .slice(0, 2)
         .join('')
         .toUpperCase();
-    const userRoleLabel = user.is_admin ? 'Admin' : user.is_dosen ? 'Dosen Pembimbing' : 'Mahasiswa';
+    const userRoleLabel = user.is_admin ? 'Admin' : user.is_dpp ? 'DPP' : user.is_dosen ? 'Dosen Pembimbing' : 'Mahasiswa';
     const todayLabel = new Intl.DateTimeFormat('id-ID', {
         day: '2-digit',
         month: 'short',
@@ -35,7 +35,12 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
             active: route().current('admin.mahasiswa.*'),
         },
         {
-            label: 'Kegiatan',
+            label: 'Akun DPP',
+            href: route('admin.dpp.index'),
+            active: route().current('admin.dpp.*'),
+        },
+        {
+            label: 'Riwayat Kegiatan Mahasiswa',
             href: route('log-kegiatan.index'),
             active: route().current('log-kegiatan.*'),
         },
@@ -55,6 +60,23 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
             label: 'Mahasiswa Bimbingan',
             href: route('dosen.mahasiswa.index'),
             active: route().current('dosen.mahasiswa.*'),
+        },
+    ];
+    const dppNavigationItems = [
+        {
+            label: 'Dashboard',
+            href: route('dashboard'),
+            active: route().current('dashboard'),
+        },
+        {
+            label: 'Mahasiswa Bimbingan',
+            href: route('dosen.mahasiswa.index'),
+            active: route().current('dosen.mahasiswa.*'),
+        },
+        {
+            label: 'Riwayat Kegiatan Mahasiswa',
+            href: route('log-kegiatan.index'),
+            active: route().current('log-kegiatan.*'),
         },
     ];
 
@@ -84,7 +106,7 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                         <div className="portal-navigation hidden lg:flex">
                             {user?.is_admin || user?.is_dosen ? (
                                 <div className="portal-admin-navigation">
-                                    {(user.is_admin ? adminNavigationItems : dosenNavigationItems).map((item) =>
+                                    {(user.is_admin ? adminNavigationItems : user.is_dpp ? dppNavigationItems : dosenNavigationItems).map((item) =>
                                         item.disabled ? (
                                             <span
                                                 key={item.label}
@@ -246,7 +268,7 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                                     <Dropdown.Content contentClasses="portal-user-panel">
                                         <div className="portal-user-panel-heading">
                                             <div>
-                                                <span>{user.is_admin ? 'AKUN ADMIN' : user.is_dosen ? 'AKUN DOSEN PEMBIMBING' : 'AKUN MAHASISWA'}</span>
+                                                <span>{user.is_admin ? 'AKUN ADMIN' : user.is_dpp ? 'AKUN DPP' : user.is_dosen ? 'AKUN DOSEN PEMBIMBING' : 'AKUN MAHASISWA'}</span>
                                                 <strong>Profil & Pengaturan</strong>
                                             </div>
                                             <button
@@ -348,7 +370,7 @@ export default function AuthenticatedLayout({ header, children, showSweetAlerts 
                     }
                 >
                     <div className="portal-mobile-navigation-links space-y-1 pb-3 pt-2">
-                        {user?.is_admin || user?.is_dosen ? (user.is_admin ? adminNavigationItems : dosenNavigationItems).map((item) => item.disabled ? (
+                        {user?.is_admin || user?.is_dosen ? (user.is_admin ? adminNavigationItems : user.is_dpp ? dppNavigationItems : dosenNavigationItems).map((item) => item.disabled ? (
                             <span
                                 key={item.label}
                                 className="portal-mobile-admin-item is-disabled"

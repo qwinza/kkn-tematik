@@ -6,7 +6,8 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import confirmWithSweetAlert from '@/Components/confirmWithSweetAlert';
 
-export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdmin, sessions = [], prodis = [], pendingCount = 0 }) {
+export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdmin, isDpp = false, sessions = [], prodis = [], pendingCount = 0 }) {
+    const isSupervisor = isAdmin || isDpp;
     const [search, setSearch] = useState(filters?.search || '');
     const [status, setStatus] = useState(filters?.status || '');
     const [masterId, setMasterId] = useState(filters?.master_kegiatan_id || '');
@@ -134,18 +135,20 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
 
     return (
         <AuthenticatedLayout>
-            <Head title="Kegiatan" />
+            <Head title={isSupervisor ? 'Riwayat Kegiatan Mahasiswa' : 'Kegiatan'} />
 
-            <div className={`portal-logs-page py-8${isAdmin ? ' portal-logs-admin' : ' portal-logs-student'}`}>
+            <div className={`portal-logs-page py-8${isSupervisor ? ' portal-logs-admin' : ' portal-logs-student'}`}>
                 <div className="portal-logs-content mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <header className={`portal-dashboard-page-heading ${isAdmin ? 'portal-logs-admin-heading' : 'portal-logs-student-heading'}`}>
+                    <header className={`portal-dashboard-page-heading ${isSupervisor ? 'portal-logs-admin-heading' : 'portal-logs-student-heading'}`}>
                         <div>
                             <p className="portal-dashboard-breadcrumb">
-                                Portal {isAdmin ? 'Admin' : 'Mahasiswa'} <span>/</span> Kegiatan
+                                Portal {isAdmin ? 'Admin' : isDpp ? 'DPP' : 'Mahasiswa'} <span>/</span> Kegiatan
                             </p>
-                            <h1>Kegiatan</h1>
+                            <h1>{isSupervisor ? 'Riwayat Kegiatan Mahasiswa' : 'Kegiatan'}</h1>
                             <p>{isAdmin
                                 ? 'Memantau kegiatan mahasiswa KKN yang telah diajukan.'
+                                : isDpp
+                                    ? 'Memantau riwayat kegiatan mahasiswa pada program studi Anda.'
                                 : 'Lihat dan kelola catatan kegiatan KKN Anda.'}
                             </p>
                         </div>
@@ -214,14 +217,14 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                                 onChange={(event) => setStatus(event.target.value)}
                                             >
                                                 <option value="">Semua Status</option>
-                                                {!isAdmin && <option value="draft">Draf</option>}
+                                                {!isSupervisor && <option value="draft">Draf</option>}
                                                 <option value="menunggu">Menunggu</option>
                                                 <option value="disetujui">Disetujui</option>
                                                 <option value="ditolak">Ditolak</option>
                                             </select>
                                         </div>
 
-                                        {isAdmin && (
+                                        {isSupervisor && (
                                             <>
                                                 <div>
                                                     <label htmlFor="filter-date" className="mb-1.5 block text-sm font-medium text-gray-700">Tanggal</label>
@@ -337,6 +340,18 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                     Export Excel
                                 </a>
                             )}
+                            {(isAdmin || isDpp) && (
+                                <a
+                                    href={route('log-kegiatan.export-pdf', exportFilters)}
+                                    title="Unduh laporan riwayat kegiatan dalam format PDF"
+                                    className="inline-flex min-h-10 items-center gap-2 rounded-md bg-indigo-700 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-800"
+                                >
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden="true">
+                                        <path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v4h14v-4" />
+                                    </svg>
+                                    Ekspor PDF
+                                </a>
+                            )}
                         </div>
                     </div>
 
@@ -347,7 +362,7 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                 <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
                                     <tr>
                                         <th scope="col" className="px-6 py-3">No</th>
-                                        {isAdmin && <SortableHeading label="Mahasiswa" column="mahasiswa" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />}
+                                        {isSupervisor && <SortableHeading label="Mahasiswa" column="mahasiswa" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />}
                                         <SortableHeading label="Kegiatan" column="kegiatan" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
                                         <SortableHeading label="Waktu & Lokasi" column="tanggal_kehadiran" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
                                         <SortableHeading label="Status" column="status" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
@@ -362,7 +377,7 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                                 <td className="whitespace-nowrap px-6 py-4 font-medium text-gray-900">
                                                     {(logs.current_page - 1) * logs.per_page + index + 1}
                                                 </td>
-                                                {isAdmin && (
+                                                {isSupervisor && (
                                                     <td className="whitespace-nowrap px-6 py-4">
                                                         <div className="font-semibold text-gray-900">
                                                             {item.peserta?.nama_lengkap ?? '-'}
@@ -423,13 +438,13 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                                             href={route('log-kegiatan.show', item.route_key)}
                                                             title="Lihat detail"
                                                             aria-label={`Lihat detail log ${item.id}`}
-                                                            className={isAdmin
+                                                            className={isSupervisor
                                                                 ? 'inline-flex h-8 w-8 items-center justify-center rounded-full border border-indigo-200 font-bold text-indigo-700 hover:bg-indigo-50'
                                                                 : 'inline-flex items-center rounded bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100'}
                                                         >
-                                                            {isAdmin ? 'i' : 'Detail'}
+                                                            {isSupervisor ? 'i' : 'Detail'}
                                                         </Link>
-                                                        {!isAdmin && item.status === 'draft' && (
+                                                        {!isSupervisor && item.status === 'draft' && (
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleDeleteDraft(item)}
@@ -472,7 +487,7 @@ export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdm
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={isAdmin ? 7 : 6} className="py-8 text-center text-gray-500">
+                                            <td colSpan={isSupervisor ? 7 : 6} className="py-8 text-center text-gray-500">
                                                 Belum ada catatan log kegiatan.
                                             </td>
                                         </tr>

@@ -2483,6 +2483,44 @@
     color: #b95e0b;
 }
 
+.portal-dashboard-empty-state {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 14px 0;
+    padding: 12px;
+    border: 1px dashed #e6e9ed;
+    border-radius: 9px;
+    background: #f8fafc;
+}
+
+.portal-dashboard-empty-icon {
+    display: grid;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 8px;
+    background: #fff0df;
+    color: #d97716;
+    font-size: 15px;
+    font-weight: 750;
+}
+
+.portal-dashboard-empty-state strong {
+    display: block;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 750;
+}
+
+.portal-dashboard-empty-state p {
+    margin: 3px 0 0;
+    color: #87919b;
+    font-size: 10px;
+    line-height: 1.5;
+}
+
 .portal-dashboard-approval-heading {
     display: flex;
     align-items: flex-start;
