@@ -25,6 +25,8 @@ class PesertaFactory extends Factory
             'user_id' => User::factory()->mahasiswa(),
             'nama_lengkap' => fake()->name(),
             'nim' => fake()->unique()->numerify('152024###'),
+            'email' => fake()->unique()->safeEmail(),
+            'angkatan' => 2024,
             'kode_prodi' => Prodi::factory(),
         ];
     }

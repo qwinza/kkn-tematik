@@ -16,7 +16,9 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $user = $this->user();
+
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required',
@@ -27,5 +29,12 @@ class ProfileUpdateRequest extends FormRequest
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
         ];
+
+        if ($user instanceof User && $user->isMahasiswa() && $user->peserta) {
+            $rules['email'][] = Rule::unique('pesertas', 'email')
+                ->ignore($user->peserta->id);
+        }
+
+        return $rules;
     }
 }

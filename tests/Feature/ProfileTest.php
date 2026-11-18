@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Peserta;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class ProfileTest extends TestCase
@@ -19,6 +21,50 @@ class ProfileTest extends TestCase
             ->get('/profile');
 
         $response->assertOk();
+    }
+
+    public function test_student_profile_displays_peserta_email_and_angkatan(): void
+    {
+        $user = User::factory()->mahasiswa()->create([
+            'email' => 'mahasiswa@example.test',
+        ]);
+        $peserta = Peserta::factory()->create([
+            'user_id' => $user->id,
+            'email' => 'mahasiswa@example.test',
+            'angkatan' => 2024,
+            'no_telepon' => '081234567890',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/profile')
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Profile/Edit')
+                ->where('mahasiswaProfile.email', $peserta->email)
+                ->where('mahasiswaProfile.no_telepon', $peserta->no_telepon)
+                ->where('mahasiswaProfile.angkatan', 2024)
+            );
+    }
+
+    public function test_student_profile_email_updates_peserta_email(): void
+    {
+        $user = User::factory()->mahasiswa()->create([
+            'email' => 'lama@example.test',
+        ]);
+        $peserta = Peserta::factory()->create([
+            'user_id' => $user->id,
+            'email' => 'lama@example.test',
+            'angkatan' => 2024,
+        ]);
+
+        $this->actingAs($user)
+            ->patch('/profile', [
+                'name' => $user->name,
+                'email' => 'baru@example.test',
+            ])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/profile');
+
+        $this->assertSame('baru@example.test', $peserta->fresh()->email);
     }
 
     public function test_profile_information_can_be_updated(): void

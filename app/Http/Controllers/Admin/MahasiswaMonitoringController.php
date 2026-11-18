@@ -24,7 +24,7 @@ class MahasiswaMonitoringController extends Controller
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
             'kode_prodi' => ['nullable', 'string', 'exists:prodi,kode_prodi'],
-            'sort' => ['nullable', Rule::in(['id', 'nama_lengkap', 'nim', 'prodi', 'fakultas'])],
+            'sort' => ['nullable', Rule::in(['id', 'nama_lengkap', 'nim', 'email', 'angkatan', 'prodi', 'fakultas'])],
             'direction' => ['nullable', Rule::in(['asc', 'desc'])],
         ]);
 
@@ -43,6 +43,8 @@ class MahasiswaMonitoringController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('nama_lengkap', 'like', "%{$search}%")
                     ->orWhere('nim', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('angkatan', 'like', "%{$search}%")
                     ->orWhere('program_studi', 'like', "%{$search}%")
                     ->orWhereHas('user', function ($userQuery) use ($search) {
                         $userQuery->where('name', 'like', "%{$search}%");
@@ -159,6 +161,9 @@ class MahasiswaMonitoringController extends Controller
             'user_id' => $peserta->user_id,
             'nama_lengkap' => $peserta->nama_lengkap,
             'nim' => $peserta->nim,
+            'email' => $peserta->email,
+            'no_telepon' => $peserta->no_telepon,
+            'angkatan' => $peserta->angkatan,
             'program_studi' => $legacyProdi,
             'kode_prodi' => $peserta->kode_prodi,
             'total_jam_disetujui' => round($peserta->logKegiatans->sum(fn ($log) => $log->durasiJam()), 1),

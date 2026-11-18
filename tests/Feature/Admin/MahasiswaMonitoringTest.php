@@ -57,6 +57,8 @@ class MahasiswaMonitoringTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->where('mahasiswas.data.0.id', $peserta->id)
                 ->where('mahasiswas.data.0.total_jam_disetujui', 3.5)
+                ->where('mahasiswas.data.0.email', $peserta->email)
+                ->where('mahasiswas.data.0.angkatan', 2024)
                 ->where('canManage', true)
             );
     }
@@ -84,9 +86,20 @@ class MahasiswaMonitoringTest extends TestCase
                 ->component('Admin/Mahasiswa/Index')
                 ->where('mahasiswas.data.0.id', $peserta->id)
                 ->where('mahasiswas.data.0.total_jam_disetujui', 3)
+                ->where('mahasiswas.data.0.email', $peserta->email)
+                ->where('mahasiswas.data.0.angkatan', 2024)
                 ->where('mahasiswas.total', 1)
                 ->where('isDpp', true)
                 ->where('canManage', false)
+            );
+
+        $this->actingAs($dpp)
+            ->get(route('dpp.mahasiswa.show', $peserta))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Admin/Mahasiswa/Show')
+                ->where('mahasiswa.email', $peserta->email)
+                ->where('mahasiswa.no_telepon', $peserta->no_telepon)
+                ->where('mahasiswa.angkatan', 2024)
             );
 
         $this->actingAs($dpp)
@@ -109,6 +122,9 @@ class MahasiswaMonitoringTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Admin/Mahasiswa/Show')
                 ->where('mahasiswa.id', $peserta->id)
+                ->where('mahasiswa.email', $peserta->email)
+                ->where('mahasiswa.no_telepon', $peserta->no_telepon)
+                ->where('mahasiswa.angkatan', 2024)
                 ->has('mahasiswa.route_key')
             );
     }
@@ -519,6 +535,7 @@ class MahasiswaMonitoringTest extends TestCase
                 'nama_lengkap' => 'Mahasiswa Contoh',
                 'nim' => '202600000003',
                 'email' => 'mahasiswa@example.com',
+                'angkatan' => $peserta->angkatan,
                 'kode_prodi' => $prodi->kode_prodi,
                 'password' => 'PasswordAdmin123!',
                 'password_confirmation' => 'PasswordAdmin123!',

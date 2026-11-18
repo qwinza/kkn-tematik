@@ -9,29 +9,31 @@ class KegiatanSeeder extends Seeder
 {
     /**
      * Run the database seeds.
-     *
-     * @return void
      */
-    public function run()
+    public function run(): void
     {
         $prodi = [
-            ['kode_prodi' => 'TI', 'nama_prodi' => 'Teknik Industri'],
-            ['kode_prodi' => 'TK', 'nama_prodi' => 'Teknik Kimia'],
-            ['kode_prodi' => 'MS', 'nama_prodi' => 'Teknik Mesin'],
-            ['kode_prodi' => 'EL', 'nama_prodi' => 'Teknik Elektro'],
-            ['kode_prodi' => 'IF', 'nama_prodi' => 'Informatika'],
-            ['kode_prodi' => 'SI', 'nama_prodi' => 'Sistem Informasi'],
-            ['kode_prodi' => 'TG', 'nama_prodi' => 'Teknik Geodesi'],
-            ['kode_prodi' => 'TL', 'nama_prodi' => 'Teknik Lingkungan'],
-            ['kode_prodi' => 'TS', 'nama_prodi' => 'Teknik Sipil'],
-            ['kode_prodi' => 'PWK', 'nama_prodi' => 'Perencanaan Wilayah dan Kota'],
-            ['kode_prodi' => 'ARS', 'nama_prodi' => 'Arsitektur'],
-            ['kode_prodi' => 'DKV', 'nama_prodi' => 'Desain Komunikasi Visual'],
-            ['kode_prodi' => 'DI', 'nama_prodi' => 'Desain Interior'],
-            ['kode_prodi' => 'DP', 'nama_prodi' => 'Desain Produk'],
+            ['kode_prodi' => 'TI', 'nama_prodi' => 'Teknik Industri', 'fakultas' => 'FTI'],
+            ['kode_prodi' => 'TK', 'nama_prodi' => 'Teknik Kimia', 'fakultas' => 'FTI'],
+            ['kode_prodi' => 'MS', 'nama_prodi' => 'Teknik Mesin', 'fakultas' => 'FTI'],
+            ['kode_prodi' => 'EL', 'nama_prodi' => 'Teknik Elektro', 'fakultas' => 'FTI'],
+            ['kode_prodi' => 'IF', 'nama_prodi' => 'Informatika', 'fakultas' => 'FTI'],
+            ['kode_prodi' => 'SI-01', 'nama_prodi' => 'Sistem Informasi', 'fakultas' => 'FTI'],
+            ['kode_prodi' => 'TG', 'nama_prodi' => 'Teknik Geodesi', 'fakultas' => 'FTSP'],
+            ['kode_prodi' => 'TL', 'nama_prodi' => 'Teknik Lingkungan', 'fakultas' => 'FTSP'],
+            ['kode_prodi' => 'TS', 'nama_prodi' => 'Teknik Sipil', 'fakultas' => 'FTSP'],
+            ['kode_prodi' => 'PWK', 'nama_prodi' => 'Perencanaan Wilayah dan Kota', 'fakultas' => 'FTSP'],
+            ['kode_prodi' => 'ARS', 'nama_prodi' => 'Arsitektur', 'fakultas' => 'FAD'],
+            ['kode_prodi' => 'DKV', 'nama_prodi' => 'Desain Komunikasi Visual', 'fakultas' => 'FAD'],
+            ['kode_prodi' => 'DI', 'nama_prodi' => 'Desain Interior', 'fakultas' => 'FAD'],
+            ['kode_prodi' => 'DP', 'nama_prodi' => 'Desain Produk', 'fakultas' => 'FAD'],
         ];
 
-        DB::table('prodi')->insert($prodi);
+        DB::table('prodi')->upsert(
+            $prodi,
+            ['kode_prodi'],
+            ['nama_prodi', 'fakultas']
+        );
 
         $kegiatans = [
             ['kode_kegiatan' => 'ARS-01', 'nama_kegiatan' => 'Identifikasi & Pemetaan Spasial Foto Udara Drone', 'kategori' => 'Pemetaan & Riset', 'kode_prodi' => 'ARS'],
@@ -65,11 +67,11 @@ class KegiatanSeeder extends Seeder
             ['kode_kegiatan' => 'TS-03', 'nama_kegiatan' => 'Program C: Pemetaan Drainase & Perancangan Hidrolika', 'kategori' => 'Pemetaan & Riset', 'kode_prodi' => 'TS'],
             ['kode_kegiatan' => 'TS-04', 'nama_kegiatan' => 'Program E: Optimasi Rute Pengangkutan & Calculation RAB', 'kategori' => 'Kegiatan Lapangan', 'kode_prodi' => 'TS'],
             ['kode_kegiatan' => 'PWK-01', 'nama_kegiatan' => 'Program PWK: Perencanaan Partisipatif & Sektor Informal', 'kategori' => 'Perencanaan & Konsep', 'kode_prodi' => 'PWK'],
-            ['kode_kegiatan' => 'SI-01', 'nama_kegiatan' => 'Tahap 1: Analisis Kebutuhan & FGD Warga Iuran Sampah', 'kategori' => 'Kegiatan Lapangan', 'kode_prodi' => 'SI'],
-            ['kode_kegiatan' => 'SI-02', 'nama_kegiatan' => 'Tahap 2: Perancangan Arsitektur Database & UI/UX Figma', 'kategori' => 'Perancangan', 'kode_prodi' => 'SI'],
-            ['kode_kegiatan' => 'SI-03', 'nama_kegiatan' => 'Tahap 3: Pengkodean Fullstack Web & Mobile SIM Itenas Resik', 'kategori' => 'Pengembangan Sistem', 'kode_prodi' => 'SI'],
-            ['kode_kegiatan' => 'SI-04', 'nama_kegiatan' => 'Tahap 4: User Acceptance Test (UAT) Lapangan Bersama RT/RW', 'kategori' => 'Evaluasi & Pengujian', 'kode_prodi' => 'SI'],
-            ['kode_kegiatan' => 'SI-05', 'nama_kegiatan' => 'Tahap 5: Deployment Server, Training User & User Manual', 'kategori' => 'Fabrikasi & Implementasi', 'kode_prodi' => 'SI'],
+            ['kode_kegiatan' => 'SI-01', 'nama_kegiatan' => 'Tahap 1: Analisis Kebutuhan & FGD Warga Iuran Sampah', 'kategori' => 'Kegiatan Lapangan', 'kode_prodi' => 'SI-01'],
+            ['kode_kegiatan' => 'SI-02', 'nama_kegiatan' => 'Tahap 2: Perancangan Arsitektur Database & UI/UX Figma', 'kategori' => 'Perancangan', 'kode_prodi' => 'SI-01'],
+            ['kode_kegiatan' => 'SI-03', 'nama_kegiatan' => 'Tahap 3: Pengkodean Fullstack Web & Mobile SIM Itenas Resik', 'kategori' => 'Pengembangan Sistem', 'kode_prodi' => 'SI-01'],
+            ['kode_kegiatan' => 'SI-04', 'nama_kegiatan' => 'Tahap 4: User Acceptance Test (UAT) Lapangan Bersama RT/RW', 'kategori' => 'Evaluasi & Pengujian', 'kode_prodi' => 'SI-01'],
+            ['kode_kegiatan' => 'SI-05', 'nama_kegiatan' => 'Tahap 5: Deployment Server, Training User & User Manual', 'kategori' => 'Fabrikasi & Implementasi', 'kode_prodi' => 'SI-01'],
             ['kode_kegiatan' => 'IF-WP1', 'nama_kegiatan' => 'WP1: Analisis Kebutuhan Jaringan IoT & Arsitektur Komputasi', 'kategori' => 'Pengembangan Sistem', 'kode_prodi' => 'IF'],
             ['kode_kegiatan' => 'IF-WP2', 'nama_kegiatan' => 'WP2: Integrasi Hardware Sensor ESP32 & Protokol MQTT', 'kategori' => 'Pengembangan Sistem', 'kode_prodi' => 'IF'],
             ['kode_kegiatan' => 'IF-WP3', 'nama_kegiatan' => 'WP3: Pengembangan Backend REST API & Database Records', 'kategori' => 'Pengembangan Sistem', 'kode_prodi' => 'IF'],
@@ -96,6 +98,10 @@ class KegiatanSeeder extends Seeder
             ['kode_kegiatan' => 'TK-05', 'nama_kegiatan' => 'Pelatihan Operasional Reaktor Warga & Penyusunan SOP', 'kategori' => 'Pelatihan & Sosialisasi', 'kode_prodi' => 'TK'],
         ];
 
-        DB::table('master_kegiatans')->insert($kegiatans);
+        DB::table('master_kegiatans')->upsert(
+            $kegiatans,
+            ['kode_kegiatan'],
+            ['nama_kegiatan', 'kategori', 'kode_prodi']
+        );
     }
 }

@@ -7,6 +7,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,6 +22,9 @@ class ProfileController extends Controller
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
+            'mahasiswaProfile' => $request->user()->isMahasiswa()
+                ? $request->user()->peserta?->only(['email', 'angkatan', 'no_telepon'])
+                : null,
         ]);
     }
 
@@ -35,7 +39,15 @@ class ProfileController extends Controller
             $request->user()->email_verified_at = null;
         }
 
-        $request->user()->save();
+        $user = $request->user();
+
+        DB::transaction(function () use ($user): void {
+            $user->save();
+
+            if ($user->isMahasiswa() && $user->peserta) {
+                $user->peserta->update(['email' => $user->email]);
+            }
+        });
 
         return Redirect::route('profile.edit');
     }

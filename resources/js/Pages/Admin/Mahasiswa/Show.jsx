@@ -6,7 +6,8 @@ export default function Show({ mahasiswa, isDpp = false }) {
     const prodiNama =
         mahasiswa.prodi?.nama_prodi || mahasiswa.program_studi || '-';
     const fakultas = mahasiswa.prodi?.fakultas || '-';
-    const email = mahasiswa.user?.email || '-';
+    const email = mahasiswa.email || '-';
+    const noTelepon = mahasiswa.no_telepon || '-';
     const namaAkun = mahasiswa.user?.name || '-';
 
     const formatDate = (dateString) => {
@@ -126,10 +127,28 @@ export default function Show({ mahasiswa, isDpp = false }) {
 
                                 <div className="rounded-lg bg-gray-50 p-4">
                                     <dt className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                        Email Akun
+                                        Email Mahasiswa
                                     </dt>
                                     <dd className="mt-1 text-base text-gray-900">
                                         {email}
+                                    </dd>
+                                </div>
+
+                                <div className="rounded-lg bg-gray-50 p-4">
+                                    <dt className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                        No. Telepon
+                                    </dt>
+                                    <dd className="mt-1 text-base text-gray-900">
+                                        {noTelepon}
+                                    </dd>
+                                </div>
+
+                                <div className="rounded-lg bg-gray-50 p-4">
+                                    <dt className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                        Angkatan
+                                    </dt>
+                                    <dd className="mt-1 text-base font-medium text-gray-900">
+                                        {mahasiswa.angkatan || 'Belum diisi'}
                                     </dd>
                                 </div>
 

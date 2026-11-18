@@ -55,7 +55,7 @@ class ApprovedLogKegiatanExport implements FromQuery, ShouldAutoSize, WithHeadin
             $this->safeCell($log->jam_kehadiran),
             $this->safeCell($log->peserta?->nama_lengkap),
             $this->safeCell($log->peserta?->nim),
-            $this->safeCell($log->peserta?->user?->email),
+            $this->safeCell($log->peserta?->email),
             $this->safeCell($log->peserta?->prodi?->nama_prodi ?? $log->peserta?->program_studi),
             $this->safeCell($log->masterKegiatan?->kode_kegiatan),
             $this->safeCell($log->masterKegiatan?->nama_kegiatan),

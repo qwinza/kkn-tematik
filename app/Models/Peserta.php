@@ -21,6 +21,18 @@ class Peserta extends Model
     protected $guarded = ['id'];
 
     /**
+     * The model's attribute casts.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'angkatan' => 'integer',
+        ];
+    }
+
+    /**
      * Relasi ke akun User.
      */
     public function user(): BelongsTo
