@@ -21,11 +21,8 @@ export default function MasterKegiatanIndex({
     const [kodeProdi, setKodeProdi] = useState(filters?.kode_prodi || '');
     const filterTimer = useRef(null);
     const [modalState, setModalState] = useState({ isOpen: false, mode: 'create', item: null });
-<<<<<<< HEAD
-=======
     const [deleteItem, setDeleteItem] = useState(null);
     const [openActionMenu, setOpenActionMenu] = useState(null);
->>>>>>> origin/devs
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
         nama_kegiatan: '',
@@ -104,17 +101,9 @@ export default function MasterKegiatanIndex({
     const handleToggleStatus = async (item) => {
         const isActivating = !item.is_active;
         const confirmed = await confirmWithSweetAlert({
-<<<<<<< HEAD
-            title: `${isActivating ? 'Aktifkan' : 'Nonaktifkan'} jadwal kegiatan?`,
-            text: isActivating
-                ? `${item.nama_kegiatan} (${item.kode_kegiatan}) akan tersedia kembali untuk mahasiswa.`
-                : `${item.nama_kegiatan} (${item.kode_kegiatan}) tidak akan tersedia untuk pilihan kegiatan baru. Riwayat yang sudah ada tetap tersimpan.`,
-            confirmButtonText: isActivating ? 'Ya, aktifkan' : 'Ya, nonaktifkan',
-=======
             title: 'Hapus Jenis Kegiatan?',
             text: `Data ${item.nama_kegiatan} (${item.kode_kegiatan}) akan dihapus.`,
             confirmButtonText: 'Ya, hapus',
->>>>>>> origin/devs
         });
         if (!confirmed) {
             return;
@@ -233,30 +222,6 @@ export default function MasterKegiatanIndex({
                                                     </span>
                                                 </td>
                                                 {canManage && (
-<<<<<<< HEAD
-                                                    <td className="whitespace-nowrap px-6 py-4 text-right space-x-2">
-                                                        <SecondaryButton
-                                                            onClick={() => openEditModal(item)}
-                                                            className="text-xs"
-                                                        >
-                                                            Edit
-                                                        </SecondaryButton>
-                                                        {item.is_active ? (
-                                                            <SecondaryButton
-                                                                onClick={() => handleToggleStatus(item)}
-                                                                className="portal-master-kegiatan-toggle is-disable"
-                                                            >
-                                                                Nonaktifkan
-                                                            </SecondaryButton>
-                                                        ) : (
-                                                            <PrimaryButton
-                                                                onClick={() => handleToggleStatus(item)}
-                                                                className="portal-master-kegiatan-toggle is-enable"
-                                                            >
-                                                                Aktifkan
-                                                            </PrimaryButton>
-                                                        )}
-=======
                                                     <td className="whitespace-nowrap px-6 py-4 text-right">
                                                         <div className="portal-admin-students-action-menu">
                                                             <button
@@ -296,20 +261,14 @@ export default function MasterKegiatanIndex({
                                                                 </div>
                                                             )}
                                                         </div>
->>>>>>> origin/devs
                                                     </td>
                                                 )}
                                             </tr>
                                         ))
                                     ) : (
                                         <tr>
-<<<<<<< HEAD
-                                            <td colSpan={canManage ? 5 : 4} className="py-8 text-center text-gray-500">
-                                                Belum ada data jadwal kegiatan.
-=======
                                             <td colSpan={canManage ? 7 : 6} className="py-8 text-center text-gray-500">
                                                 Belum ada data jenis kegiatan.
->>>>>>> origin/devs
                                             </td>
                                         </tr>
                                     )}
@@ -363,9 +322,6 @@ export default function MasterKegiatanIndex({
                                 id="kode_prodi"
                                 className="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                 value={data.kode_prodi}
-<<<<<<< HEAD
-                                onChange={(e) => setData('kode_prodi', e.target.value)}
-=======
                                 onChange={(e) => {
                                     const selectedProdi = e.target.value;
                                     const selectedCode = modalState.mode === 'edit'
@@ -379,7 +335,6 @@ export default function MasterKegiatanIndex({
                                         kode_kegiatan: selectedCode,
                                     });
                                 }}
->>>>>>> origin/devs
                                 required
                             >
                                 <option value="">Pilih program studi</option>
@@ -390,8 +345,6 @@ export default function MasterKegiatanIndex({
                                 ))}
                             </select>
                             <InputError message={errors.kode_prodi} className="mt-1" />
-<<<<<<< HEAD
-=======
                         </div>
 
                         <div>
@@ -404,7 +357,6 @@ export default function MasterKegiatanIndex({
                                 value={data.kode_kegiatan}
                                 readOnly
                             />
->>>>>>> origin/devs
                         </div>
 
                         <div>
@@ -446,8 +398,6 @@ export default function MasterKegiatanIndex({
                 </form>
             </Modal>
 
-<<<<<<< HEAD
-=======
             {/* Modal Konfirmasi Hapus */}
             <Modal show={Boolean(deleteItem)} onClose={() => setDeleteItem(null)}>
                 <div className="p-6">
@@ -467,7 +417,6 @@ export default function MasterKegiatanIndex({
                     </div>
                 </div>
             </Modal>
->>>>>>> origin/devs
         </AuthenticatedLayout>
     );
 }

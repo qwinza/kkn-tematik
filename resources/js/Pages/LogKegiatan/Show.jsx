@@ -5,9 +5,6 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 import confirmWithSweetAlert from '@/Components/confirmWithSweetAlert';
 
-<<<<<<< HEAD
-export default function LogKegiatanShow({ log, isAdmin, isDpp = false }) {
-=======
 export default function LogKegiatanShow({
     log,
     isAdmin,
@@ -16,7 +13,6 @@ export default function LogKegiatanShow({
 }) {
     const canReview = Boolean(isReviewer || isAdmin || isDpp);
 
->>>>>>> origin/devs
     const [isApproving, setIsApproving] = useState(false);
     const [isRejecting, setIsRejecting] = useState(false);
 
@@ -86,11 +82,6 @@ export default function LogKegiatanShow({
                                 Kembali
                             </SecondaryButton>
                         </Link>
-<<<<<<< HEAD
-                        {!isAdmin && !isDpp && ['draft', 'ditolak'].includes(log.status) && (
-                            <Link href={route('log-kegiatan.edit', { log_kegiatan: log.route_key, step: log.current_step })}>
-                                <PrimaryButton>{log.status === 'ditolak' ? 'Perbaiki Kegiatan' : 'Ubah Kegiatan'}</PrimaryButton>
-=======
 
                         {!canReview && ['draft', 'ditolak'].includes(log.status) && (
                             <Link
@@ -104,7 +95,6 @@ export default function LogKegiatanShow({
                                         ? 'Perbaiki Kegiatan'
                                         : 'Ubah Kegiatan'}
                                 </PrimaryButton>
->>>>>>> origin/devs
                             </Link>
                         )}
 

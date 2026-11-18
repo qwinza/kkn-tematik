@@ -114,28 +114,6 @@ class MasterKegiatanTest extends TestCase
         ]);
     }
 
-<<<<<<< HEAD
-    public function test_admin_can_create_master_kegiatan_without_entering_a_code(): void
-    {
-        $admin = User::factory()->admin()->create();
-        $prodi = Prodi::factory()->create();
-
-        $response = $this->actingAs($admin)->post(route('master-kegiatan.store'), [
-            'nama_kegiatan' => 'Pemberdayaan Masyarakat Pesisir',
-            'kategori' => 'Pemberdayaan',
-            'kode_prodi' => $prodi->kode_prodi,
-        ]);
-
-        $response->assertRedirect();
-        $response->assertSessionHas('success');
-
-        $kegiatan = MasterKegiatan::query()->where('nama_kegiatan', 'Pemberdayaan Masyarakat Pesisir')->firstOrFail();
-        $this->assertMatchesRegularExpression('/^KKN-[A-Z0-9]{8}$/', $kegiatan->kode_kegiatan);
-        $this->assertDatabaseHas('master_kegiatans', [
-            'id' => $kegiatan->id,
-            'kategori' => 'Pemberdayaan',
-            'kode_prodi' => $prodi->kode_prodi,
-=======
     public function test_new_activity_code_increments_independently_for_each_program(): void
     {
         $admin = User::factory()->admin()->create();
@@ -195,7 +173,6 @@ class MasterKegiatanTest extends TestCase
         $this->assertDatabaseHas('master_kegiatans', [
             'kode_kegiatan' => 'SI-06',
             'kode_prodi' => $informationSystems->kode_prodi,
->>>>>>> origin/devs
         ]);
     }
 

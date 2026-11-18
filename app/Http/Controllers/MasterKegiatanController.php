@@ -7,11 +7,7 @@ use App\Models\MasterKegiatan;
 use App\Models\Prodi;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-<<<<<<< HEAD
-use Illuminate\Support\Str;
-=======
 use Illuminate\Support\Facades\DB;
->>>>>>> origin/devs
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -129,12 +125,6 @@ class MasterKegiatanController extends Controller
     public function store(MasterKegiatanRequest $request): RedirectResponse
     {
         $validated = $request->validated();
-<<<<<<< HEAD
-        $validated['kode_kegiatan'] ??= 'KKN-'.Str::upper(Str::random(8));
-
-        MasterKegiatan::create($validated);
-=======
->>>>>>> origin/devs
 
         DB::transaction(function () use ($validated): void {
             Prodi::query()
@@ -172,20 +162,6 @@ class MasterKegiatanController extends Controller
         return back()->with('success', 'Master kegiatan berhasil diperbarui.');
     }
 
-<<<<<<< HEAD
-    /**
-     * Ubah status aktif master kegiatan tanpa menghapus riwayatnya.
-     */
-    public function updateStatus(Request $request, MasterKegiatan $masterKegiatan): RedirectResponse
-    {
-        if (! $request->user()?->isAdmin()) {
-            abort(403, 'Hanya admin yang berhak mengubah status jadwal kegiatan.');
-        }
-
-        $validated = $request->validate([
-            'is_active' => ['required', 'boolean'],
-        ]);
-=======
     public function destroy(
         Request $request,
         MasterKegiatan $masterKegiatan
@@ -210,15 +186,38 @@ class MasterKegiatanController extends Controller
                 'Master kegiatan tidak dapat dihapus karena sudah memiliki relasi log kegiatan.'
             );
         }
->>>>>>> origin/devs
+
+        $masterKegiatan->delete();
+
+        return back()->with('success', 'Master kegiatan berhasil dihapus.');
+    }
+
+    public function updateStatus(
+        Request $request,
+        MasterKegiatan $masterKegiatan
+    ): RedirectResponse {
+        $user = $request->user();
+
+        if ($user?->isDpp()) {
+            $dppKodeProdi = $user->dppProfile?->kode_prodi;
+
+            abort_unless(
+                $dppKodeProdi
+                && $masterKegiatan->kode_prodi === $dppKodeProdi,
+                403
+            );
+        } else {
+            abort_unless($user?->isAdmin(), 403);
+        }
+
+        $validated = $request->validate([
+            'is_active' => ['required', 'boolean'],
+        ]);
 
         $masterKegiatan->update(['is_active' => $validated['is_active']]);
         $status = $masterKegiatan->is_active ? 'diaktifkan' : 'dinonaktifkan';
 
-<<<<<<< HEAD
-        return redirect()->back()->with('success', "Jadwal kegiatan berhasil {$status}.");
-=======
-        return back()->with('success', 'Master kegiatan berhasil dihapus.');
+        return back()->with('success', "Master kegiatan berhasil {$status}.");
     }
 
     /**
@@ -294,6 +293,5 @@ class MasterKegiatanController extends Controller
         return $prodiPrefix === 'IF'
             ? 'IF-WP'
             : $prodiPrefix.'-';
->>>>>>> origin/devs
     }
 }

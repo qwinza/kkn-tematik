@@ -85,7 +85,7 @@ class DatabaseSeeder extends Seeder
                 'nama_lengkap' => 'Farid Annas',
                 'nim' => '152025083',
                 'program_studi' => 'Sistem Informasi',
-                'kode_prodi' => 'SI',
+                'kode_prodi' => 'SI-01',
             ]
         );
     }

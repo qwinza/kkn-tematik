@@ -3107,8 +3107,6 @@
     color: #b2bac2;
 }
 
-<<<<<<< HEAD
-=======
 .portal-analytics-page {
     min-height: calc(100vh - 64px);
     padding: 24px 24px 48px;
@@ -3336,7 +3334,6 @@
     font-size: 12px;
 }
 
->>>>>>> origin/devs
 @media (max-width: 900px) {
     .portal-dashboard-overview {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3402,8 +3399,6 @@
         grid-template-columns: 1fr;
     }
 
-<<<<<<< HEAD
-=======
     .portal-analytics-page {
         padding: 18px 16px 32px;
     }
@@ -3425,7 +3420,6 @@
         gap: 8px;
     }
 
->>>>>>> origin/devs
     .portal-dashboard-quick-card {
         grid-column: auto;
     }

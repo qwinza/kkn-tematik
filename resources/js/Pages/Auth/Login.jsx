@@ -93,13 +93,7 @@ export default function Login({ status }) {
                             >
                                 {/* IDENTIFIER */}
                                 <div className="login-field">
-<<<<<<< HEAD
-                                    <label htmlFor="identifier">
-                                        NIM / Email
-                                    </label>
-=======
                                     <label htmlFor="identifier">NIM / Username / Email</label>
->>>>>>> origin/devs
 
                                     <div
                                         className={`login-input-wrapper ${
@@ -157,11 +151,7 @@ export default function Login({ status }) {
                                 <div className="login-field">
                                     <div className="login-label-row">
                                         <label htmlFor="password">
-<<<<<<< HEAD
-                                            Password / PIN Kampus
-=======
                                             Password
->>>>>>> origin/devs
                                         </label>
                                     </div>
 

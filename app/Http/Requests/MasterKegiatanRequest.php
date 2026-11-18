@@ -45,16 +45,6 @@ class MasterKegiatanRequest extends FormRequest
     public function rules(): array
     {
         return [
-<<<<<<< HEAD
-            'kode_kegiatan' => [
-                'sometimes',
-                'required',
-                'string',
-                'max:50',
-                Rule::unique('master_kegiatans', 'kode_kegiatan')->ignore($masterKegiatanId),
-            ],
-=======
->>>>>>> origin/devs
             'nama_kegiatan' => ['required', 'string', 'max:255'],
             'kategori' => ['required', 'string', 'max:100'],
             'kode_prodi' => ['required', 'string', 'exists:prodi,kode_prodi'],

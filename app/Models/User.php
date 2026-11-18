@@ -73,16 +73,10 @@ class User extends Authenticatable
     {
         return $this->role === 'mahasiswa';
     }
-<<<<<<< HEAD
 
-    public function isDosen(): bool
-    {
-        return in_array($this->role, ['dosen', 'dpp'], true);
-=======
     public function dppProfile(): HasOne
     {
         return $this->hasOne(DppProfile::class);
->>>>>>> origin/devs
     }
 
     public function isDpp(): bool

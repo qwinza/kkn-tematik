@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DppAccessRequest;
 use App\Models\Peserta;
 use App\Models\Prodi;
 use App\Models\User;
-use App\Models\DppAccessRequest;
 use App\Services\DosenSikadAuthService;
-use RuntimeException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,6 +19,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 class AuthController extends Controller
 {
@@ -35,11 +35,7 @@ class AuthController extends Controller
     }
 
     /**
-<<<<<<< HEAD
-     * Handle proses login untuk akun Admin, Dosen, dan Mahasiswa.
-=======
      * Menangani autentikasi Admin, Mahasiswa, dan Dosen.
->>>>>>> origin/devs
      *
      * @throws ValidationException
      */
@@ -59,16 +55,6 @@ class AuthController extends Controller
 
         $this->ensureIsNotRateLimited($identifier, $request->ip());
 
-<<<<<<< HEAD
-        // Akun staf lokal menggunakan email.
-        if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
-            return $this->handleAdminLogin($request, $identifier, $password);
-        }
-
-        // Akun dosen lokal dan akun mahasiswa kampus sama-sama menggunakan NIM.
-        if (preg_match('/^[0-9]+$/', $identifier)) {
-            return $this->handleMahasiswaLogin($request, $identifier, $password);
-=======
         // Email hanya diarahkan ke Admin jika terdaftar sebagai akun Admin lokal.
         $isAdminAccount = filter_var($identifier, FILTER_VALIDATE_EMAIL)
             && User::query()
@@ -97,25 +83,17 @@ class AuthController extends Controller
                 $identifier,
                 $password
             );
->>>>>>> origin/devs
         }
 
         // Identitas lainnya, termasuk username dosen numerik,
         // diverifikasi melalui API SIKAD.
 
-<<<<<<< HEAD
-        throw ValidationException::withMessages([
-            'identifier' => 'Masukkan NIM atau email akun staf yang terdaftar.',
-            'email' => 'Masukkan NIM atau email akun staf yang terdaftar.',
-        ]);
-=======
         // Identitas lainnya diverifikasi melalui API SIKAD Dosen.
         return $this->handleDosenLogin(
             $request,
             $identifier,
             $password
         );
->>>>>>> origin/devs
     }
 
     /**
@@ -150,18 +128,13 @@ class AuthController extends Controller
         /** @var User $user */
         $user = Auth::user();
 
-        if (! $user->isAdmin() && (! $user->isDosen() || ! $user->prodi()->exists())) {
+        if (! $user->isAdmin()) {
             Auth::logout();
 
             $this->hitRateLimiter($email, $request->ip());
 
             throw ValidationException::withMessages([
-<<<<<<< HEAD
-                'identifier' => 'Akses ditolak. Email hanya diperuntukkan untuk akun Admin atau Dosen dengan program studi terdaftar.',
-                'email' => 'Akses ditolak. Email hanya diperuntukkan untuk akun Admin atau Dosen dengan program studi terdaftar.',
-=======
                 'identifier' => 'Akun ini tidak memiliki akses login Admin.',
->>>>>>> origin/devs
             ]);
         }
 
