@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -53,11 +52,6 @@ class User extends Authenticatable
         return $this->hasOne(Peserta::class);
     }
 
-    public function prodi(): BelongsTo
-    {
-        return $this->belongsTo(Prodi::class, 'kode_prodi', 'kode_prodi');
-    }
-
     /**
      * Cek apakah user memiliki peran admin.
      */
@@ -74,8 +68,13 @@ class User extends Authenticatable
         return $this->role === 'mahasiswa';
     }
 
-    public function isDosen(): bool
+    public function dppProfile(): HasOne
     {
-        return $this->role === 'dosen';
+        return $this->hasOne(DppProfile::class);
+    }
+
+    public function isDpp(): bool
+    {
+        return $this->role === 'dpp';
     }
 }

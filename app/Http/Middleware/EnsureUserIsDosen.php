@@ -15,7 +15,9 @@ class EnsureUserIsDosen
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->user()?->isDosen() || ! $request->user()->prodi()->exists()) {
+        $user = $request->user();
+
+        if (! $user?->isDpp() || ! $user->dppProfile()->exists()) {
             abort(403, 'Akses ini khusus dosen pembimbing dengan program studi terdaftar.');
         }
 

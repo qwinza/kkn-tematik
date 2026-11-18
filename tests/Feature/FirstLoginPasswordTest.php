@@ -12,7 +12,7 @@ class FirstLoginPasswordTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_student_with_legacy_password_flag_can_access_dashboard(): void
+    public function test_student_with_temporary_password_must_change_it_before_accessing_dashboard(): void
     {
         $user = User::factory()->create([
             'name' => 'Mahasiswa Dummy',
@@ -24,7 +24,7 @@ class FirstLoginPasswordTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('dashboard'))
-            ->assertOk();
+            ->assertRedirect(route('password.first-login.edit'));
 
         $this->actingAs($user)
             ->get(route('password.first-login.edit'))

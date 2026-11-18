@@ -16,7 +16,11 @@ class FirstLoginPasswordController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user?->isMahasiswa(), 403);
+        abort_unless(
+            $user && $user->isMahasiswa(),
+            403,
+            'Fitur perubahan password pertama hanya berlaku untuk mahasiswa.'
+        );
 
         if (! $user->must_change_password) {
             return redirect()->route('dashboard');
@@ -29,7 +33,11 @@ class FirstLoginPasswordController extends Controller
     {
         $user = $request->user();
 
-        abort_unless($user?->isMahasiswa(), 403);
+        abort_unless(
+            $user && $user->isMahasiswa(),
+            403,
+            'Fitur perubahan password pertama hanya berlaku untuk mahasiswa.'
+        );
 
         if (! $user->must_change_password) {
             return redirect()->route('dashboard');
@@ -37,7 +45,12 @@ class FirstLoginPasswordController extends Controller
 
         $validated = $request->validate([
             'current_password' => ['required', 'current_password'],
-            'password' => ['required', Password::defaults(), 'confirmed', 'different:current_password'],
+            'password' => [
+                'required',
+                Password::defaults(),
+                'confirmed',
+                'different:current_password',
+            ],
         ], [
             'password.different' => 'Password baru harus berbeda dari password sementara.',
         ]);

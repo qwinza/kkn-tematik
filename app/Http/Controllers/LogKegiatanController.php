@@ -13,16 +13,21 @@ use App\Models\MasterKegiatan;
 use App\Models\Peserta;
 use App\Models\Prodi;
 use App\Models\User;
+use App\Services\PythonAnalyticsService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LogKegiatanController extends Controller
 {
@@ -32,39 +37,91 @@ class LogKegiatanController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
+
         $isAdmin = $user?->isAdmin() ?? false;
-        $filters = $this->validateLogFilters($request, $isAdmin);
+        $isDpp = $user?->isDpp() ?? false;
+        $isReviewer = $isAdmin || $isDpp;
+
+        $dppKodeProdi = $isDpp
+            ? $this->getDppKodeProdi($user)
+            : null;
+
+        $filters = $this->validateLogFilters($request, $isReviewer);
+
+        if ($isDpp) {
+            $filters['kode_prodi'] = $dppKodeProdi;
+        }
 
         $sort = $filters['sort'] ?? 'tanggal_kehadiran';
         $direction = $filters['direction'] ?? 'desc';
 
-        $query = $this->filteredLogsQuery($filters, $isAdmin);
+        $query = $this->filteredLogsQuery(
+            $filters,
+            $isReviewer,
+            null,
+            $dppKodeProdi
+        );
 
         if ($sort === 'mahasiswa') {
-            $query->orderBy(Peserta::query()
-                ->select('nama_lengkap')
-                ->whereColumn('pesertas.id', 'log_kegiatans.peserta_id'), $direction);
+            $query->orderBy(
+                Peserta::query()
+                    ->select('nama_lengkap')
+                    ->whereColumn('pesertas.id', 'log_kegiatans.peserta_id'),
+                $direction
+            );
         } elseif ($sort === 'kegiatan') {
-            $query->orderBy(MasterKegiatan::query()
-                ->select('nama_kegiatan')
-                ->whereColumn('master_kegiatans.id', 'log_kegiatans.master_kegiatan_id'), $direction);
+            $query->orderBy(
+                MasterKegiatan::query()
+                    ->select('nama_kegiatan')
+                    ->whereColumn(
+                        'master_kegiatans.id',
+                        'log_kegiatans.master_kegiatan_id'
+                    ),
+                $direction
+            );
         } else {
             $query->orderBy($sort, $direction);
         }
 
         $logs = $query->paginate(10)->withQueryString();
-        $pendingCount = $isAdmin
-            ? $this->filteredLogsQuery($filters, true, 'menunggu')->count()
+
+        $pendingCount = $isReviewer
+            ? $this->filteredLogsQuery(
+                $filters,
+                true,
+                'menunggu',
+                $dppKodeProdi
+            )->count()
             : 0;
+
         $masterKegiatans = MasterKegiatan::query()
-            ->when(! $isAdmin, fn ($query) => $query
-                ->where('kode_prodi', $user?->peserta?->kode_prodi)
-                ->where('is_active', true))
+            ->when(
+                $isDpp,
+                fn ($query) => $query->where('kode_prodi', $dppKodeProdi)
+            )
+            ->when(
+                ! $isReviewer,
+                fn ($query) => $query->where(
+                    'kode_prodi',
+                    $user?->peserta?->kode_prodi
+                )
+            )
             ->orderBy('nama_kegiatan')
-            ->get(['id', 'kode_kegiatan', 'nama_kegiatan', 'kategori', 'kode_prodi']);
+            ->get([
+                'id',
+                'kode_kegiatan',
+                'nama_kegiatan',
+                'kategori',
+                'kode_prodi',
+            ]);
+
         $prodis = $isAdmin
-            ? Prodi::query()->orderBy('nama_prodi')->get(['kode_prodi', 'nama_prodi'])
-            : [];
+            ? Prodi::query()->orderBy('nama_prodi')
+                ->get(['kode_prodi', 'nama_prodi'])
+            : ($isDpp
+                ? Prodi::query()->where('kode_prodi', $dppKodeProdi)
+                    ->get(['kode_prodi', 'nama_prodi'])
+                : []);
 
         return Inertia::render('LogKegiatan/Index', [
             'logs' => $logs,
@@ -81,6 +138,8 @@ class LogKegiatanController extends Controller
                 'direction' => $direction,
             ],
             'isAdmin' => $isAdmin,
+            'isDpp' => $isDpp,
+            'isReviewer' => $isReviewer,
             'sessions' => RencanaKehadiranController::VALID_SESSIONS,
             'pendingCount' => $pendingCount,
         ]);
@@ -88,10 +147,30 @@ class LogKegiatanController extends Controller
 
     public function export(Request $request): BinaryFileResponse
     {
-        abort_unless($request->user()?->isAdmin(), 403);
+        $user = $request->user();
+
+        abort_unless(
+            $user && ($user->isAdmin() || $user->isDpp()),
+            403
+        );
+
+        $isDpp = $user->isDpp();
+        $dppKodeProdi = $isDpp
+            ? $this->getDppKodeProdi($user)
+            : null;
 
         $filters = $this->validateLogFilters($request, true);
-        $query = $this->filteredLogsQuery($filters, true, 'disetujui')
+
+        if ($isDpp) {
+            $filters['kode_prodi'] = $dppKodeProdi;
+        }
+
+        $query = $this->filteredLogsQuery(
+            $filters,
+            true,
+            'disetujui',
+            $dppKodeProdi
+        )
             ->orderByDesc('tanggal_kehadiran')
             ->orderByDesc('id');
 
@@ -101,22 +180,182 @@ class LogKegiatanController extends Controller
         );
     }
 
-    public function approveAll(Request $request): RedirectResponse
+    public function exportPythonSummary(Request $request, PythonAnalyticsService $python): StreamedResponse
     {
-        abort_unless($request->user()?->isAdmin(), 403);
+        $user = $request->user();
 
+        abort_unless($user && ($user->isAdmin() || $user->isDpp()), 403);
+
+        $isDpp = $user->isDpp();
+        $dppKodeProdi = $isDpp ? $this->getDppKodeProdi($user) : null;
         $filters = $this->validateLogFilters($request, true);
-        $approvedCount = $this->filteredLogsQuery($filters, true, 'menunggu')
-            ->update([
-                'status' => 'disetujui',
-                'updated_at' => now(),
-            ]);
 
-        if ($approvedCount === 0) {
-            return back()->with('error', 'Tidak ada laporan menunggu yang cocok dengan filter aktif.');
+        if ($isDpp) {
+            $filters['kode_prodi'] = $dppKodeProdi;
         }
 
-        return back()->with('success', "{$approvedCount} laporan kegiatan berhasil disetujui.");
+        $logs = $this->filteredLogsQuery(
+            $filters,
+            true,
+            'disetujui',
+            $dppKodeProdi
+        )->get();
+
+        $activities = [];
+
+        foreach ($logs as $log) {
+            if (! $log->peserta) {
+                continue;
+            }
+
+            $activities[] = [
+                'nim' => $log->peserta->nim,
+                'nama' => $log->peserta->nama_lengkap,
+                'durasi_jam' => $log->durasiJam(),
+            ];
+        }
+
+        try {
+            $summary = $python->run('rekap-jam', $activities);
+        } catch (RuntimeException $exception) {
+            Log::error('Python activity summary failed.', ['exception' => $exception]);
+            abort(503, 'Fitur rekap Python belum tersedia. Pastikan Python terpasang di server.');
+        }
+
+        return response()->streamDownload(function () use ($summary): void {
+            $output = fopen('php://output', 'w');
+
+            fwrite($output, "\xEF\xBB\xBF");
+            fputcsv($output, ['NIM', 'Nama Mahasiswa', 'Total Jam Disetujui'], ',', '"', '');
+
+            foreach ($summary as $mahasiswa) {
+                fputcsv($output, [
+                    $this->safeCsvCell((string) ($mahasiswa['nim'] ?? '')),
+                    $this->safeCsvCell((string) ($mahasiswa['nama'] ?? '')),
+                    (float) ($mahasiswa['total_jam'] ?? 0),
+                ], ',', '"', '');
+            }
+
+            fclose($output);
+        }, 'rekap-jam-mahasiswa-python-'.now()->format('Ymd-His').'.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    /**
+     * Export seluruh riwayat kegiatan milik mahasiswa yang sedang login ke PDF.
+     */
+    public function exportStudentPdf(
+        Request $request,
+        PythonAnalyticsService $python
+    ): HttpResponse {
+        $user = $request->user();
+
+        abort_unless($user && $user->isMahasiswa(), 403);
+
+        $peserta = $user->peserta;
+
+        abort_unless($peserta, 404, 'Profil peserta tidak ditemukan.');
+
+        $logs = $peserta->logKegiatans()
+            ->with('masterKegiatan')
+            ->orderByDesc('tanggal_kehadiran')
+            ->orderByDesc('id')
+            ->get();
+
+        $payload = [
+            'mahasiswa' => [
+                'nama' => $peserta->nama_lengkap,
+                'nim' => $peserta->nim,
+                'prodi' => $peserta->prodi?->nama_prodi ?? 'Belum ditentukan',
+            ],
+            'kegiatan' => $logs->map(function (LogKegiatan $log): array {
+                return [
+                    'nama_kegiatan' => $log->masterKegiatan?->nama_kegiatan
+                        ?? 'Kegiatan belum dipilih',
+                    'tanggal' => $log->tanggal_kehadiran?->format('Y-m-d'),
+                    'jam_mulai' => $log->jam_mulai,
+                    'jam_selesai' => $log->jam_selesai,
+                    'jam_kehadiran' => $log->jam_kehadiran,
+                    'durasi_jam' => $log->durasiJam(),
+                    'status' => $log->status,
+                    'deskripsi_kegiatan' => $log->deskripsi_kegiatan,
+                    'lokasi' => implode(' - ', array_filter([
+                        $log->lokasi_kegiatan,
+                        $log->keterangan_tempat,
+                    ], fn ($value) => is_string($value) && trim($value) !== '')),
+                ];
+            })->all(),
+        ];
+
+        try {
+            $pdf = $python->generateStudentActivityPdf($payload);
+        } catch (RuntimeException $exception) {
+            Log::error('Student activity PDF export failed.', [
+                'user_id' => $user->id,
+                'exception' => $exception,
+            ]);
+
+            abort(
+                503,
+                'Laporan PDF belum dapat dibuat. Pastikan Python dan ReportLab tersedia.'
+            );
+        }
+
+        $safeNim = preg_replace('/[^A-Za-z0-9_-]/', '', $peserta->nim)
+            ?: 'mahasiswa';
+
+        $fileName = 'laporan-kegiatan-kkn-'.$safeNim.'-'.now()->format('Ymd-His').'.pdf';
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$fileName.'"',
+            'Content-Length' => (string) strlen($pdf),
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    public function approveAll(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+
+        abort_unless(
+            $user && ($user->isAdmin() || $user->isDpp()),
+            403
+        );
+
+        $isDpp = $user->isDpp();
+        $dppKodeProdi = $isDpp
+            ? $this->getDppKodeProdi($user)
+            : null;
+
+        $filters = $this->validateLogFilters($request, true);
+
+        if ($isDpp) {
+            $filters['kode_prodi'] = $dppKodeProdi;
+        }
+
+        $approvedCount = $this->filteredLogsQuery(
+            $filters,
+            true,
+            'menunggu',
+            $dppKodeProdi
+        )->update([
+            'status' => 'disetujui',
+            'updated_at' => now(),
+        ]);
+
+        if ($approvedCount === 0) {
+            return back()->with(
+                'error',
+                'Tidak ada laporan menunggu yang cocok dengan filter aktif.'
+            );
+        }
+
+        return back()->with(
+            'success',
+            "{$approvedCount} laporan kegiatan berhasil disetujui."
+        );
     }
 
     /**
@@ -138,50 +377,114 @@ class LogKegiatanController extends Controller
         ]);
     }
 
-    private function filteredLogsQuery(array $filters, bool $isAdmin, ?string $forcedStatus = null): Builder
-    {
+    private function filteredLogsQuery(
+        array $filters,
+        bool $isReviewer,
+        ?string $forcedStatus = null,
+        ?string $scopeKodeProdi = null
+    ): Builder {
         $search = $filters['search'] ?? '';
 
         return LogKegiatan::query()
-            ->with(['masterKegiatan', 'peserta.user', 'peserta.prodi', 'rencanaKehadiran'])
-            ->when(! $isAdmin, function (Builder $query) {
-                $query->where('peserta_id', auth()->user()?->peserta?->id ?? 0);
+            ->with([
+                'masterKegiatan',
+                'peserta.user',
+                'peserta.prodi',
+                'rencanaKehadiran',
+            ])
+            ->when(! $isReviewer, function (Builder $query) {
+                $query->where(
+                    'peserta_id',
+                    auth()->user()?->peserta?->id ?? 0
+                );
             })
-            ->when($isAdmin, fn (Builder $query) => $query->whereIn('status', ['menunggu', 'disetujui', 'ditolak']))
-            ->when($forcedStatus !== null, fn (Builder $query) => $query->where('status', $forcedStatus))
-            ->when($forcedStatus === null && ($filters['status'] ?? '') !== '', fn (Builder $query) => $query->where('status', $filters['status']))
+            ->when(
+                $isReviewer,
+                fn (Builder $query) => $query->whereIn(
+                    'status',
+                    ['menunggu', 'disetujui', 'ditolak']
+                )
+            )
+            ->when(
+                $scopeKodeProdi !== null,
+                fn (Builder $query) => $this->constrainLogsToProdi(
+                    $query,
+                    $scopeKodeProdi
+                )
+            )
+            ->when(
+                $forcedStatus !== null,
+                fn (Builder $query) => $query->where('status', $forcedStatus)
+            )
+            ->when(
+                $forcedStatus === null && ($filters['status'] ?? '') !== '',
+                fn (Builder $query) => $query->where(
+                    'status',
+                    $filters['status']
+                )
+            )
             ->when(
                 $forcedStatus !== null
                 && ($filters['status'] ?? '') !== ''
                 && $filters['status'] !== $forcedStatus,
                 fn (Builder $query) => $query->whereRaw('1 = 0')
             )
-            ->when(($filters['master_kegiatan_id'] ?? null) !== null, fn (Builder $query) => $query->where('master_kegiatan_id', $filters['master_kegiatan_id']))
-            ->when(($filters['kode_prodi'] ?? '') !== '', function (Builder $query) use ($filters): void {
-                $kodeProdi = $filters['kode_prodi'];
-                $namaProdi = Prodi::query()->where('kode_prodi', $kodeProdi)->value('nama_prodi');
-
-                $query->whereHas('peserta', function (Builder $pesertaQuery) use ($kodeProdi, $namaProdi): void {
-                    $pesertaQuery->where('kode_prodi', $kodeProdi)
-                        ->orWhere('program_studi', $namaProdi);
-                });
-            })
-            ->when(($filters['tanggal'] ?? '') !== '', fn (Builder $query) => $query->whereDate('tanggal_kehadiran', $filters['tanggal']))
-            ->when(($filters['sesi'] ?? '') !== '', fn (Builder $query) => $query->where('jam_kehadiran', $filters['sesi']))
-            ->when($search !== '', function (Builder $query) use ($search, $isAdmin): void {
-                $query->where(function (Builder $subquery) use ($search, $isAdmin): void {
-                    $subquery->where('deskripsi_kegiatan', 'like', "%{$search}%")
+            ->when(
+                ($filters['master_kegiatan_id'] ?? null) !== null,
+                fn (Builder $query) => $query->where(
+                    'master_kegiatan_id',
+                    $filters['master_kegiatan_id']
+                )
+            )
+            ->when(
+                ($filters['kode_prodi'] ?? '') !== '',
+                fn (Builder $query) => $this->constrainLogsToProdi(
+                    $query,
+                    $filters['kode_prodi']
+                )
+            )
+            ->when(
+                ($filters['tanggal'] ?? '') !== '',
+                fn (Builder $query) => $query->whereDate(
+                    'tanggal_kehadiran',
+                    $filters['tanggal']
+                )
+            )
+            ->when(
+                ($filters['sesi'] ?? '') !== '',
+                fn (Builder $query) => $query->where(
+                    'jam_kehadiran',
+                    $filters['sesi']
+                )
+            )
+            ->when($search !== '', function (Builder $query) use (
+                $search,
+                $isReviewer
+            ): void {
+                $query->where(function (Builder $subquery) use (
+                    $search,
+                    $isReviewer
+                ): void {
+                    $subquery
+                        ->where('deskripsi_kegiatan', 'like', "%{$search}%")
                         ->orWhere('deskripsi_luaran', 'like', "%{$search}%")
-                        ->orWhereHas('masterKegiatan', function (Builder $masterQuery) use ($search): void {
-                            $masterQuery->where('nama_kegiatan', 'like', "%{$search}%")
+                        ->orWhereHas('masterKegiatan', function (
+                            Builder $masterQuery
+                        ) use ($search): void {
+                            $masterQuery
+                                ->where('nama_kegiatan', 'like', "%{$search}%")
                                 ->orWhere('kode_kegiatan', 'like', "%{$search}%");
                         });
 
-                    if ($isAdmin) {
-                        $subquery->orWhereHas('peserta', function (Builder $pesertaQuery) use ($search): void {
-                            $pesertaQuery->where('nama_lengkap', 'like', "%{$search}%")
-                                ->orWhere('nim', 'like', "%{$search}%");
-                        });
+                    if ($isReviewer) {
+                        $subquery->orWhereHas(
+                            'peserta',
+                            function (Builder $pesertaQuery) use ($search): void {
+                                $pesertaQuery
+                                    ->where('nama_lengkap', 'like', "%{$search}%")
+                                    ->orWhere('nim', 'like', "%{$search}%");
+                            }
+                        );
                     }
                 });
             });
@@ -204,9 +507,22 @@ class LogKegiatanController extends Controller
         }
 
         $peserta = $user->peserta;
+
+        // Lanjutkan draft yang belum selesai alih-alih membuat baris baru.
+        $existingDraft = $peserta->logKegiatans()
+            ->where('status', 'draft')
+            ->latest('id')
+            ->first();
+
+        if ($existingDraft) {
+            return redirect()->route('log-kegiatan.edit', [
+                'log_kegiatan' => $existingDraft,
+                'step' => min(max($existingDraft->current_step ?: 1, 1), 6),
+            ]);
+        }
+
         $masterKegiatans = MasterKegiatan::query()
             ->where('kode_prodi', $peserta->kode_prodi)
-            ->where('is_active', true)
             ->orderBy('kode_kegiatan')
             ->get();
         $student = [
@@ -259,13 +575,20 @@ class LogKegiatanController extends Controller
             $logKegiatan = LogKegiatan::find($request->input('log_id'));
         }
 
-        // Jika record log belum ada, buat draft awal di step 1
+        // Jika record log belum ada, pakai draft yang masih berjalan bila ada.
         if (! $logKegiatan || ! $logKegiatan->exists) {
-            $logKegiatan = LogKegiatan::create([
-                'peserta_id' => $peserta->id,
-                'status' => 'draft',
-                'current_step' => 1,
-            ]);
+            $logKegiatan = $peserta->logKegiatans()
+                ->where('status', 'draft')
+                ->latest('id')
+                ->first();
+
+            if (! $logKegiatan) {
+                $logKegiatan = LogKegiatan::create([
+                    'peserta_id' => $peserta->id,
+                    'status' => 'draft',
+                    'current_step' => 1,
+                ]);
+            }
         } else {
             $this->authorizeOwner($user, $logKegiatan);
             $this->ensureDraft($logKegiatan);
@@ -335,16 +658,8 @@ class LogKegiatanController extends Controller
             $validated = $request->validate([
                 'master_kegiatan_id' => [
                     'required',
-                    Rule::exists('master_kegiatans', 'id')->where(function ($query) use ($peserta, $logKegiatan): void {
-                        $query->where('kode_prodi', $peserta->kode_prodi)
-                            ->where(function ($query) use ($logKegiatan): void {
-                                $query->where('is_active', true);
-
-                                if ($logKegiatan->master_kegiatan_id !== null) {
-                                    $query->orWhere('id', $logKegiatan->master_kegiatan_id);
-                                }
-                            });
-                    }),
+                    Rule::exists('master_kegiatans', 'id')
+                        ->where(fn ($query) => $query->where('kode_prodi', $peserta->kode_prodi)),
                 ],
             ], [
                 'master_kegiatan_id.required' => 'Pilih kode aktivitas kegiatan.',
@@ -468,12 +783,13 @@ class LogKegiatanController extends Controller
                     empty($logKegiatan->tanggal_kehadiran) ||
                     empty($logKegiatan->master_kegiatan_id) ||
                     empty($logKegiatan->lokasi_kegiatan) ||
+                    empty($logKegiatan->keterangan_tempat) ||
                     empty($logKegiatan->deskripsi_kegiatan) ||
                     ! $logKegiatan->fotoKegiatanFiles()->exists() ||
                     empty($logKegiatan->deskripsi_luaran) ||
                     ! $logKegiatan->fileLuaranFiles()->exists()
                 ) {
-                    return redirect()->back()->with('error', 'Semua bagian (Step 1 s.d. 5) wajib dilengkapi sebelum submit akhir.');
+                    return redirect()->back()->with('error', 'Lengkapi jadwal, rincian tempat dan kegiatan, dokumentasi, serta luaran sebelum mengirim laporan.');
                 }
 
                 $logKegiatan->update([
@@ -624,13 +940,6 @@ class LogKegiatanController extends Controller
         $peserta = $logKegiatan->peserta ?? $user->peserta;
         $masterKegiatans = MasterKegiatan::query()
             ->where('kode_prodi', $peserta?->kode_prodi)
-            ->where(function ($query) use ($logKegiatan): void {
-                $query->where('is_active', true);
-
-                if ($logKegiatan->master_kegiatan_id !== null) {
-                    $query->orWhere('id', $logKegiatan->master_kegiatan_id);
-                }
-            })
             ->orderBy('kode_kegiatan')
             ->get();
 
@@ -689,32 +998,51 @@ class LogKegiatanController extends Controller
     {
         $user = $request->user();
 
-        if (! $user->isAdmin()) {
+        if ($user->isAdmin()) {
+            // Superadmin dapat melihat seluruh laporan.
+        } elseif ($user->isDpp()) {
+            $this->authorizeReviewerLog($user, $logKegiatan);
+        } else {
             $this->authorizeOwner($user, $logKegiatan);
         }
 
-        $logKegiatan->load(['masterKegiatan', 'peserta.user', 'peserta.prodi', 'files']);
+        $logKegiatan->load([
+            'masterKegiatan',
+            'peserta.user',
+            'peserta.prodi',
+            'files',
+        ]);
 
         return Inertia::render('LogKegiatan/Show', [
             'log' => $logKegiatan,
             'isAdmin' => $user->isAdmin(),
+            'isDpp' => $user->isDpp(),
+            'isReviewer' => $user->isAdmin() || $user->isDpp(),
         ]);
     }
 
     /**
      * Display an uploaded file to an authorized log participant or administrator.
      */
-    public function showFile(Request $request, LogKegiatan $logKegiatan, LogKegiatanFile $file): BinaryFileResponse
-    {
+    public function showFile(
+        Request $request,
+        LogKegiatan $logKegiatan,
+        LogKegiatanFile $file
+    ): BinaryFileResponse {
         $user = $request->user();
 
-        if (! $user->isAdmin()) {
+        if ($user->isAdmin()) {
+            // Superadmin dapat melihat seluruh berkas.
+        } elseif ($user->isDpp()) {
+            $this->authorizeReviewerLog($user, $logKegiatan);
+        } else {
             $this->authorizeOwner($user, $logKegiatan);
         }
 
         abort_unless($file->log_kegiatan_id === $logKegiatan->id, 404);
 
         $disk = Storage::disk('public');
+
         abort_unless($disk->exists($file->file_path), 404);
 
         return response()->file($disk->path($file->file_path));
@@ -723,34 +1051,92 @@ class LogKegiatanController extends Controller
     /**
      * Konfirmasi laporan kegiatan yang telah dikirim mahasiswa.
      */
-    public function approve(Request $request, LogKegiatan $logKegiatan): RedirectResponse
-    {
-        if (! $request->user()?->isAdmin()) {
-            abort(403, 'Hanya admin yang dapat menyetujui laporan kegiatan.');
-        }
+    public function approve(
+        Request $request,
+        LogKegiatan $logKegiatan
+    ): RedirectResponse {
+        $this->authorizeReviewerLog($request->user(), $logKegiatan);
 
         if (! $logKegiatan->isWaiting()) {
-            return redirect()->back()->with('error', 'Hanya laporan berstatus menunggu yang dapat disetujui.');
+            return back()->with(
+                'error',
+                'Hanya laporan berstatus menunggu yang dapat disetujui.'
+            );
         }
 
-        $logKegiatan->update(['status' => 'disetujui']);
+        $logKegiatan->update([
+            'status' => 'disetujui',
+        ]);
 
-        return redirect()->back()->with('success', 'Laporan kegiatan berhasil disetujui.');
+        return back()->with(
+            'success',
+            'Laporan kegiatan berhasil disetujui.'
+        );
     }
 
-    public function reject(Request $request, LogKegiatan $logKegiatan): RedirectResponse
-    {
-        if (! $request->user()?->isAdmin()) {
-            abort(403, 'Hanya admin yang dapat menolak laporan kegiatan.');
-        }
+    public function reject(
+        Request $request,
+        LogKegiatan $logKegiatan
+    ): RedirectResponse {
+        $this->authorizeReviewerLog($request->user(), $logKegiatan);
 
         if (! $logKegiatan->isWaiting()) {
-            return redirect()->back()->with('error', 'Hanya laporan berstatus menunggu yang dapat ditolak.');
+            return back()->with(
+                'error',
+                'Hanya laporan berstatus menunggu yang dapat ditolak.'
+            );
         }
 
-        $logKegiatan->update(['status' => 'ditolak']);
+        $logKegiatan->update([
+            'status' => 'ditolak',
+        ]);
 
-        return redirect()->back()->with('success', 'Laporan kegiatan ditolak dan dapat diperbaiki oleh mahasiswa.');
+        return back()->with(
+            'success',
+            'Laporan kegiatan ditolak dan dapat diperbaiki oleh mahasiswa.'
+        );
+    }
+
+    private function getDppKodeProdi(User $user): string
+    {
+        $kodeProdi = $user->dppProfile?->kode_prodi;
+
+        abort_unless(
+            is_string($kodeProdi) && $kodeProdi !== '',
+            403,
+            'Profil DPP belum memiliki program studi.'
+        );
+
+        return $kodeProdi;
+    }
+
+    private function constrainLogsToProdi(
+        Builder $query,
+        string $kodeProdi
+    ): Builder {
+        $namaProdi = Prodi::query()
+            ->where('kode_prodi', $kodeProdi)
+            ->value('nama_prodi');
+
+        return $query->whereHas(
+            'peserta',
+            function (Builder $pesertaQuery) use (
+                $kodeProdi,
+                $namaProdi
+            ): void {
+                $pesertaQuery->where('kode_prodi', $kodeProdi);
+
+                if ($namaProdi) {
+                    $pesertaQuery->orWhere(function (
+                        Builder $legacyQuery
+                    ) use ($namaProdi): void {
+                        $legacyQuery
+                            ->whereNull('kode_prodi')
+                            ->where('program_studi', $namaProdi);
+                    });
+                }
+            }
+        );
     }
 
     private function storeUploadedFiles(
@@ -788,5 +1174,56 @@ class LogKegiatanController extends Controller
         if (! $logKegiatan->isEditable()) {
             abort(403, 'Laporan yang sedang menunggu atau sudah disetujui tidak dapat diubah.');
         }
+    }
+
+    private function safeCsvCell(string $value): string
+    {
+        return preg_match('/^[\t\r\n=+\-@]/', $value) === 1
+            ? "'{$value}"
+            : $value;
+    }
+
+    private function authorizeReviewerLog(
+        ?User $user,
+        LogKegiatan $logKegiatan
+    ): void {
+        abort_unless(
+            $user && ($user->isAdmin() || $user->isDpp()),
+            403
+        );
+
+        if ($user->isAdmin()) {
+            return;
+        }
+
+        $kodeProdi = $this->getDppKodeProdi($user);
+        $namaProdi = Prodi::query()
+            ->where('kode_prodi', $kodeProdi)
+            ->value('nama_prodi');
+
+        $belongsToDpp = $logKegiatan->peserta()
+            ->where(function (Builder $query) use (
+                $kodeProdi,
+                $namaProdi
+            ): void {
+                $query->where('kode_prodi', $kodeProdi);
+
+                if ($namaProdi) {
+                    $query->orWhere(function (
+                        Builder $legacyQuery
+                    ) use ($namaProdi): void {
+                        $legacyQuery
+                            ->whereNull('kode_prodi')
+                            ->where('program_studi', $namaProdi);
+                    });
+                }
+            })
+            ->exists();
+
+        abort_unless(
+            $belongsToDpp,
+            403,
+            'Anda tidak memiliki akses ke laporan dari program studi lain.'
+        );
     }
 }

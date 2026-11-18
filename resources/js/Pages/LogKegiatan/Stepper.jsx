@@ -1,12 +1,13 @@
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
+import confirmWithSweetAlert from '@/Components/confirmWithSweetAlert';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useEffect, useState } from 'react';
 
-export default function LogKegiatanStepper({ log, currentStep = 1, student, masterKegiatans = [], prodis = [], rencanaKehadirans = [] }) {
-    const [activeStep, setActiveStep] = useState(currentStep || 1);
+export default function LogKegiatanStepper({ log, currentStep = 1, masterKegiatans = [], rencanaKehadirans = [], student = {} }) {
+    const [activeStep, setActiveStep] = useState(Math.min(Math.max(Number(currentStep) || 1, 1), 6));
     const [currentLogId, setCurrentLogId] = useState(log?.id || null);
     const [currentLogRouteKey, setCurrentLogRouteKey] = useState(log?.route_key || null);
     const [stepValidationError, setStepValidationError] = useState(null);
@@ -18,7 +19,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
     // Main Stepper Form state
     const form = useForm({
         log_id: currentLogId,
-        step: activeStep,
+        step: Math.min(Math.max(Number(activeStep) || 1, 1), 6),
         is_draft_only: false,
         action: 'continue',
 
@@ -208,8 +209,20 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
         saveCurrentStep(activeStep, true, 'draft');
     };
 
-    const handleFinalSubmit = (e) => {
+    const handleFinalSubmit = async (e) => {
         e?.preventDefault();
+
+        const confirmed = await confirmWithSweetAlert({
+            title: 'Kirim kegiatan untuk ditinjau?',
+            text: 'Pastikan jadwal, rincian, dokumentasi, dan luaran sudah benar. Setelah dikirim, laporan akan masuk ke proses verifikasi.',
+            confirmButtonText: 'Ya, kirim kegiatan',
+            icon: 'question',
+        });
+
+        if (!confirmed) {
+            return;
+        }
+
         setStepValidationError(null);
         saveCurrentStep(6, false, 'submit');
     };
@@ -227,14 +240,13 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
     const maxUnlockedStep = Math.max(log?.current_step ?? 1, activeStep);
 
     const currentActivityObj = masterKegiatans.find((k) => k.id === Number(form.data.master_kegiatan_id)) || log?.master_kegiatan;
-    const selectedProdi = prodis.find((prodi) => prodi.kode_prodi === form.data.kode_prodi);
     const selectedRencanaKehadiran = rencanaKehadirans.find(
         (rencana) => Number(rencana.id) === Number(form.data.rencana_kehadiran_id)
     );
     const pageTitle = log ? 'Ubah Kegiatan' : 'Tambah Kegiatan';
 
     return (
-        <AuthenticatedLayout showSweetAlerts={false}>
+        <AuthenticatedLayout>
             <Head title={pageTitle} />
 
             <div className="portal-stepper-page min-h-screen bg-[#fbfcfb] py-10 px-4 sm:px-6 lg:px-8">
@@ -665,17 +677,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
 
                                 <div className="space-y-4 text-sm">
                                     <div className="rounded-xl border border-gray-100 bg-[#f9fafb] p-4">
-                                        <div className="font-bold text-gray-800 mb-2">1. Identitas</div>
-                                        <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                                            <div><strong>Nama:</strong> {form.data.nama_lengkap}</div>
-                                            <div><strong>NIM:</strong> {form.data.nim}</div>
-                                            <div><strong>Alamat email:</strong> {form.data.email}</div>
-                                            <div><strong>Program studi:</strong> {selectedProdi?.nama_prodi ?? '-'}</div>
-                                        </div>
-                                    </div>
-
-                                    <div className="rounded-xl border border-gray-100 bg-[#f9fafb] p-4">
-                                        <div className="font-bold text-gray-800 mb-2">2. Jadwal</div>
+                                        <div className="font-bold text-gray-800 mb-2">1. Jadwal</div>
                                         <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
                                             <div><strong>Tanggal:</strong> {selectedRencanaKehadiran?.tanggal_rencana.slice(0, 10) ?? '-'}</div>
                                             <div><strong>Sesi:</strong> {selectedRencanaKehadiran?.jam_kehadiran ?? '-'}</div>
@@ -683,14 +685,14 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                                     </div>
 
                                     <div className="rounded-xl border border-gray-100 bg-[#f9fafb] p-4">
-                                        <div className="font-bold text-gray-800 mb-2">3. Kegiatan</div>
+                                        <div className="font-bold text-gray-800 mb-2">2. Kegiatan</div>
                                         <div className="text-xs text-gray-600">
                                             <strong>Nama kegiatan:</strong> {currentActivityObj?.kode_kegiatan} — {currentActivityObj?.nama_kegiatan} ({currentActivityObj?.kategori})
                                         </div>
                                     </div>
 
                                     <div className="rounded-xl border border-gray-100 bg-[#f9fafb] p-4">
-                                        <div className="font-bold text-gray-800 mb-2">4. Rincian dan lokasi</div>
+                                        <div className="font-bold text-gray-800 mb-2">3. Rincian dan lokasi</div>
                                         <div className="text-xs text-gray-600 space-y-1">
                                             <div><strong>Lokasi:</strong> {form.data.lokasi_kegiatan} {form.data.latitude ? `(${form.data.latitude}, ${form.data.longitude})` : ''}</div>
                                             <div><strong>Keterangan tempat:</strong> {form.data.keterangan_tempat || '-'}</div>
@@ -699,7 +701,7 @@ export default function LogKegiatanStepper({ log, currentStep = 1, student, mast
                                     </div>
 
                                     <div className="rounded-xl border border-gray-100 bg-[#f9fafb] p-4">
-                                        <div className="font-bold text-gray-800 mb-2">5. Dokumentasi dan 6. Luaran</div>
+                                        <div className="font-bold text-gray-800 mb-2">4. Dokumentasi dan 5. Luaran</div>
                                         <div className="text-xs text-gray-600 space-y-1">
                                             <div><strong>Foto kegiatan:</strong> {form.data.foto_kegiatan.length ? `${form.data.foto_kegiatan.length} berkas baru dipilih` : (log?.files?.some((file) => file.jenis_file === 'foto_kegiatan') ? 'Tersimpan' : 'Belum diunggah')}</div>
                                             <div><strong>Deskripsi luaran:</strong> {form.data.deskripsi_luaran}</div>

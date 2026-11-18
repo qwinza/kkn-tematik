@@ -7,31 +7,61 @@ use App\Models\MasterKegiatan;
 use App\Models\Prodi;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class MasterKegiatanController extends Controller
 {
-    /**
-     * Tampilkan daftar master kegiatan.
-     */
     public function index(Request $request): Response
     {
-        if (! $request->user()?->isAdmin()) {
-            abort(403, 'Akses ditolak. Halaman Master Kegiatan hanya dapat diakses oleh Admin.');
+        $user = $request->user();
+        $isAdmin = $user?->isAdmin() ?? false;
+        $isDpp = $user?->isDpp() ?? false;
+        $isMahasiswa = $user?->isMahasiswa() ?? false;
+
+        abort_unless($isAdmin || $isDpp || $isMahasiswa, 403);
+
+        $dppKodeProdi = $isDpp
+            ? $user->dppProfile?->kode_prodi
+            : null;
+
+        abort_if($isDpp && ! $dppKodeProdi, 403);
+
+        $rules = [
+            'search' => ['nullable', 'string', 'max:255'],
+            'sort' => [
+                'nullable',
+                Rule::in([
+                    'id',
+                    'kode_kegiatan',
+                    'nama_kegiatan',
+                    'kategori',
+                    'prodi',
+                    'log_kegiatans_count',
+                ]),
+            ],
+            'direction' => ['nullable', Rule::in(['asc', 'desc'])],
+        ];
+
+        if ($isAdmin || $isMahasiswa) {
+            $rules['kode_prodi'] = [
+                'nullable',
+                'string',
+                'exists:prodi,kode_prodi',
+            ];
         }
 
-        $filters = $request->validate([
-            'search' => ['nullable', 'string', 'max:255'],
-            'kode_prodi' => ['nullable', 'string', 'exists:prodi,kode_prodi'],
-            'sort' => ['nullable', Rule::in(['id', 'kode_kegiatan', 'nama_kegiatan', 'kategori', 'prodi', 'log_kegiatans_count'])],
-            'direction' => ['nullable', Rule::in(['asc', 'desc'])],
-        ]);
+        $filters = $request->validate($rules);
 
         $search = $filters['search'] ?? '';
         $sort = $filters['sort'] ?? 'id';
         $direction = $filters['direction'] ?? 'desc';
+
+        $kodeProdiFilter = $isDpp
+            ? $dppKodeProdi
+            : ($filters['kode_prodi'] ?? ($isMahasiswa ? ($user->peserta?->kode_prodi ?? null) : null));
 
         $query = MasterKegiatan::query()
             ->with('prodi')
@@ -40,65 +70,145 @@ class MasterKegiatanController extends Controller
                     $q->where('kode_kegiatan', 'like', "%{$search}%")
                         ->orWhere('nama_kegiatan', 'like', "%{$search}%")
                         ->orWhere('kategori', 'like', "%{$search}%")
-                        ->orWhereHas('prodi', fn ($prodiQuery) => $prodiQuery->where('nama_prodi', 'like', "%{$search}%"));
+                        ->orWhereHas('prodi', function ($prodiQuery) use ($search) {
+                            $prodiQuery->where('nama_prodi', 'like', "%{$search}%");
+                        });
                 });
             })
-            ->when($filters['kode_prodi'] ?? null, fn ($query, $kodeProdi) => $query->where('kode_prodi', $kodeProdi))
+            ->when(
+                $kodeProdiFilter,
+                fn ($query) => $query->where('kode_prodi', $kodeProdiFilter)
+            )
             ->withCount('logKegiatans');
 
         if ($sort === 'prodi') {
-            $query->orderBy(Prodi::query()
-                ->select('nama_prodi')
-                ->whereColumn('prodi.kode_prodi', 'master_kegiatans.kode_prodi'), $direction);
+            $query->orderBy(
+                Prodi::query()
+                    ->select('nama_prodi')
+                    ->whereColumn(
+                        'prodi.kode_prodi',
+                        'master_kegiatans.kode_prodi'
+                    ),
+                $direction
+            );
         } elseif ($sort !== 'id') {
             $query->orderBy($sort, $direction);
         } else {
             $query->orderByDesc('id');
         }
 
-        $kegiatans = $query->paginate(10)
-            ->withQueryString();
+        $kegiatans = $query->paginate(10)->withQueryString();
+
+        $prodis = $isAdmin || $isMahasiswa
+            ? Prodi::query()->orderBy('nama_prodi')
+                ->get(['kode_prodi', 'nama_prodi'])
+            : Prodi::query()->where('kode_prodi', $dppKodeProdi)
+                ->get(['kode_prodi', 'nama_prodi']);
+
+        $kodeBerikutnyaPerProdi = ($isAdmin || $isDpp) ? $this->getNextCodesPerProdi($prodis) : [];
 
         return Inertia::render('MasterKegiatan/Index', [
             'kegiatans' => $kegiatans,
-            'prodis' => Prodi::query()->orderBy('nama_prodi')->get(['kode_prodi', 'nama_prodi']),
+            'prodis' => $prodis,
+            'kodeBerikutnyaPerProdi' => $kodeBerikutnyaPerProdi,
             'filters' => [
                 'search' => $search,
-                'kode_prodi' => $filters['kode_prodi'] ?? '',
+                'kode_prodi' => $kodeProdiFilter ?? '',
                 'sort' => $sort,
                 'direction' => $direction,
             ],
-            'canManage' => $request->user()?->isAdmin() ?? false,
+            'canManage' => $isAdmin || $isDpp,
+            'isAdmin' => $isAdmin,
+            'isDpp' => $isDpp,
+            'isMahasiswa' => $isMahasiswa,
         ]);
     }
 
-    /**
-     * Simpan master kegiatan baru.
-     */
     public function store(MasterKegiatanRequest $request): RedirectResponse
     {
-        MasterKegiatan::create($request->validated());
+        $validated = $request->validated();
 
-        return redirect()->back()->with('success', 'Master kegiatan berhasil ditambahkan.');
+        DB::transaction(function () use ($validated): void {
+            Prodi::query()
+                ->where('kode_prodi', $validated['kode_prodi'])
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $validated['kode_kegiatan'] = $this->getNextCodeForProdi($validated['kode_prodi']);
+
+            MasterKegiatan::create($validated);
+        });
+
+        return back()->with('success', 'Master kegiatan berhasil ditambahkan.');
     }
 
-    /**
-     * Perbarui data master kegiatan yang sudah ada.
-     */
-    public function update(MasterKegiatanRequest $request, MasterKegiatan $masterKegiatan): RedirectResponse
-    {
-        $masterKegiatan->update($request->validated());
+    public function update(
+        MasterKegiatanRequest $request,
+        MasterKegiatan $masterKegiatan
+    ): RedirectResponse {
+        $validated = $request->validated();
 
-        return redirect()->back()->with('success', 'Master kegiatan berhasil diperbarui.');
+        DB::transaction(function () use ($validated, $masterKegiatan): void {
+            if ($validated['kode_prodi'] !== $masterKegiatan->kode_prodi) {
+                Prodi::query()
+                    ->where('kode_prodi', $validated['kode_prodi'])
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $masterKegiatan->kode_kegiatan = $this->getNextCodeForProdi($validated['kode_prodi']);
+            }
+
+            $masterKegiatan->fill($validated)->save();
+        });
+
+        return back()->with('success', 'Master kegiatan berhasil diperbarui.');
     }
 
-    /**
-     * Ubah status aktif master kegiatan tanpa menghapus riwayatnya.
-     */
-    public function updateStatus(Request $request, MasterKegiatan $masterKegiatan): RedirectResponse
-    {
-        if (! $request->user()?->isAdmin()) {
-            abort(403, 'Hanya admin yang berhak mengubah status jadwal kegiatan.');
+    public function destroy(
+        Request $request,
+        MasterKegiatan $masterKegiatan
+    ): RedirectResponse {
+        $user = $request->user();
+
+        if ($user?->isDpp()) {
+            $dppKodeProdi = $user->dppProfile?->kode_prodi;
+
+            abort_unless(
+                $dppKodeProdi
+                && $masterKegiatan->kode_prodi === $dppKodeProdi,
+                403
+            );
+        } else {
+            abort_unless($user?->isAdmin(), 403);
+        }
+
+        if ($masterKegiatan->logKegiatans()->exists()) {
+            return back()->with(
+                'error',
+                'Master kegiatan tidak dapat dihapus karena sudah memiliki relasi log kegiatan.'
+            );
+        }
+        $masterKegiatan->delete();
+
+        return back()->with('success', 'Master kegiatan berhasil dihapus.');
+    }
+
+    public function updateStatus(
+        Request $request,
+        MasterKegiatan $masterKegiatan
+    ): RedirectResponse {
+        $user = $request->user();
+
+        if ($user?->isDpp()) {
+            $dppKodeProdi = $user->dppProfile?->kode_prodi;
+
+            abort_unless(
+                $dppKodeProdi
+                && $masterKegiatan->kode_prodi === $dppKodeProdi,
+                403
+            );
+        } else {
+            abort_unless($user?->isAdmin(), 403);
         }
 
         $validated = $request->validate([
@@ -108,6 +218,81 @@ class MasterKegiatanController extends Controller
         $masterKegiatan->update(['is_active' => $validated['is_active']]);
         $status = $masterKegiatan->is_active ? 'diaktifkan' : 'dinonaktifkan';
 
-        return redirect()->back()->with('success', "Jadwal kegiatan berhasil {$status}.");
+        return back()->with('success', "Master kegiatan berhasil {$status}.");
+    }
+
+    /**
+     * @param  iterable<Prodi>  $prodis
+     * @return array<string, string>
+     */
+    private function getNextCodesPerProdi(iterable $prodis): array
+    {
+        $codesByProdi = MasterKegiatan::query()
+            ->get(['kode_prodi', 'kode_kegiatan'])
+            ->groupBy('kode_prodi');
+
+        $nextCodes = [];
+
+        foreach ($prodis as $prodi) {
+            $highestNumber = 0;
+
+            foreach ($codesByProdi->get($prodi->kode_prodi, collect()) as $kegiatan) {
+                $highestNumber = max(
+                    $highestNumber,
+                    $this->getSequenceNumber($kegiatan->kode_kegiatan, $prodi->kode_prodi)
+                );
+            }
+
+            $nextCodes[$prodi->kode_prodi] = $this->formatCode($prodi->kode_prodi, $highestNumber + 1);
+        }
+
+        return $nextCodes;
+    }
+
+    private function getNextCodeForProdi(string $kodeProdi): string
+    {
+        $kegiatans = MasterKegiatan::query()
+            ->where('kode_prodi', $kodeProdi)
+            ->get(['kode_kegiatan']);
+
+        $highestNumber = 0;
+
+        foreach ($kegiatans as $kegiatan) {
+            $highestNumber = max(
+                $highestNumber,
+                $this->getSequenceNumber($kegiatan->kode_kegiatan, $kodeProdi)
+            );
+        }
+
+        return $this->formatCode($kodeProdi, $highestNumber + 1);
+    }
+
+    private function getSequenceNumber(string $kodeKegiatan, string $kodeProdi): int
+    {
+        $prefix = preg_quote($this->getActivityCodePrefix($kodeProdi), '/');
+
+        return preg_match('/^'.$prefix.'(\d+)$/i', $kodeKegiatan, $matches) === 1
+            ? (int) $matches[1]
+            : 0;
+    }
+
+    private function formatCode(string $kodeProdi, int $number): string
+    {
+        $activityPrefix = $this->getActivityCodePrefix($kodeProdi);
+
+        return $activityPrefix === 'IF-WP'
+            ? $activityPrefix.$number
+            : $activityPrefix.str_pad((string) $number, 2, '0', STR_PAD_LEFT);
+    }
+
+    private function getActivityCodePrefix(string $kodeProdi): string
+    {
+        $prodiPrefix = preg_match('/^([A-Za-z]+)-\d+$/', $kodeProdi, $matches) === 1
+            ? strtoupper($matches[1])
+            : strtoupper($kodeProdi);
+
+        return $prodiPrefix === 'IF'
+            ? 'IF-WP'
+            : $prodiPrefix.'-';
     }
 }

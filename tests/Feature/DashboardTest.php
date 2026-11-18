@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\LogKegiatan;
 use App\Models\Peserta;
+use App\Models\Prodi;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -52,6 +53,35 @@ class DashboardTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('Dashboard')
                 ->where('summary.totalKegiatan', 2)
+                ->where('summary.totalDisetujui', 1)
+            );
+    }
+
+    public function test_dpp_dashboard_summarizes_students_and_activity_in_its_program(): void
+    {
+        $prodi = Prodi::factory()->create(['nama_prodi' => 'Informatika']);
+        $otherProdi = Prodi::factory()->create();
+        $dpp = User::factory()->dpp()->create();
+        $dpp->dppProfile()->create(['kode_prodi' => $prodi->kode_prodi]);
+        $inProdi = Peserta::factory()->create(['kode_prodi' => $prodi->kode_prodi]);
+        $outsideProdi = Peserta::factory()->create(['kode_prodi' => $otherProdi->kode_prodi]);
+
+        LogKegiatan::factory()->create([
+            'peserta_id' => $inProdi->id,
+            'status' => 'disetujui',
+        ]);
+        LogKegiatan::factory()->create([
+            'peserta_id' => $outsideProdi->id,
+            'status' => 'disetujui',
+        ]);
+
+        $this->actingAs($dpp)
+            ->get(route('dashboard'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Dashboard')
+                ->where('dppProdi', 'Informatika')
+                ->where('summary.totalMahasiswa', 1)
+                ->where('summary.totalKegiatan', 1)
                 ->where('summary.totalDisetujui', 1)
             );
     }
@@ -114,6 +144,59 @@ class DashboardTest extends TestCase
                 ->component('Dashboard')
                 ->where('summary.totalDisetujui', 2)
                 ->where('summary.totalJamDisetujui', 6.5)
+            );
+    }
+    public function test_dpp_dashboard_includes_legacy_students_and_activities_from_own_program(): void
+    {
+        $prodi = Prodi::factory()->create([
+            'nama_prodi' => 'Teknik Informatika',
+        ]);
+
+        $otherProdi = Prodi::factory()->create([
+            'nama_prodi' => 'Arsitektur',
+        ]);
+
+        $dpp = User::factory()->dpp()->create();
+
+        $dpp->dppProfile()->create([
+            'kode_prodi' => $prodi->kode_prodi,
+        ]);
+
+        $legacyUser = User::factory()->mahasiswa()->create();
+
+        $legacyPeserta = Peserta::factory()->create([
+            'user_id' => $legacyUser->id,
+            'kode_prodi' => null,
+            'program_studi' => 'Teknik Informatika',
+        ]);
+
+        $outsideUser = User::factory()->mahasiswa()->create();
+
+        $outsidePeserta = Peserta::factory()->create([
+            'user_id' => $outsideUser->id,
+            'kode_prodi' => null,
+            'program_studi' => 'Arsitektur',
+        ]);
+
+        LogKegiatan::factory()->create([
+            'peserta_id' => $legacyPeserta->id,
+            'status' => 'disetujui',
+        ]);
+
+        LogKegiatan::factory()->create([
+            'peserta_id' => $outsidePeserta->id,
+            'status' => 'disetujui',
+        ]);
+
+        $this->actingAs($dpp)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('Dashboard')
+                ->where('dppProdi', 'Teknik Informatika')
+                ->where('summary.totalMahasiswa', 1)
+                ->where('summary.totalKegiatan', 1)
+                ->where('summary.totalDisetujui', 1)
             );
     }
 }

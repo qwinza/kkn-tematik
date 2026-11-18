@@ -37,8 +37,13 @@ return [
 
     'campus_auth' => [
         'endpoint' => env('CAMPUS_AUTH_ENDPOINT'),
+        'dosen_endpoint' => env('CAMPUS_DOSEN_AUTH_ENDPOINT'),
         'api_key' => env('CAMPUS_AUTH_API_KEY'),
         'timeout' => env('CAMPUS_AUTH_TIMEOUT', 10),
+    ],
+
+    'python' => [
+        'binary' => env('PYTHON_BINARY', 'python'),
     ],
 
 ];
