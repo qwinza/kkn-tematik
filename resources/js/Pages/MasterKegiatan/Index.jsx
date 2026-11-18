@@ -1,3 +1,4 @@
+import DangerButton from '@/Components/DangerButton';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import Modal from '@/Components/Modal';
@@ -21,13 +22,11 @@ export default function MasterKegiatanIndex({
     const [kodeProdi, setKodeProdi] = useState(filters?.kode_prodi || '');
     const filterTimer = useRef(null);
     const [modalState, setModalState] = useState({ isOpen: false, mode: 'create', item: null });
-<<<<<<< HEAD
-=======
     const [deleteItem, setDeleteItem] = useState(null);
     const [openActionMenu, setOpenActionMenu] = useState(null);
->>>>>>> origin/devs
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
+        kode_kegiatan: '',
         nama_kegiatan: '',
         kategori: '',
         kode_prodi: '',
@@ -75,6 +74,7 @@ export default function MasterKegiatanIndex({
     const openEditModal = (item) => {
         clearErrors();
         setData({
+            kode_kegiatan: item.kode_kegiatan,
             nama_kegiatan: item.nama_kegiatan,
             kategori: item.kategori,
             kode_prodi: item.kode_prodi,
@@ -101,28 +101,15 @@ export default function MasterKegiatanIndex({
         }
     };
 
-    const handleToggleStatus = async (item) => {
-        const isActivating = !item.is_active;
+    const handleDelete = async (item) => {
         const confirmed = await confirmWithSweetAlert({
-<<<<<<< HEAD
-            title: `${isActivating ? 'Aktifkan' : 'Nonaktifkan'} jadwal kegiatan?`,
-            text: isActivating
-                ? `${item.nama_kegiatan} (${item.kode_kegiatan}) akan tersedia kembali untuk mahasiswa.`
-                : `${item.nama_kegiatan} (${item.kode_kegiatan}) tidak akan tersedia untuk pilihan kegiatan baru. Riwayat yang sudah ada tetap tersimpan.`,
-            confirmButtonText: isActivating ? 'Ya, aktifkan' : 'Ya, nonaktifkan',
-=======
             title: 'Hapus Jenis Kegiatan?',
             text: `Data ${item.nama_kegiatan} (${item.kode_kegiatan}) akan dihapus.`,
             confirmButtonText: 'Ya, hapus',
->>>>>>> origin/devs
         });
-        if (!confirmed) {
-            return;
-        }
+        if (!confirmed) return;
 
-        router.patch(route('master-kegiatan.status', item.id), {
-            is_active: isActivating,
-        }, { preserveScroll: true });
+        router.delete(route('master-kegiatan.destroy', item.id));
     };
 
     return (
@@ -153,7 +140,7 @@ export default function MasterKegiatanIndex({
                             <TextInput
                                 type="text"
                                 className="w-full"
-                                placeholder="Cari program studi, nama kegiatan, atau kategori..."
+                                placeholder="Cari kode, kegiatan, kategori, atau prodi..."
                                 value={search}
                                 onChange={(e) => {
                                     const value = e.target.value;
@@ -205,9 +192,11 @@ export default function MasterKegiatanIndex({
                                 <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
                                     <tr>
                                         <th scope="col" className="px-6 py-3">No</th>
-                                        <SortableHeading label="Program Studi" column="prodi" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
+                                        <SortableHeading label="Kode" column="kode_kegiatan" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
                                         <SortableHeading label="Nama Kegiatan" column="nama_kegiatan" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
                                         <SortableHeading label="Kategori" column="kategori" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
+                                        <SortableHeading label="Prodi" column="prodi" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
+                                        <SortableHeading label="Jumlah Log" column="log_kegiatans_count" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
                                         {canManage && (
                                             <th scope="col" className="px-6 py-3 text-right">Aksi</th>
                                         )}
@@ -220,43 +209,22 @@ export default function MasterKegiatanIndex({
                                                 <td className="whitespace-nowrap px-6 py-4 font-medium text-gray-900">
                                                     {(kegiatans.current_page - 1) * kegiatans.per_page + index + 1}
                                                 </td>
-                                                <td className="px-6 py-4">{item.prodi?.nama_prodi ?? item.kode_prodi}</td>
+                                                <td className="whitespace-nowrap px-6 py-4 font-mono font-semibold text-indigo-600">
+                                                    {item.kode_kegiatan}
+                                                </td>
                                                 <td className="px-6 py-4 font-medium text-gray-800">
-                                                    <div>{item.nama_kegiatan}</div>
-                                                    <span className={`portal-master-kegiatan-status${item.is_active ? ' is-active' : ' is-inactive'}`}>
-                                                        {item.is_active ? 'Aktif' : 'Nonaktif'}
-                                                    </span>
+                                                    {item.nama_kegiatan}
                                                 </td>
                                                 <td className="whitespace-nowrap px-6 py-4">
                                                     <span className="inline-flex rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-800">
                                                         {item.kategori}
                                                     </span>
                                                 </td>
+                                                <td className="px-6 py-4">{item.prodi?.nama_prodi ?? item.kode_prodi}</td>
+                                                <td className="whitespace-nowrap px-6 py-4 text-gray-500">
+                                                    {item.log_kegiatans_count ?? 0} log
+                                                </td>
                                                 {canManage && (
-<<<<<<< HEAD
-                                                    <td className="whitespace-nowrap px-6 py-4 text-right space-x-2">
-                                                        <SecondaryButton
-                                                            onClick={() => openEditModal(item)}
-                                                            className="text-xs"
-                                                        >
-                                                            Edit
-                                                        </SecondaryButton>
-                                                        {item.is_active ? (
-                                                            <SecondaryButton
-                                                                onClick={() => handleToggleStatus(item)}
-                                                                className="portal-master-kegiatan-toggle is-disable"
-                                                            >
-                                                                Nonaktifkan
-                                                            </SecondaryButton>
-                                                        ) : (
-                                                            <PrimaryButton
-                                                                onClick={() => handleToggleStatus(item)}
-                                                                className="portal-master-kegiatan-toggle is-enable"
-                                                            >
-                                                                Aktifkan
-                                                            </PrimaryButton>
-                                                        )}
-=======
                                                     <td className="whitespace-nowrap px-6 py-4 text-right">
                                                         <div className="portal-admin-students-action-menu">
                                                             <button
@@ -296,20 +264,14 @@ export default function MasterKegiatanIndex({
                                                                 </div>
                                                             )}
                                                         </div>
->>>>>>> origin/devs
                                                     </td>
                                                 )}
                                             </tr>
                                         ))
                                     ) : (
                                         <tr>
-<<<<<<< HEAD
-                                            <td colSpan={canManage ? 5 : 4} className="py-8 text-center text-gray-500">
-                                                Belum ada data jadwal kegiatan.
-=======
                                             <td colSpan={canManage ? 7 : 6} className="py-8 text-center text-gray-500">
                                                 Belum ada data jenis kegiatan.
->>>>>>> origin/devs
                                             </td>
                                         </tr>
                                     )}
@@ -363,9 +325,6 @@ export default function MasterKegiatanIndex({
                                 id="kode_prodi"
                                 className="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                                 value={data.kode_prodi}
-<<<<<<< HEAD
-                                onChange={(e) => setData('kode_prodi', e.target.value)}
-=======
                                 onChange={(e) => {
                                     const selectedProdi = e.target.value;
                                     const selectedCode = modalState.mode === 'edit'
@@ -379,7 +338,6 @@ export default function MasterKegiatanIndex({
                                         kode_kegiatan: selectedCode,
                                     });
                                 }}
->>>>>>> origin/devs
                                 required
                             >
                                 <option value="">Pilih program studi</option>
@@ -390,8 +348,6 @@ export default function MasterKegiatanIndex({
                                 ))}
                             </select>
                             <InputError message={errors.kode_prodi} className="mt-1" />
-<<<<<<< HEAD
-=======
                         </div>
 
                         <div>
@@ -404,7 +360,6 @@ export default function MasterKegiatanIndex({
                                 value={data.kode_kegiatan}
                                 readOnly
                             />
->>>>>>> origin/devs
                         </div>
 
                         <div>
@@ -446,8 +401,6 @@ export default function MasterKegiatanIndex({
                 </form>
             </Modal>
 
-<<<<<<< HEAD
-=======
             {/* Modal Konfirmasi Hapus */}
             <Modal show={Boolean(deleteItem)} onClose={() => setDeleteItem(null)}>
                 <div className="p-6">
@@ -467,7 +420,6 @@ export default function MasterKegiatanIndex({
                     </div>
                 </div>
             </Modal>
->>>>>>> origin/devs
         </AuthenticatedLayout>
     );
 }

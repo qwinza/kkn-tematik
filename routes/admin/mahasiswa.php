@@ -3,13 +3,12 @@
 use App\Http\Controllers\Admin\DppManagementController;
 use App\Http\Controllers\Admin\MahasiswaManagementController;
 use App\Http\Controllers\Admin\MahasiswaMonitoringController;
+use App\Models\LogKegiatan;
+use App\Models\Peserta;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
-<<<<<<< HEAD
-Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/mahasiswa', [MahasiswaMonitoringController::class, 'index'])
-        ->name('mahasiswa.index');
-=======
 // Route khusus DPP.
 Route::middleware(['auth', 'dpp'])
     ->prefix('dpp')
@@ -38,7 +37,6 @@ Route::middleware(['auth', 'admin'])
                 ->groupBy('fakultas')
                 ->orderBy('fakultas')
                 ->get();
->>>>>>> origin/devs
 
             $reportsByStatus = LogKegiatan::query()
                 ->whereIn('status', ['disetujui', 'menunggu', 'ditolak'])
@@ -61,18 +59,6 @@ Route::middleware(['auth', 'admin'])
             ]);
         })->name('analytics');
 
-<<<<<<< HEAD
-    // Detail Mahasiswa
-    Route::get('/mahasiswa/{peserta}', [MahasiswaMonitoringController::class, 'show'])
-        ->name('mahasiswa.show');
-
-    Route::get('/dpp', [DppManagementController::class, 'index'])->name('dpp.index');
-    Route::post('/dpp', [DppManagementController::class, 'store'])->name('dpp.store');
-    Route::put('/dpp/{user}', [DppManagementController::class, 'update'])->name('dpp.update');
-    Route::put('/dpp/{user}/password', [DppManagementController::class, 'resetPassword'])->name('dpp.reset-password');
-    Route::delete('/dpp/{user}', [DppManagementController::class, 'destroy'])->name('dpp.destroy');
-});
-=======
         // Monitoring Mahasiswa.
         Route::get('/mahasiswa', [MahasiswaMonitoringController::class, 'index'])
             ->name('mahasiswa.index');
@@ -112,4 +98,3 @@ Route::middleware(['auth', 'admin'])
         Route::delete('/dpp/{user}', [DppManagementController::class, 'destroy'])
             ->name('dpp.destroy');
     });
->>>>>>> origin/devs

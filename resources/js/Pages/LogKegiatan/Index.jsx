@@ -6,10 +6,6 @@ import { Head, Link, router } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 import confirmWithSweetAlert from '@/Components/confirmWithSweetAlert';
 
-<<<<<<< HEAD
-export default function LogKegiatanIndex({ logs, masterKegiatans, filters, isAdmin, isDpp = false, sessions = [], prodis = [], pendingCount = 0 }) {
-    const isSupervisor = isAdmin || isDpp;
-=======
 export default function LogKegiatanIndex({
     logs,
     masterKegiatans,
@@ -23,7 +19,6 @@ export default function LogKegiatanIndex({
 }) {
     const canReview = Boolean(isReviewer || isAdmin || isDpp);
 
->>>>>>> origin/devs
     const [search, setSearch] = useState(filters?.search || '');
     const [status, setStatus] = useState(filters?.status || '');
     const [masterId, setMasterId] = useState(filters?.master_kegiatan_id || '');
@@ -187,29 +182,15 @@ export default function LogKegiatanIndex({
 
     return (
         <AuthenticatedLayout>
-            <Head title={isSupervisor ? 'Riwayat Kegiatan Mahasiswa' : 'Kegiatan'} />
+            <Head title="Kegiatan" />
 
-<<<<<<< HEAD
-            <div className={`portal-logs-page py-8${isSupervisor ? ' portal-logs-admin' : ' portal-logs-student'}`}>
-                <div className="portal-logs-content mx-auto max-w-7xl sm:px-6 lg:px-8">
-                    <header className={`portal-dashboard-page-heading ${isSupervisor ? 'portal-logs-admin-heading' : 'portal-logs-student-heading'}`}>
-=======
             <div className={`portal-logs-page py-8${canReview ? ' portal-logs-admin' : ' portal-logs-student'}`}>
                 <div className="portal-logs-content mx-auto max-w-7xl sm:px-6 lg:px-8">
                     <header className={`portal-dashboard-page-heading ${canReview ? 'portal-logs-admin-heading' : 'portal-logs-student-heading'}`}>
->>>>>>> origin/devs
                         <div>
                             <p className="portal-dashboard-breadcrumb">
                                 Portal {isAdmin ? 'Admin' : isDpp ? 'DPP' : 'Mahasiswa'} <span>/</span> Kegiatan
                             </p>
-<<<<<<< HEAD
-                            <h1>{isSupervisor ? 'Riwayat Kegiatan Mahasiswa' : 'Kegiatan'}</h1>
-                            <p>{isAdmin
-                                ? 'Memantau kegiatan mahasiswa KKN yang telah diajukan.'
-                                : isDpp
-                                    ? 'Memantau riwayat kegiatan mahasiswa pada program studi Anda.'
-                                : 'Lihat dan kelola catatan kegiatan KKN Anda.'}
-=======
 
                             <h1>Kegiatan</h1>
 
@@ -219,7 +200,6 @@ export default function LogKegiatanIndex({
                                     : isDpp
                                         ? 'Memantau dan memproses laporan kegiatan mahasiswa KKN dari program studi Anda.'
                                         : 'Lihat dan kelola catatan kegiatan KKN Anda.'}
->>>>>>> origin/devs
                             </p>
                         </div>
                     </header>
@@ -326,26 +306,18 @@ export default function LogKegiatanIndex({
                                                 onChange={(event) => setStatus(event.target.value)}
                                             >
                                                 <option value="">Semua Status</option>
-<<<<<<< HEAD
-                                                {!isSupervisor && <option value="draft">Draf</option>}
-=======
 
                                                 {!canReview && (
                                                     <option value="draft">Draf</option>
                                                 )}
 
->>>>>>> origin/devs
                                                 <option value="menunggu">Menunggu</option>
                                                 <option value="disetujui">Disetujui</option>
                                                 <option value="ditolak">Ditolak</option>
                                             </select>
                                         </div>
 
-<<<<<<< HEAD
-                                        {isSupervisor && (
-=======
                                         {canReview && (
->>>>>>> origin/devs
                                             <>
                                                 <div>
                                                     <label
@@ -512,18 +484,6 @@ export default function LogKegiatanIndex({
                                     Export Excel
                                 </a>
                             )}
-<<<<<<< HEAD
-                            {(isAdmin || isDpp) && (
-                                <a
-                                    href={route('log-kegiatan.export-pdf', exportFilters)}
-                                    title="Unduh laporan riwayat kegiatan dalam format PDF"
-                                    className="inline-flex min-h-10 items-center gap-2 rounded-md bg-indigo-700 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-800"
-                                >
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden="true">
-                                        <path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v4h14v-4" />
-                                    </svg>
-                                    Ekspor PDF
-=======
 
                             {canReview && (
                                 <a
@@ -551,7 +511,6 @@ export default function LogKegiatanIndex({
                                         <path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v4h14v-4" />
                                     </svg>
                                     Unduh Laporan PDF
->>>>>>> origin/devs
                                 </a>
                             )}
                         </div>
@@ -563,15 +522,6 @@ export default function LogKegiatanIndex({
                             <table className="portal-data-table min-w-full divide-y divide-gray-200 text-left text-sm text-gray-700">
                                 <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
                                     <tr>
-<<<<<<< HEAD
-                                        <th scope="col" className="px-6 py-3">No</th>
-                                        {isSupervisor && <SortableHeading label="Mahasiswa" column="mahasiswa" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />}
-                                        <SortableHeading label="Kegiatan" column="kegiatan" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
-                                        <SortableHeading label="Waktu & Lokasi" column="tanggal_kehadiran" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
-                                        <SortableHeading label="Status" column="status" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
-                                        <SortableHeading label="Tahap pengisian" column="current_step" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
-                                        <th scope="col" className="px-6 py-3 text-right">Aksi</th>
-=======
                                         <th scope="col" className="px-6 py-3">
                                             No
                                         </th>
@@ -626,7 +576,6 @@ export default function LogKegiatanIndex({
                                         <th scope="col" className="px-6 py-3 text-right">
                                             Aksi
                                         </th>
->>>>>>> origin/devs
                                     </tr>
                                 </thead>
 
@@ -637,12 +586,8 @@ export default function LogKegiatanIndex({
                                                 <td className="whitespace-nowrap px-6 py-4 font-medium text-gray-900">
                                                     {(logs.current_page - 1) * logs.per_page + index + 1}
                                                 </td>
-<<<<<<< HEAD
-                                                {isSupervisor && (
-=======
 
                                                 {canReview && (
->>>>>>> origin/devs
                                                     <td className="whitespace-nowrap px-6 py-4">
                                                         <div className="font-semibold text-gray-900">
                                                             {item.peserta?.nama_lengkap ?? '-'}
@@ -709,55 +654,6 @@ export default function LogKegiatanIndex({
                                                 </td>
 
                                                 <td className="whitespace-nowrap px-6 py-4 text-right">
-<<<<<<< HEAD
-                                                    <div className="inline-flex items-center gap-2">
-                                                        <Link
-                                                            href={route('log-kegiatan.show', item.route_key)}
-                                                            title="Lihat detail"
-                                                            aria-label={`Lihat detail log ${item.id}`}
-                                                            className={isSupervisor
-                                                                ? 'inline-flex h-8 w-8 items-center justify-center rounded-full border border-indigo-200 font-bold text-indigo-700 hover:bg-indigo-50'
-                                                                : 'inline-flex items-center rounded bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100'}
-                                                        >
-                                                            {isSupervisor ? 'i' : 'Detail'}
-                                                        </Link>
-                                                        {!isSupervisor && item.status === 'draft' && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleDeleteDraft(item)}
-                                                                className="inline-flex items-center rounded bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100"
-                                                            >
-                                                                Hapus draft
-                                                            </button>
-                                                        )}
-                                                        {isAdmin && item.status === 'menunggu' && (
-                                                            <>
-                                                                <button
-                                                                    type="button"
-                                                                    title="Setujui log"
-                                                                    aria-label={`Setujui log ${item.id}`}
-                                                                    disabled={processingId === item.id}
-                                                                    onClick={() => handleStatusAction('approve', item)}
-                                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-green-200 text-green-700 hover:bg-green-50 disabled:opacity-50"
-                                                                >
-                                                                    <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4 fill-none stroke-current stroke-2">
-                                                                        <path d="m4 10 4 4 8-8" />
-                                                                    </svg>
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    title="Tolak log"
-                                                                    aria-label={`Tolak log ${item.id}`}
-                                                                    disabled={processingId === item.id}
-                                                                    onClick={() => handleStatusAction('reject', item)}
-                                                                    className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-50"
-                                                                >
-                                                                    <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4 fill-none stroke-current stroke-2">
-                                                                        <path d="m5 5 10 10M15 5 5 15" />
-                                                                    </svg>
-                                                                </button>
-                                                            </>
-=======
                                                     <div className="portal-admin-students-action-menu">
                                                         <button
                                                             type="button"
@@ -815,7 +711,6 @@ export default function LogKegiatanIndex({
                                                                     </>
                                                                 )}
                                                             </div>
->>>>>>> origin/devs
                                                         )}
                                                     </div>
                                                 </td>
@@ -823,14 +718,10 @@ export default function LogKegiatanIndex({
                                         ))
                                     ) : (
                                         <tr>
-<<<<<<< HEAD
-                                            <td colSpan={isSupervisor ? 7 : 6} className="py-8 text-center text-gray-500">
-=======
                                             <td
                                                 colSpan={canReview ? 7 : 6}
                                                 className="py-8 text-center text-gray-500"
                                             >
->>>>>>> origin/devs
                                                 Belum ada catatan log kegiatan.
                                             </td>
                                         </tr>

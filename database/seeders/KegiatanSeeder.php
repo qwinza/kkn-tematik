@@ -15,33 +15,23 @@ class KegiatanSeeder extends Seeder
     public function run()
     {
         $prodi = [
-            ['kode_prodi' => 'TI',  'nama_prodi' => 'Teknik Industri',              'fakultas' => 'FTI'],
-            ['kode_prodi' => 'TK',  'nama_prodi' => 'Teknik Kimia',                 'fakultas' => 'FTI'],
-            ['kode_prodi' => 'MS',  'nama_prodi' => 'Teknik Mesin',                 'fakultas' => 'FTI'],
-            ['kode_prodi' => 'EL',  'nama_prodi' => 'Teknik Elektro',               'fakultas' => 'FTI'],
-            ['kode_prodi' => 'IF',  'nama_prodi' => 'Informatika',                  'fakultas' => 'FTI'],
-            ['kode_prodi' => 'SI',  'nama_prodi' => 'Sistem Informasi',             'fakultas' => 'FTI'],
-            ['kode_prodi' => 'TG',  'nama_prodi' => 'Teknik Geodesi',               'fakultas' => 'FTSP'],
-            ['kode_prodi' => 'TL',  'nama_prodi' => 'Teknik Lingkungan',            'fakultas' => 'FTSP'],
-            ['kode_prodi' => 'TS',  'nama_prodi' => 'Teknik Sipil',                 'fakultas' => 'FTSP'],
-            ['kode_prodi' => 'PWK', 'nama_prodi' => 'Perencanaan Wilayah dan Kota', 'fakultas' => 'FTSP'],
-            ['kode_prodi' => 'ARS', 'nama_prodi' => 'Arsitektur',                   'fakultas' => 'FAD'],
-            ['kode_prodi' => 'DKV', 'nama_prodi' => 'Desain Komunikasi Visual',     'fakultas' => 'FAD'],
-            ['kode_prodi' => 'DI',  'nama_prodi' => 'Desain Interior',              'fakultas' => 'FAD'],
-            ['kode_prodi' => 'DP',  'nama_prodi' => 'Desain Produk',                'fakultas' => 'FAD'],
+            ['kode_prodi' => 'TI', 'nama_prodi' => 'Teknik Industri'],
+            ['kode_prodi' => 'TK', 'nama_prodi' => 'Teknik Kimia'],
+            ['kode_prodi' => 'MS', 'nama_prodi' => 'Teknik Mesin'],
+            ['kode_prodi' => 'EL', 'nama_prodi' => 'Teknik Elektro'],
+            ['kode_prodi' => 'IF', 'nama_prodi' => 'Informatika'],
+            ['kode_prodi' => 'SI', 'nama_prodi' => 'Sistem Informasi'],
+            ['kode_prodi' => 'TG', 'nama_prodi' => 'Teknik Geodesi'],
+            ['kode_prodi' => 'TL', 'nama_prodi' => 'Teknik Lingkungan'],
+            ['kode_prodi' => 'TS', 'nama_prodi' => 'Teknik Sipil'],
+            ['kode_prodi' => 'PWK', 'nama_prodi' => 'Perencanaan Wilayah dan Kota'],
+            ['kode_prodi' => 'ARS', 'nama_prodi' => 'Arsitektur'],
+            ['kode_prodi' => 'DKV', 'nama_prodi' => 'Desain Komunikasi Visual'],
+            ['kode_prodi' => 'DI', 'nama_prodi' => 'Desain Interior'],
+            ['kode_prodi' => 'DP', 'nama_prodi' => 'Desain Produk'],
         ];
 
-        foreach ($prodi as $item) {
-            DB::table('prodi')->updateOrInsert(
-                ['kode_prodi' => $item['kode_prodi']],
-                [
-                    'nama_prodi' => $item['nama_prodi'],
-                    'fakultas' => $item['fakultas'],
-                    'updated_at' => now(),
-                    'created_at' => now(),
-                ]
-            );
-        }
+        DB::table('prodi')->insert($prodi);
 
         $kegiatans = [
             ['kode_kegiatan' => 'ARS-01', 'nama_kegiatan' => 'Identifikasi & Pemetaan Spasial Foto Udara Drone', 'kategori' => 'Pemetaan & Riset', 'kode_prodi' => 'ARS'],
@@ -106,17 +96,6 @@ class KegiatanSeeder extends Seeder
             ['kode_kegiatan' => 'TK-05', 'nama_kegiatan' => 'Pelatihan Operasional Reaktor Warga & Penyusunan SOP', 'kategori' => 'Pelatihan & Sosialisasi', 'kode_prodi' => 'TK'],
         ];
 
-        foreach ($kegiatans as $kegiatan) {
-            DB::table('master_kegiatans')->updateOrInsert(
-                ['kode_kegiatan' => $kegiatan['kode_kegiatan']],
-                [
-                    'nama_kegiatan' => $kegiatan['nama_kegiatan'],
-                    'kategori' => $kegiatan['kategori'],
-                    'kode_prodi' => $kegiatan['kode_prodi'],
-                    'updated_at' => now(),
-                    'created_at' => now(),
-                ]
-            );
-        }
+        DB::table('master_kegiatans')->insert($kegiatans);
     }
 }

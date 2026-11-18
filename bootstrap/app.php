@@ -1,8 +1,6 @@
 <?php
 
-use App\Http\Middleware\EnsurePasswordIsChanged;
 use App\Http\Middleware\EnsureUserIsAdmin;
-use App\Http\Middleware\EnsureUserIsDosen;
 use App\Http\Middleware\EnsureUserIsMahasiswa;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\EnsureUserIsDpp;
@@ -22,12 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
-            EnsurePasswordIsChanged::class,
         ]);
 
         $middleware->alias([
             'admin' => EnsureUserIsAdmin::class,
-            'dosen' => EnsureUserIsDosen::class,
             'mahasiswa' => EnsureUserIsMahasiswa::class,
             'dpp' => EnsureUserIsDpp::class,
         ]);

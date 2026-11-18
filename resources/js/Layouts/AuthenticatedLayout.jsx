@@ -30,9 +30,6 @@ export default function AuthenticatedLayout({
         .slice(0, 2)
         .join('')
         .toUpperCase();
-<<<<<<< HEAD
-    const userRoleLabel = user.is_admin ? 'Admin' : user.is_dpp ? 'DPP' : user.is_dosen ? 'Dosen Pembimbing' : 'Mahasiswa';
-=======
 
     const userRoleLabel = isAdmin
         ? 'Admin'
@@ -46,7 +43,6 @@ export default function AuthenticatedLayout({
             ? 'AKUN DPP'
             : 'AKUN MAHASISWA';
 
->>>>>>> origin/devs
     const todayLabel = new Intl.DateTimeFormat('id-ID', {
         day: '2-digit',
         month: 'short',
@@ -66,12 +62,7 @@ export default function AuthenticatedLayout({
             active: route().current('admin.mahasiswa.*'),
         },
         {
-            label: 'Akun DPP',
-            href: route('admin.dpp.index'),
-            active: route().current('admin.dpp.*'),
-        },
-        {
-            label: 'Riwayat Kegiatan Mahasiswa',
+            label: 'Kegiatan',
             href: route('log-kegiatan.index'),
             active: route().current('log-kegiatan.*'),
         },
@@ -80,34 +71,10 @@ export default function AuthenticatedLayout({
             href: route('master-kegiatan.index'),
             active: route().current('master-kegiatan.*'),
         },
-    ];
-    const dosenNavigationItems = [
         {
-            label: 'Dashboard',
-            href: route('dashboard'),
-            active: route().current('dashboard'),
-        },
-        {
-            label: 'Mahasiswa Bimbingan',
-            href: route('dosen.mahasiswa.index'),
-            active: route().current('dosen.mahasiswa.*'),
-        },
-    ];
-    const dppNavigationItems = [
-        {
-            label: 'Dashboard',
-            href: route('dashboard'),
-            active: route().current('dashboard'),
-        },
-        {
-            label: 'Mahasiswa Bimbingan',
-            href: route('dosen.mahasiswa.index'),
-            active: route().current('dosen.mahasiswa.*'),
-        },
-        {
-            label: 'Riwayat Kegiatan Mahasiswa',
-            href: route('log-kegiatan.index'),
-            active: route().current('log-kegiatan.*'),
+            label: 'Analitik',
+            href: route('admin.analytics'),
+            active: route().current('admin.analytics'),
         },
         {
             label: 'Akun DPP',
@@ -168,15 +135,11 @@ export default function AuthenticatedLayout({
 
                         {/* Desktop Navigation */}
                         <div className="portal-navigation hidden lg:flex">
-<<<<<<< HEAD
-                            {user?.is_admin || user?.is_dosen ? (
-=======
 
                             {/* Admin Navigation */}
                             {isAdmin ? (
->>>>>>> origin/devs
                                 <div className="portal-admin-navigation">
-                                    {(user.is_admin ? adminNavigationItems : user.is_dpp ? dppNavigationItems : dosenNavigationItems).map((item) =>
+                                    {adminNavigationItems.map((item) =>
                                         item.disabled ? (
                                             <span
                                                 key={item.label}
@@ -400,11 +363,7 @@ export default function AuthenticatedLayout({
                                     <Dropdown.Content contentClasses="portal-user-panel">
                                         <div className="portal-user-panel-heading">
                                             <div>
-<<<<<<< HEAD
-                                                <span>{user.is_admin ? 'AKUN ADMIN' : user.is_dpp ? 'AKUN DPP' : user.is_dosen ? 'AKUN DOSEN PEMBIMBING' : 'AKUN MAHASISWA'}</span>
-=======
                                                 <span>{userAccountLabel}</span>
->>>>>>> origin/devs
                                                 <strong>Profil & Pengaturan</strong>
                                             </div>
 
@@ -515,16 +474,6 @@ export default function AuthenticatedLayout({
                     }
                 >
                     <div className="portal-mobile-navigation-links space-y-1 pb-3 pt-2">
-<<<<<<< HEAD
-                        {user?.is_admin || user?.is_dosen ? (user.is_admin ? adminNavigationItems : user.is_dpp ? dppNavigationItems : dosenNavigationItems).map((item) => item.disabled ? (
-                            <span
-                                key={item.label}
-                                className="portal-mobile-admin-item is-disabled"
-                                aria-disabled="true"
-                            >
-                                {item.label}
-                            </span>
-=======
 
                         {/* Admin Mobile Navigation */}
                         {isAdmin ? (
@@ -560,7 +509,6 @@ export default function AuthenticatedLayout({
                                     {item.label}
                                 </ResponsiveNavLink>
                             ))
->>>>>>> origin/devs
                         ) : (
 
                             /* Mahasiswa Mobile Navigation */

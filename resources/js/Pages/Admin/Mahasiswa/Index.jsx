@@ -10,11 +10,7 @@ import confirmWithSweetAlert from '@/Components/confirmWithSweetAlert';
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
-<<<<<<< HEAD
-export default function Index({ mahasiswas, prodis, filters, totalCount, canManage = true, portalRole = 'Admin', routePrefix = 'admin.mahasiswa' }) {
-=======
 export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp = false, canManage = true }) {
->>>>>>> origin/devs
     const [search, setSearch] = useState(filters.search || '');
     const [kodeProdi, setKodeProdi] = useState(filters.kode_prodi || '');
     const filterTimer = useRef(null);
@@ -46,7 +42,7 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
     const applyFilters = (nextSearch, nextKodeProdi, delay = 300) => {
         clearTimeout(filterTimer.current);
         filterTimer.current = setTimeout(() => {
-            router.get(route(`${routePrefix}.index`), {
+            router.get(route('admin.mahasiswa.index'), {
                 search: nextSearch || undefined,
                 kode_prodi: nextKodeProdi || undefined,
                 sort: filters.sort,
@@ -59,7 +55,7 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
         clearTimeout(filterTimer.current);
         const direction = filters.sort === column && filters.direction === 'asc' ? 'desc' : 'asc';
 
-        router.get(route(`${routePrefix}.index`), {
+        router.get(route('admin.mahasiswa.index'), {
             search: search || undefined,
             kode_prodi: kodeProdi || undefined,
             sort: column,
@@ -71,13 +67,13 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
         clearTimeout(filterTimer.current);
         setSearch('');
         setKodeProdi('');
-        router.get(route(`${routePrefix}.index`), {
+        router.get(route('admin.mahasiswa.index'), {
             sort: filters.sort,
             direction: filters.direction,
         }, { preserveState: true, preserveScroll: true, replace: true });
     };
 
-    const isFiltered = Boolean(search || (canManage && kodeProdi));
+    const isFiltered = Boolean(search || kodeProdi);
     const openCreateModal = () => {
         reset();
         clearErrors();
@@ -132,13 +128,13 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
         if (!confirmed) return;
 
         if (modalState.mode === 'create') {
-            post(route(`${routePrefix}.store`), {
+            post(route('admin.mahasiswa.store'), {
                 preserveScroll: true,
                 onSuccess: closeModal,
             });
         } else {
             put(
-                route(`${routePrefix}.update`, modalState.item.route_key),
+                route('admin.mahasiswa.update', modalState.item.route_key),
                 {
                     preserveScroll: true,
                     onSuccess: closeModal,
@@ -157,52 +153,34 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
         if (!confirmed) return;
 
         router.delete(
-            route(`${routePrefix}.destroy`, item.route_key),
+            route('admin.mahasiswa.destroy', item.route_key),
             { preserveScroll: true }
         );
     };
 
     return (
         <AuthenticatedLayout>
-            <Head title={canManage ? 'Mahasiswa' : 'Mahasiswa Bimbingan'} />
+            <Head title="Mahasiswa" />
 
             <div className="portal-admin-students">
                 <div className="portal-admin-students-content">
                     <header className="portal-dashboard-page-heading portal-admin-students-heading">
                         <div>
                             <p className="portal-dashboard-breadcrumb">
-<<<<<<< HEAD
-                                Portal {portalRole} <span>/</span> {canManage ? 'Mahasiswa' : 'Mahasiswa Bimbingan'}
-                            </p>
-                            <h1>{canManage ? 'Mahasiswa' : 'Mahasiswa Bimbingan'}</h1>
-                            <p>{canManage
-                                ? 'Kelola data peserta dan program studi mahasiswa KKN.'
-                                : 'Pantau mahasiswa KKN pada program studi bimbingan Anda.'}
-                            </p>
-=======
                                 Portal {isDpp ? 'Dosen Pembimbing' : 'Admin'} <span>/</span> Mahasiswa
                             </p>
                             <h1>Mahasiswa</h1>
                             <p>{isDpp ? 'Pantau mahasiswa dan total jam kegiatan yang disetujui di prodi Anda.' : 'Kelola data peserta dan program studi mahasiswa KKN.'}</p>
->>>>>>> origin/devs
                         </div>
 
                         <div className="flex items-center gap-3">
                             <span className="portal-admin-students-count">
-                                {canManage ? 'Total Mahasiswa Terdaftar:' : 'Mahasiswa Bimbingan:'} <strong>{totalCount}</strong>
+                                Total Mahasiswa Terdaftar: <strong>{totalCount}</strong>
                             </span>
 
-<<<<<<< HEAD
-                            {canManage && (
-                                <PrimaryButton onClick={openCreateModal}>
-                                    + Tambah Mahasiswa
-                                </PrimaryButton>
-                            )}
-=======
                             {canManage && <PrimaryButton onClick={openCreateModal}>
                                 + Tambah Mahasiswa
                             </PrimaryButton>}
->>>>>>> origin/devs
                         </div>
                     </header>
 
@@ -230,28 +208,31 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
                                 />
                             </div>
 
-                            {canManage && (
-                                <div className="portal-admin-students-program-filter">
-                                    <label htmlFor="kode_prodi">Filter Program Studi</label>
-                                    <select
-                                        id="kode_prodi"
-                                        value={kodeProdi}
-                                        onChange={(e) => {
-                                            const value = e.target.value;
-                                            setKodeProdi(value);
-                                            applyFilters(search, value, 0);
-                                        }}
-                                        className="portal-admin-students-input"
-                                    >
-                                        <option value="">Semua Program Studi</option>
-                                        {prodis.map((prodi) => (
-                                            <option key={prodi.kode_prodi} value={prodi.kode_prodi}>
-                                                {prodi.nama_prodi} ({prodi.fakultas})
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )}
+                            {/* Dropdown Program Studi */}
+                            <div className="portal-admin-students-program-filter">
+                                <label
+                                    htmlFor="kode_prodi"
+                                >
+                                    Filter Program Studi
+                                </label>
+                                <select
+                                    id="kode_prodi"
+                                    value={kodeProdi}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setKodeProdi(value);
+                                        applyFilters(search, value, 0);
+                                    }}
+                                    className="portal-admin-students-input"
+                                >
+                                    <option value="">Semua Program Studi</option>
+                                    {prodis.map((prodi) => (
+                                        <option key={prodi.kode_prodi} value={prodi.kode_prodi}>
+                                            {prodi.nama_prodi} ({prodi.fakultas})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
 
                             {isFiltered && (
                                 <div className="portal-admin-students-reset-wrap">
@@ -334,15 +315,10 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
                                                             {fakultas}
                                                         </span>
                                                     </td>
-<<<<<<< HEAD
-                                                    <td className="portal-admin-students-actions">
-                                                        {canManage ? (
-=======
                                                     <td className="whitespace-nowrap px-4 py-4 font-semibold text-gray-900">
                                                         {mhs.total_jam_disetujui ?? 0} jam
                                                     </td>
                                                     {(canManage || isDpp) && <td className="portal-admin-students-actions">
->>>>>>> origin/devs
                                                         <div className="portal-admin-students-action-menu">
                                                             <button
                                                                 type="button"
@@ -359,11 +335,7 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
                                                             {openActionMenu === mhs.id && (
                                                                 <div className="portal-admin-students-menu" role="menu">
                                                                     <Link
-<<<<<<< HEAD
-                                                                        href={route(`${routePrefix}.show`, mhs.route_key)}
-=======
                                                                         href={route(isDpp ? 'dpp.mahasiswa.show' : 'admin.mahasiswa.show', mhs.route_key)}
->>>>>>> origin/devs
                                                                         className="portal-admin-students-menu-item"
                                                                         role="menuitem"
                                                                         onClick={() => setOpenActionMenu(null)}
@@ -389,19 +361,7 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
                                                                 </div>
                                                             )}
                                                         </div>
-<<<<<<< HEAD
-                                                        ) : (
-                                                            <Link
-                                                                href={route(`${routePrefix}.show`, mhs.route_key)}
-                                                                className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-700 shadow-sm hover:bg-gray-50"
-                                                            >
-                                                                Lihat Detail
-                                                            </Link>
-                                                        )}
-                                                    </td>
-=======
                                                     </td>}
->>>>>>> origin/devs
                                                 </tr>
                                             );
                                         })

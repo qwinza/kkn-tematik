@@ -16,15 +16,11 @@ class FirstLoginPasswordController extends Controller
     {
         $user = $request->user();
 
-<<<<<<< HEAD
-        abort_unless($user?->isMahasiswa() || $user?->isDpp(), 403);
-=======
         abort_unless(
             $user && $user->isMahasiswa(),
             403,
             'Fitur perubahan password pertama hanya berlaku untuk mahasiswa.'
         );
->>>>>>> origin/devs
 
         if (! $user->must_change_password) {
             return redirect()->route('dashboard');
@@ -37,15 +33,11 @@ class FirstLoginPasswordController extends Controller
     {
         $user = $request->user();
 
-<<<<<<< HEAD
-        abort_unless($user?->isMahasiswa() || $user?->isDpp(), 403);
-=======
         abort_unless(
             $user && $user->isMahasiswa(),
             403,
             'Fitur perubahan password pertama hanya berlaku untuk mahasiswa.'
         );
->>>>>>> origin/devs
 
         if (! $user->must_change_password) {
             return redirect()->route('dashboard');
