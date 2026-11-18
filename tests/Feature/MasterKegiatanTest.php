@@ -114,6 +114,29 @@ class MasterKegiatanTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_create_master_kegiatan_without_entering_a_code(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $prodi = Prodi::factory()->create();
+
+        $response = $this->actingAs($admin)->post(route('master-kegiatan.store'), [
+            'nama_kegiatan' => 'Pemberdayaan Masyarakat Pesisir',
+            'kategori' => 'Pemberdayaan',
+            'kode_prodi' => $prodi->kode_prodi,
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $kegiatan = MasterKegiatan::query()->where('nama_kegiatan', 'Pemberdayaan Masyarakat Pesisir')->firstOrFail();
+        $this->assertMatchesRegularExpression('/^KKN-[A-Z0-9]{8}$/', $kegiatan->kode_kegiatan);
+        $this->assertDatabaseHas('master_kegiatans', [
+            'id' => $kegiatan->id,
+            'kategori' => 'Pemberdayaan',
+            'kode_prodi' => $prodi->kode_prodi,
+        ]);
+    }
+
     public function test_mahasiswa_cannot_create_master_kegiatan(): void
     {
         $mahasiswa = User::factory()->mahasiswa()->create();
@@ -153,6 +176,28 @@ class MasterKegiatanTest extends TestCase
             'id' => $kegiatan->id,
             'kode_kegiatan' => 'KKN-NEW',
             'nama_kegiatan' => 'Kegiatan Baru Diperbarui',
+            'kategori' => 'Sosial',
+            'kode_prodi' => $kegiatan->kode_prodi,
+        ]);
+    }
+
+    public function test_admin_can_update_master_kegiatan_without_changing_its_code(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $kegiatan = MasterKegiatan::factory()->create(['kode_kegiatan' => 'KKN-EXISTING']);
+
+        $response = $this->actingAs($admin)->put(route('master-kegiatan.update', $kegiatan), [
+            'nama_kegiatan' => 'Kegiatan Diperbarui',
+            'kategori' => 'Sosial',
+            'kode_prodi' => $kegiatan->kode_prodi,
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+        $this->assertDatabaseHas('master_kegiatans', [
+            'id' => $kegiatan->id,
+            'kode_kegiatan' => 'KKN-EXISTING',
+            'nama_kegiatan' => 'Kegiatan Diperbarui',
             'kategori' => 'Sosial',
             'kode_prodi' => $kegiatan->kode_prodi,
         ]);

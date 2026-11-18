@@ -27,6 +27,7 @@ class MasterKegiatanRequest extends FormRequest
 
         return [
             'kode_kegiatan' => [
+                'sometimes',
                 'required',
                 'string',
                 'max:50',

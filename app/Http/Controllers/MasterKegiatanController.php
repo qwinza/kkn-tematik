@@ -7,6 +7,7 @@ use App\Models\MasterKegiatan;
 use App\Models\Prodi;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -77,7 +78,10 @@ class MasterKegiatanController extends Controller
      */
     public function store(MasterKegiatanRequest $request): RedirectResponse
     {
-        MasterKegiatan::create($request->validated());
+        $validated = $request->validated();
+        $validated['kode_kegiatan'] ??= 'KKN-'.Str::upper(Str::random(8));
+
+        MasterKegiatan::create($validated);
 
         return redirect()->back()->with('success', 'Master kegiatan berhasil ditambahkan.');
     }

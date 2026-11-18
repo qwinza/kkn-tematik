@@ -124,9 +124,17 @@ class LogKegiatanController extends Controller
             ->orderByDesc('tanggal_kehadiran')
             ->orderByDesc('id')
             ->get();
+        $approvedHoursByStudent = $logs
+            ->where('status', 'disetujui')
+            ->groupBy('peserta_id')
+            ->map(fn ($studentLogs) => round(
+                $studentLogs->sum(fn (LogKegiatan $log) => $log->durasiJam()),
+                1
+            ));
 
         return Pdf::loadView('reports.log-kegiatan-pdf', [
             'logs' => $logs,
+            'approvedHoursByStudent' => $approvedHoursByStudent,
             'generatedAt' => now(),
             'prodiName' => $isDpp ? $user->prodi?->nama_prodi : null,
             'isDpp' => $isDpp,
