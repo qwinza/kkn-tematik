@@ -90,6 +90,18 @@ class MahasiswaMonitoringTest extends TestCase
             );
 
         $this->actingAs($dpp)
+            ->get(route('dpp.mahasiswa.index', [
+                'sort' => 'nama_lengkap',
+                'direction' => 'asc',
+            ]))
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('filters.sort', 'nama_lengkap')
+                ->where('filters.direction', 'asc')
+                ->where('isDpp', true)
+            );
+
+        $this->actingAs($dpp)
             ->get(route('dpp.mahasiswa.show', $outsideProdi))
             ->assertNotFound();
     }

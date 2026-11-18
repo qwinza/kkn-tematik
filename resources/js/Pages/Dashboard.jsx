@@ -166,43 +166,7 @@ export default function Dashboard({
                             </article>
                         )}
 
-                        {isSupervisor ? (
-                            <article className="portal-dashboard-panel portal-dashboard-analytics-panel">
-                                <div className="portal-dashboard-analytics-card-heading">
-                                    <p className="portal-dashboard-panel-kicker">SEBARAN</p>
-                                    <div className="portal-dashboard-analytics-title">
-                                        <h2>Mahasiswa per Fakultas</h2>
-                                        <strong>{analytics?.totalMahasiswa ?? 0}</strong>
-                                    </div>
-                                </div>
-                                {!analytics || analytics.totalMahasiswa === 0 || analytics.mahasiswaPerFakultas.length === 0 ? (
-                                    <div className="portal-dashboard-empty-state">
-                                        <span className="portal-dashboard-empty-icon" aria-hidden="true">♙</span>
-                                        <div>
-                                            <strong>Belum ada data sebaran</strong>
-                                            <p>Sebaran mahasiswa akan tampil setelah mahasiswa terdaftar.</p>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="portal-dashboard-analytics-rows">
-                                        {analytics.mahasiswaPerFakultas.map((faculty) => {
-                                            const percentage = percentageOf(faculty.total, analytics.totalMahasiswa);
-
-                                            return (
-                                                <div className="portal-dashboard-analytics-row" key={faculty.fakultas}>
-                                                    <span>{faculty.fakultas} ({faculty.total})</span>
-                                                    <div className="portal-dashboard-progress-track">
-                                                        <span style={{ width: `${percentageOf(faculty.total, analyticsFacultyMax)}%` }} />
-                                                    </div>
-                                                    <strong>{percentage}%</strong>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </article>
-                        ) : (
-                            <article className="portal-dashboard-panel portal-dashboard-approval">
+                        <article className="portal-dashboard-panel portal-dashboard-approval">
                             <div className="portal-dashboard-approval-heading">
                                 <div>
                                     <p className="portal-dashboard-panel-kicker">PROGRES</p>
@@ -219,47 +183,9 @@ export default function Dashboard({
                             <Link href={route('log-kegiatan.index')}>
                                 Lihat kegiatan <span aria-hidden="true"> →</span>
                             </Link>
-                            </article>
-                        )}
+                        </article>
 
-                        {isSupervisor ? (
-                            <article className="portal-dashboard-panel portal-dashboard-analytics-panel">
-                                <div className="portal-dashboard-analytics-card-heading">
-                                    <p className="portal-dashboard-panel-kicker">VERIFIKASI</p>
-                                    <div className="portal-dashboard-analytics-title">
-                                        <h2>Status Laporan</h2>
-                                        <strong>{analytics?.totalLaporan ?? 0}</strong>
-                                    </div>
-                                </div>
-                                {!analytics || analytics.totalLaporan === 0 ? (
-                                    <div className="portal-dashboard-empty-state">
-                                        <span className="portal-dashboard-empty-icon" aria-hidden="true">✓</span>
-                                        <div>
-                                            <strong>Belum ada laporan</strong>
-                                            <p>Status verifikasi akan tampil setelah laporan kegiatan dikirim.</p>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="portal-dashboard-analytics-rows">
-                                        {analyticsReportStatuses.map((status) => {
-                                            const total = analytics[status.key];
-                                            const percentage = percentageOf(total, analytics.totalLaporan);
-
-                                            return (
-                                                <div className="portal-dashboard-analytics-row" key={status.key}>
-                                                    <span>{status.label} ({total})</span>
-                                                    <div className={`portal-dashboard-progress-track is-${status.color}`}>
-                                                        <span style={{ width: `${percentage}%` }} />
-                                                    </div>
-                                                    <strong>{percentage}%</strong>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </article>
-                        ) : (
-                            <article className="portal-dashboard-panel portal-dashboard-location">
+                        <article className="portal-dashboard-panel portal-dashboard-location">
                             <div>
                                 <p className="portal-dashboard-panel-kicker">LOKASI</p>
                                 <h2>Sebaran Lokasi</h2>
@@ -286,8 +212,7 @@ export default function Dashboard({
                                     <small>{summary.totalKampus ?? 0} kegiatan</small>
                                 </div>
                             </div>
-                            </article>
-                        )}
+                        </article>
                     </section>
                 </div>
             </div>

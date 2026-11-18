@@ -1,3 +1,4 @@
+import DangerButton from '@/Components/DangerButton';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import Modal from '@/Components/Modal';
@@ -25,6 +26,7 @@ export default function MasterKegiatanIndex({
     const [openActionMenu, setOpenActionMenu] = useState(null);
 
     const { data, setData, post, put, processing, errors, reset, clearErrors } = useForm({
+        kode_kegiatan: '',
         nama_kegiatan: '',
         kategori: '',
         kode_prodi: '',
@@ -72,6 +74,7 @@ export default function MasterKegiatanIndex({
     const openEditModal = (item) => {
         clearErrors();
         setData({
+            kode_kegiatan: item.kode_kegiatan,
             nama_kegiatan: item.nama_kegiatan,
             kategori: item.kategori,
             kode_prodi: item.kode_prodi,
@@ -98,20 +101,15 @@ export default function MasterKegiatanIndex({
         }
     };
 
-    const handleToggleStatus = async (item) => {
-        const isActivating = !item.is_active;
+    const handleDelete = async (item) => {
         const confirmed = await confirmWithSweetAlert({
             title: 'Hapus Jenis Kegiatan?',
             text: `Data ${item.nama_kegiatan} (${item.kode_kegiatan}) akan dihapus.`,
             confirmButtonText: 'Ya, hapus',
         });
-        if (!confirmed) {
-            return;
-        }
+        if (!confirmed) return;
 
-        router.patch(route('master-kegiatan.status', item.id), {
-            is_active: isActivating,
-        }, { preserveScroll: true });
+        router.delete(route('master-kegiatan.destroy', item.id));
     };
 
     return (
@@ -142,7 +140,7 @@ export default function MasterKegiatanIndex({
                             <TextInput
                                 type="text"
                                 className="w-full"
-                                placeholder="Cari program studi, nama kegiatan, atau kategori..."
+                                placeholder="Cari kode, kegiatan, kategori, atau prodi..."
                                 value={search}
                                 onChange={(e) => {
                                     const value = e.target.value;
@@ -194,9 +192,11 @@ export default function MasterKegiatanIndex({
                                 <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
                                     <tr>
                                         <th scope="col" className="px-6 py-3">No</th>
-                                        <SortableHeading label="Program Studi" column="prodi" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
+                                        <SortableHeading label="Kode" column="kode_kegiatan" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
                                         <SortableHeading label="Nama Kegiatan" column="nama_kegiatan" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
                                         <SortableHeading label="Kategori" column="kategori" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
+                                        <SortableHeading label="Prodi" column="prodi" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
+                                        <SortableHeading label="Jumlah Log" column="log_kegiatans_count" sort={filters?.sort} direction={filters?.direction} onSort={handleSort} className="px-6 py-3" />
                                         {canManage && (
                                             <th scope="col" className="px-6 py-3 text-right">Aksi</th>
                                         )}
@@ -209,17 +209,20 @@ export default function MasterKegiatanIndex({
                                                 <td className="whitespace-nowrap px-6 py-4 font-medium text-gray-900">
                                                     {(kegiatans.current_page - 1) * kegiatans.per_page + index + 1}
                                                 </td>
-                                                <td className="px-6 py-4">{item.prodi?.nama_prodi ?? item.kode_prodi}</td>
+                                                <td className="whitespace-nowrap px-6 py-4 font-mono font-semibold text-indigo-600">
+                                                    {item.kode_kegiatan}
+                                                </td>
                                                 <td className="px-6 py-4 font-medium text-gray-800">
-                                                    <div>{item.nama_kegiatan}</div>
-                                                    <span className={`portal-master-kegiatan-status${item.is_active ? ' is-active' : ' is-inactive'}`}>
-                                                        {item.is_active ? 'Aktif' : 'Nonaktif'}
-                                                    </span>
+                                                    {item.nama_kegiatan}
                                                 </td>
                                                 <td className="whitespace-nowrap px-6 py-4">
                                                     <span className="inline-flex rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-800">
                                                         {item.kategori}
                                                     </span>
+                                                </td>
+                                                <td className="px-6 py-4">{item.prodi?.nama_prodi ?? item.kode_prodi}</td>
+                                                <td className="whitespace-nowrap px-6 py-4 text-gray-500">
+                                                    {item.log_kegiatans_count ?? 0} log
                                                 </td>
                                                 {canManage && (
                                                     <td className="whitespace-nowrap px-6 py-4 text-right">

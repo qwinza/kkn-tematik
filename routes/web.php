@@ -8,7 +8,6 @@ use App\Http\Controllers\ProgressAnalysisController;
 use App\Models\LogKegiatan;
 use App\Models\Peserta;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -183,5 +182,4 @@ Route::middleware('auth')->group(function () {
 
 require __DIR__.'/auth.php';
 require __DIR__.'/admin/mahasiswa.php';
-require __DIR__.'/dosen.php';
 require __DIR__.'/mahasiswa/rencana-kehadiran.php';

@@ -143,6 +143,38 @@ class LogKegiatanStepperTest extends TestCase
         );
     }
 
+    public function test_tambah_kegiatan_resumes_existing_draft(): void
+    {
+        $user = User::factory()->mahasiswa()->create();
+        $peserta = Peserta::factory()->create(['user_id' => $user->id]);
+        $draft = LogKegiatan::factory()->draft(2)->create(['peserta_id' => $peserta->id]);
+
+        $response = $this->actingAs($user)->get(route('log-kegiatan.create'));
+
+        $this->assertRedirectsToEncryptedLogEdit($response, $draft, 2);
+    }
+
+    public function test_saving_first_step_reuses_running_draft_instead_of_creating_new_row(): void
+    {
+        $user = User::factory()->mahasiswa()->create();
+        $peserta = Peserta::factory()->create(['user_id' => $user->id]);
+        $draft = LogKegiatan::factory()->draft(1)->create(['peserta_id' => $peserta->id]);
+
+        $this->actingAs($user)->post(route('log-kegiatan.save-step.create'), [
+            'step' => 1,
+            'tanggal_kehadiran' => '2026-11-05',
+            'jam_mulai' => '07:00',
+            'jam_selesai' => '10:00',
+            'lokasi_kegiatan' => 'Lapangan',
+        ]);
+
+        $this->assertSame(1, LogKegiatan::where('peserta_id', $peserta->id)->count());
+        $this->assertDatabaseHas('log_kegiatans', [
+            'id' => $draft->id,
+            'tanggal_kehadiran' => '2026-11-05',
+        ]);
+    }
+
     public function test_mahasiswa_can_save_step_2_with_photo_upload(): void
     {
         Storage::fake('public');
@@ -595,6 +627,7 @@ class LogKegiatanStepperTest extends TestCase
             'master_kegiatan_id' => $masterKegiatan->id,
             'tanggal_kehadiran' => '2026-02-18',
             'lokasi_kegiatan' => 'Lapangan',
+            'keterangan_tempat' => 'Area taman warga RW 04',
             'deskripsi_kegiatan' => 'Membersihkan saluran air bersama warga desa.',
             'deskripsi_luaran' => 'Dokumentasi kegiatan pembersihan saluran.',
         ]);
@@ -624,6 +657,54 @@ class LogKegiatanStepperTest extends TestCase
             'id' => $log->id,
             'status' => 'menunggu',
             'current_step' => 6,
+        ]);
+    }
+
+    public function test_incomplete_final_submission_stays_as_draft_and_returns_an_error(): void
+    {
+        $student = User::factory()->mahasiswa()->create();
+        $peserta = Peserta::factory()->create(['user_id' => $student->id]);
+        $masterKegiatan = MasterKegiatan::factory()->create(['kode_prodi' => $peserta->kode_prodi]);
+        $log = LogKegiatan::factory()->draft(6)->create([
+            'peserta_id' => $peserta->id,
+            'master_kegiatan_id' => $masterKegiatan->id,
+            'tanggal_kehadiran' => '2026-02-18',
+            'lokasi_kegiatan' => 'Lapangan',
+            'keterangan_tempat' => null,
+            'deskripsi_kegiatan' => null,
+            'deskripsi_luaran' => 'Dokumentasi kegiatan pembersihan saluran.',
+        ]);
+        $log->files()->createMany([
+            [
+                'jenis_file' => 'foto_kegiatan',
+                'file_path' => 'kegiatan/foto/dokumentasi.jpg',
+                'nama_file_asli' => 'dokumentasi.jpg',
+                'ukuran_file' => 100,
+            ],
+            [
+                'jenis_file' => 'file_luaran',
+                'file_path' => 'kegiatan/luaran/laporan.pdf',
+                'nama_file_asli' => 'laporan.pdf',
+                'ukuran_file' => 100,
+            ],
+        ]);
+
+        $editUrl = route('log-kegiatan.edit', ['log_kegiatan' => $log, 'step' => 6]);
+        $response = $this->actingAs($student)
+            ->from($editUrl)
+            ->post(route('log-kegiatan.save-step', $log), [
+                'step' => 6,
+                'action' => 'submit',
+            ]);
+
+        $response->assertRedirect($editUrl);
+        $response->assertSessionHas(
+            'error',
+            'Lengkapi jadwal, rincian tempat dan kegiatan, dokumentasi, serta luaran sebelum mengirim laporan.'
+        );
+        $this->assertDatabaseHas('log_kegiatans', [
+            'id' => $log->id,
+            'status' => 'draft',
         ]);
     }
 

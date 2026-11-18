@@ -11,6 +11,7 @@ import { Head, Link, router, useForm } from '@inertiajs/react';
 import { useEffect, useRef, useState } from 'react';
 
 export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp = false, canManage = true }) {
+    const mahasiswaIndexRouteName = isDpp ? 'dpp.mahasiswa.index' : 'admin.mahasiswa.index';
     const [search, setSearch] = useState(filters.search || '');
     const [kodeProdi, setKodeProdi] = useState(filters.kode_prodi || '');
     const filterTimer = useRef(null);
@@ -42,7 +43,7 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
     const applyFilters = (nextSearch, nextKodeProdi, delay = 300) => {
         clearTimeout(filterTimer.current);
         filterTimer.current = setTimeout(() => {
-            router.get(route(`${routePrefix}.index`), {
+            router.get(route(mahasiswaIndexRouteName), {
                 search: nextSearch || undefined,
                 kode_prodi: nextKodeProdi || undefined,
                 sort: filters.sort,
@@ -55,7 +56,7 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
         clearTimeout(filterTimer.current);
         const direction = filters.sort === column && filters.direction === 'asc' ? 'desc' : 'asc';
 
-        router.get(route(`${routePrefix}.index`), {
+        router.get(route(mahasiswaIndexRouteName), {
             search: search || undefined,
             kode_prodi: kodeProdi || undefined,
             sort: column,
@@ -67,13 +68,13 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
         clearTimeout(filterTimer.current);
         setSearch('');
         setKodeProdi('');
-        router.get(route(`${routePrefix}.index`), {
+        router.get(route(mahasiswaIndexRouteName), {
             sort: filters.sort,
             direction: filters.direction,
         }, { preserveState: true, preserveScroll: true, replace: true });
     };
 
-    const isFiltered = Boolean(search || (canManage && kodeProdi));
+    const isFiltered = Boolean(search || kodeProdi);
     const openCreateModal = () => {
         reset();
         clearErrors();
@@ -128,13 +129,13 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
         if (!confirmed) return;
 
         if (modalState.mode === 'create') {
-            post(route(`${routePrefix}.store`), {
+            post(route('admin.mahasiswa.store'), {
                 preserveScroll: true,
                 onSuccess: closeModal,
             });
         } else {
             put(
-                route(`${routePrefix}.update`, modalState.item.route_key),
+                route('admin.mahasiswa.update', modalState.item.route_key),
                 {
                     preserveScroll: true,
                     onSuccess: closeModal,
@@ -153,14 +154,14 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
         if (!confirmed) return;
 
         router.delete(
-            route(`${routePrefix}.destroy`, item.route_key),
+            route('admin.mahasiswa.destroy', item.route_key),
             { preserveScroll: true }
         );
     };
 
     return (
         <AuthenticatedLayout>
-            <Head title={canManage ? 'Mahasiswa' : 'Mahasiswa Bimbingan'} />
+            <Head title="Mahasiswa" />
 
             <div className="portal-admin-students">
                 <div className="portal-admin-students-content">
@@ -175,7 +176,7 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
 
                         <div className="flex items-center gap-3">
                             <span className="portal-admin-students-count">
-                                {canManage ? 'Total Mahasiswa Terdaftar:' : 'Mahasiswa Bimbingan:'} <strong>{totalCount}</strong>
+                                Total Mahasiswa Terdaftar: <strong>{totalCount}</strong>
                             </span>
 
                             {canManage && <PrimaryButton onClick={openCreateModal}>
@@ -208,28 +209,31 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
                                 />
                             </div>
 
-                            {canManage && (
-                                <div className="portal-admin-students-program-filter">
-                                    <label htmlFor="kode_prodi">Filter Program Studi</label>
-                                    <select
-                                        id="kode_prodi"
-                                        value={kodeProdi}
-                                        onChange={(e) => {
-                                            const value = e.target.value;
-                                            setKodeProdi(value);
-                                            applyFilters(search, value, 0);
-                                        }}
-                                        className="portal-admin-students-input"
-                                    >
-                                        <option value="">Semua Program Studi</option>
-                                        {prodis.map((prodi) => (
-                                            <option key={prodi.kode_prodi} value={prodi.kode_prodi}>
-                                                {prodi.nama_prodi} ({prodi.fakultas})
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )}
+                            {/* Dropdown Program Studi */}
+                            <div className="portal-admin-students-program-filter">
+                                <label
+                                    htmlFor="kode_prodi"
+                                >
+                                    Filter Program Studi
+                                </label>
+                                <select
+                                    id="kode_prodi"
+                                    value={kodeProdi}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setKodeProdi(value);
+                                        applyFilters(search, value, 0);
+                                    }}
+                                    className="portal-admin-students-input"
+                                >
+                                    <option value="">Semua Program Studi</option>
+                                    {prodis.map((prodi) => (
+                                        <option key={prodi.kode_prodi} value={prodi.kode_prodi}>
+                                            {prodi.nama_prodi} ({prodi.fakultas})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
 
                             {isFiltered && (
                                 <div className="portal-admin-students-reset-wrap">

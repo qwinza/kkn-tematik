@@ -29,14 +29,14 @@ export default function Show({ mahasiswa, isDpp = false }) {
                             Detail Mahasiswa
                         </h2>
                         <p className="text-xs text-gray-500 mt-0.5">
-                            Portal {portalRole} / Informasi identitas dan profil akademik mahasiswa KKN
+                            Informasi identitas dan profil akademik mahasiswa KKN
                         </p>
                     </div>
                     <Link
                         href={route(mahasiswaIndexRoute)}
                         className="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                     >
-                        &larr; Kembali ke Mahasiswa
+                        &larr; Kembali ke Daftar
                     </Link>
                 </div>
             }

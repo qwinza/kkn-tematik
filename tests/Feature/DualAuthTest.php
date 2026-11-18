@@ -7,7 +7,7 @@ use App\Models\MasterKegiatan;
 use App\Models\Peserta;
 use App\Models\Prodi;
 use App\Models\User;
-use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\MahasiswaSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
@@ -203,7 +203,7 @@ class DualAuthTest extends TestCase
 
     public function test_seeded_farid_annas_can_login_with_his_registered_account(): void
     {
-        $this->seed(DatabaseSeeder::class);
+        $this->seed(MahasiswaSeeder::class);
         config([
             'services.campus_auth.endpoint' => 'https://campus.example.test/login',
             'services.campus_auth.api_key' => 'test-api-key',
@@ -211,7 +211,7 @@ class DualAuthTest extends TestCase
         Http::fake([
             'campus.example.test/login' => Http::response([
                 'success' => true,
-                'data' => ['nama' => 'Farid Annas', 'prodi' => 'Sistem Informasi'],
+                'data' => ['nama' => 'Farid Annas', 'prodi' => 'Informatika'],
             ]),
         ]);
 
@@ -224,13 +224,13 @@ class DualAuthTest extends TestCase
         $this->assertDatabaseHas('pesertas', [
             'nim' => '152025083',
             'nama_lengkap' => 'Farid Annas',
-            'program_studi' => 'Sistem Informasi',
-            'kode_prodi' => 'SI-01',
+            'program_studi' => 'Informatika',
+            'kode_prodi' => 'IF',
         ]);
         $response->assertRedirect(route('dashboard', absolute: false));
     }
 
-    public function test_mahasiswa_with_registered_password_can_login(): void
+    public function test_mahasiswa_cannot_login_with_local_password_when_sikad_rejects_credentials(): void
     {
         $nim = '152024038';
         $password = 'password123';
@@ -253,7 +253,7 @@ class DualAuthTest extends TestCase
             'services.campus_auth.api_key' => 'test-api-key',
         ]);
         Http::fake([
-            'campus.example.test/login' => Http::response(['status' => 'success']),
+            'campus.example.test/login' => Http::response(['status' => 'failed'], 401),
         ]);
 
         $response = $this->post(route('login'), [
@@ -261,8 +261,43 @@ class DualAuthTest extends TestCase
             'password' => $password,
         ]);
 
-        $this->assertAuthenticatedAs($user->fresh());
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $this->assertGuest();
+        $response->assertSessionHasErrors('identifier');
+    }
+
+    public function test_mahasiswa_login_rejects_a_sikad_response_for_a_different_nim(): void
+    {
+        $nim = '152024038';
+        config([
+            'services.campus_auth.endpoint' => 'https://campus.example.test/login',
+            'services.campus_auth.api_key' => 'test-api-key',
+        ]);
+        Http::fake([
+            'campus.example.test/login' => Http::response([
+                'success' => true,
+                'data' => ['nim' => '152024039'],
+            ]),
+        ]);
+
+        $user = User::create([
+            'name' => 'Aa Faris Ahmad Shidiq',
+            'nim' => $nim,
+            'password' => Hash::make('unused-local-password'),
+            'role' => 'mahasiswa',
+        ]);
+        Peserta::create([
+            'user_id' => $user->id,
+            'nama_lengkap' => 'Aa Faris Ahmad Shidiq',
+            'nim' => $nim,
+        ]);
+
+        $response = $this->from(route('login'))->post(route('login'), [
+            'identifier' => $nim,
+            'password' => 'campus-password',
+        ]);
+
+        $this->assertGuest();
+        $response->assertSessionHasErrors('identifier');
     }
 
     public function test_mahasiswa_cannot_login_with_invalid_credentials(): void

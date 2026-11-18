@@ -182,7 +182,7 @@ export default function LogKegiatanIndex({
 
     return (
         <AuthenticatedLayout>
-            <Head title={isSupervisor ? 'Riwayat Kegiatan Mahasiswa' : 'Kegiatan'} />
+            <Head title="Kegiatan" />
 
             <div className={`portal-logs-page py-8${canReview ? ' portal-logs-admin' : ' portal-logs-student'}`}>
                 <div className="portal-logs-content mx-auto max-w-7xl sm:px-6 lg:px-8">

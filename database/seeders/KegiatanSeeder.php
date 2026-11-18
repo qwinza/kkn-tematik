@@ -112,6 +112,7 @@ class KegiatanSeeder extends Seeder
                     'nama_kegiatan' => $kegiatan['nama_kegiatan'],
                     'kategori' => $kegiatan['kategori'],
                     'kode_prodi' => $kegiatan['kode_prodi'],
+                    'is_active' => true,
                     'updated_at' => now(),
                     'created_at' => now(),
                 ]

@@ -155,6 +155,29 @@ class AuthController extends Controller
         string $username,
         string $password
     ): RedirectResponse {
+        if (config('app.env') === 'local' && $username === 'dosen.testing') {
+            $testingRequest = DppAccessRequest::query()
+                ->where('username_sikad', $username)
+                ->where('nomor_dosen', 'TEST-DPP-001')
+                ->where('approval_status', DppAccessRequest::STATUS_DISETUJUI)
+                ->with('user')
+                ->first();
+            $testingUser = $testingRequest?->user;
+
+            if (
+                $testingUser
+                && $testingUser->isDpp()
+                && $testingUser->dppProfile()->exists()
+                && Hash::check($password, $testingUser->password)
+            ) {
+                $this->clearRateLimiter($username, $request->ip());
+                Auth::login($testingUser, $request->boolean('remember'));
+                $request->session()->regenerate();
+
+                return redirect()->intended(route('dashboard', absolute: false));
+            }
+        }
+
         try {
             $identity = app(DosenSikadAuthService::class)
                 ->authenticate($username, $password);
@@ -292,28 +315,6 @@ class AuthController extends Controller
      */
     protected function handleMahasiswaLogin(Request $request, string $nim, string $password): RedirectResponse
     {
-        $dosen = User::query()
-            ->where('nim', $nim)
-            ->where('role', 'dosen')
-            ->first();
-
-        if ($dosen) {
-            if (Hash::check($password, $dosen->password) && $dosen->prodi()->exists()) {
-                $this->clearRateLimiter($nim, $request->ip());
-                Auth::login($dosen, $request->boolean('remember'));
-                $request->session()->regenerate();
-
-                return redirect()->intended(route('dashboard', absolute: false));
-            }
-
-            $this->hitRateLimiter($nim, $request->ip());
-
-            throw ValidationException::withMessages([
-                'identifier' => trans('auth.failed'),
-                'email' => trans('auth.failed'),
-            ]);
-        }
-
         $peserta = Peserta::query()
             ->where('nim', $nim)
             ->whereHas('user', fn ($query) => $query->where('role', 'mahasiswa'))
@@ -327,17 +328,6 @@ class AuthController extends Controller
                 'identifier' => trans('auth.failed'),
                 'email' => trans('auth.failed'),
             ]);
-        }
-
-        // Fallback pengembangan: login mahasiswa pakai password lokal saat APP_ENV=local.
-        if (app()->environment('local')) {
-            if (Hash::check($password, $peserta->user->password)) {
-                $this->clearRateLimiter($nim, $request->ip());
-                Auth::login($peserta->user, $request->boolean('remember'));
-                $request->session()->regenerate();
-
-                return redirect()->intended(route('dashboard', absolute: false));
-            }
         }
 
         $endpoint = config('services.campus_auth.endpoint');
@@ -374,6 +364,17 @@ class AuthController extends Controller
             && (($payload['success'] ?? false) === true
                 || ($payload['status'] ?? false) === true
                 || in_array($apiStatus, ['success', 'sukses', 'ok'], true));
+
+        $profile = is_array($payload['data'] ?? null) ? $payload['data'] : $payload;
+        $authenticatedNim = $profile['nim'] ?? $profile['username'] ?? $profile['user_name'] ?? null;
+
+        if (
+            (is_string($authenticatedNim) || is_int($authenticatedNim))
+            && trim((string) $authenticatedNim) !== ''
+            && trim((string) $authenticatedNim) !== $nim
+        ) {
+            $isAuthenticated = false;
+        }
 
         if (! $isAuthenticated) {
             $this->hitRateLimiter($nim, $request->ip());

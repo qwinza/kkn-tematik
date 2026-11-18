@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\DppAccessRequest;
 use App\Models\Prodi;
 use App\Models\User;
+use Database\Seeders\TestingAccountsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -50,6 +51,26 @@ class DppSikadAuthenticationTest extends TestCase
         ]);
     }
 
+    public function test_local_dpp_testing_account_can_login_without_calling_sikad(): void
+    {
+        $this->seed(TestingAccountsSeeder::class);
+        config(['app.env' => 'local']);
+        Http::preventStrayRequests();
+
+        $response = $this->post(route('login'), [
+            'identifier' => 'dosen.testing',
+            'password' => 'dpptes123',
+        ]);
+
+        $response->assertRedirect(route('dashboard', absolute: false));
+        $this->assertAuthenticated();
+        $this->assertDatabaseHas('dpp_profiles', [
+            'user_id' => auth()->id(),
+            'kode_prodi' => 'IF',
+        ]);
+        $response->assertRedirect(route('dashboard', absolute: false));
+    }
+
     public function test_valid_dosen_credentials_create_pending_access_request(): void
     {
         $this->configureSikadApi();
@@ -83,8 +104,7 @@ class DppSikadAuthenticationTest extends TestCase
             'name' => 'ANISA PUTRI SETYANINGRUM',
         ]);
 
-        Http::assertSent(fn ($request) =>
-            $request->url() === $this->endpoint
+        Http::assertSent(fn ($request) => $request->url() === $this->endpoint
             && $request['APIKEY'] === 'test-api-key'
             && $request['username'] === 'anisa.putri'
             && $request['password'] === 'sikad-password'

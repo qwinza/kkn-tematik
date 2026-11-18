@@ -19,8 +19,9 @@ class MasterKegiatanController extends Controller
         $user = $request->user();
         $isAdmin = $user?->isAdmin() ?? false;
         $isDpp = $user?->isDpp() ?? false;
+        $isMahasiswa = $user?->isMahasiswa() ?? false;
 
-        abort_unless($isAdmin || $isDpp, 403);
+        abort_unless($isAdmin || $isDpp || $isMahasiswa, 403);
 
         $dppKodeProdi = $isDpp
             ? $user->dppProfile?->kode_prodi
@@ -44,7 +45,7 @@ class MasterKegiatanController extends Controller
             'direction' => ['nullable', Rule::in(['asc', 'desc'])],
         ];
 
-        if ($isAdmin) {
+        if ($isAdmin || $isMahasiswa) {
             $rules['kode_prodi'] = [
                 'nullable',
                 'string',
@@ -60,7 +61,7 @@ class MasterKegiatanController extends Controller
 
         $kodeProdiFilter = $isDpp
             ? $dppKodeProdi
-            : ($filters['kode_prodi'] ?? null);
+            : ($filters['kode_prodi'] ?? ($isMahasiswa ? ($user->peserta?->kode_prodi ?? null) : null));
 
         $query = MasterKegiatan::query()
             ->with('prodi')
@@ -98,13 +99,13 @@ class MasterKegiatanController extends Controller
 
         $kegiatans = $query->paginate(10)->withQueryString();
 
-        $prodis = $isAdmin
+        $prodis = $isAdmin || $isMahasiswa
             ? Prodi::query()->orderBy('nama_prodi')
                 ->get(['kode_prodi', 'nama_prodi'])
             : Prodi::query()->where('kode_prodi', $dppKodeProdi)
                 ->get(['kode_prodi', 'nama_prodi']);
 
-        $kodeBerikutnyaPerProdi = $this->getNextCodesPerProdi($prodis);
+        $kodeBerikutnyaPerProdi = ($isAdmin || $isDpp) ? $this->getNextCodesPerProdi($prodis) : [];
 
         return Inertia::render('MasterKegiatan/Index', [
             'kegiatans' => $kegiatans,
@@ -116,9 +117,10 @@ class MasterKegiatanController extends Controller
                 'sort' => $sort,
                 'direction' => $direction,
             ],
-            'canManage' => true,
+            'canManage' => $isAdmin || $isDpp,
             'isAdmin' => $isAdmin,
             'isDpp' => $isDpp,
+            'isMahasiswa' => $isMahasiswa,
         ]);
     }
 
@@ -186,7 +188,6 @@ class MasterKegiatanController extends Controller
                 'Master kegiatan tidak dapat dihapus karena sudah memiliki relasi log kegiatan.'
             );
         }
-
         $masterKegiatan->delete();
 
         return back()->with('success', 'Master kegiatan berhasil dihapus.');

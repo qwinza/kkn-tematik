@@ -361,11 +361,11 @@ class LogKegiatanController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function validateLogFilters(Request $request, bool $isReviewer): array
+    private function validateLogFilters(Request $request, bool $isAdmin): array
     {
         return $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
-            'status' => ['nullable', Rule::in($isReviewer
+            'status' => ['nullable', Rule::in($isAdmin
                 ? ['menunggu', 'disetujui', 'ditolak']
                 : ['draft', 'menunggu', 'disetujui', 'ditolak'])],
             'master_kegiatan_id' => ['nullable', 'integer', 'exists:master_kegiatans,id'],
@@ -384,11 +384,6 @@ class LogKegiatanController extends Controller
         ?string $scopeKodeProdi = null
     ): Builder {
         $search = $filters['search'] ?? '';
-
-        $viewer = auth()->user();
-        $isDpp = $viewer?->isDpp() ?? false;
-        $dppKodeProdi = $isDpp ? $viewer->kode_prodi : null;
-        $dppNamaProdi = $isDpp ? $viewer->prodi?->nama_prodi : null;
 
         return LogKegiatan::query()
             ->with([
@@ -512,9 +507,22 @@ class LogKegiatanController extends Controller
         }
 
         $peserta = $user->peserta;
+
+        // Lanjutkan draft yang belum selesai alih-alih membuat baris baru.
+        $existingDraft = $peserta->logKegiatans()
+            ->where('status', 'draft')
+            ->latest('id')
+            ->first();
+
+        if ($existingDraft) {
+            return redirect()->route('log-kegiatan.edit', [
+                'log_kegiatan' => $existingDraft,
+                'step' => min(max($existingDraft->current_step ?: 1, 1), 6),
+            ]);
+        }
+
         $masterKegiatans = MasterKegiatan::query()
             ->where('kode_prodi', $peserta->kode_prodi)
-            ->where('is_active', true)
             ->orderBy('kode_kegiatan')
             ->get();
         $student = [
@@ -567,13 +575,20 @@ class LogKegiatanController extends Controller
             $logKegiatan = LogKegiatan::find($request->input('log_id'));
         }
 
-        // Jika record log belum ada, buat draft awal di step 1
+        // Jika record log belum ada, pakai draft yang masih berjalan bila ada.
         if (! $logKegiatan || ! $logKegiatan->exists) {
-            $logKegiatan = LogKegiatan::create([
-                'peserta_id' => $peserta->id,
-                'status' => 'draft',
-                'current_step' => 1,
-            ]);
+            $logKegiatan = $peserta->logKegiatans()
+                ->where('status', 'draft')
+                ->latest('id')
+                ->first();
+
+            if (! $logKegiatan) {
+                $logKegiatan = LogKegiatan::create([
+                    'peserta_id' => $peserta->id,
+                    'status' => 'draft',
+                    'current_step' => 1,
+                ]);
+            }
         } else {
             $this->authorizeOwner($user, $logKegiatan);
             $this->ensureDraft($logKegiatan);
@@ -643,16 +658,8 @@ class LogKegiatanController extends Controller
             $validated = $request->validate([
                 'master_kegiatan_id' => [
                     'required',
-                    Rule::exists('master_kegiatans', 'id')->where(function ($query) use ($peserta, $logKegiatan): void {
-                        $query->where('kode_prodi', $peserta->kode_prodi)
-                            ->where(function ($query) use ($logKegiatan): void {
-                                $query->where('is_active', true);
-
-                                if ($logKegiatan->master_kegiatan_id !== null) {
-                                    $query->orWhere('id', $logKegiatan->master_kegiatan_id);
-                                }
-                            });
-                    }),
+                    Rule::exists('master_kegiatans', 'id')
+                        ->where(fn ($query) => $query->where('kode_prodi', $peserta->kode_prodi)),
                 ],
             ], [
                 'master_kegiatan_id.required' => 'Pilih kode aktivitas kegiatan.',
@@ -776,12 +783,13 @@ class LogKegiatanController extends Controller
                     empty($logKegiatan->tanggal_kehadiran) ||
                     empty($logKegiatan->master_kegiatan_id) ||
                     empty($logKegiatan->lokasi_kegiatan) ||
+                    empty($logKegiatan->keterangan_tempat) ||
                     empty($logKegiatan->deskripsi_kegiatan) ||
                     ! $logKegiatan->fotoKegiatanFiles()->exists() ||
                     empty($logKegiatan->deskripsi_luaran) ||
                     ! $logKegiatan->fileLuaranFiles()->exists()
                 ) {
-                    return redirect()->back()->with('error', 'Semua bagian (Step 1 s.d. 5) wajib dilengkapi sebelum submit akhir.');
+                    return redirect()->back()->with('error', 'Lengkapi jadwal, rincian tempat dan kegiatan, dokumentasi, serta luaran sebelum mengirim laporan.');
                 }
 
                 $logKegiatan->update([
@@ -932,13 +940,6 @@ class LogKegiatanController extends Controller
         $peserta = $logKegiatan->peserta ?? $user->peserta;
         $masterKegiatans = MasterKegiatan::query()
             ->where('kode_prodi', $peserta?->kode_prodi)
-            ->where(function ($query) use ($logKegiatan): void {
-                $query->where('is_active', true);
-
-                if ($logKegiatan->master_kegiatan_id !== null) {
-                    $query->orWhere('id', $logKegiatan->master_kegiatan_id);
-                }
-            })
             ->orderBy('kode_kegiatan')
             ->get();
 
@@ -1166,20 +1167,6 @@ class LogKegiatanController extends Controller
         if (! $user || ! $user->peserta || $logKegiatan->peserta_id !== $user->peserta->id) {
             abort(403, 'Anda tidak memiliki hak akses untuk log kegiatan ini.');
         }
-    }
-
-    private function authorizeProdi(User $user, LogKegiatan $logKegiatan): void
-    {
-        $peserta = $logKegiatan->peserta;
-        $namaProdi = $user->prodi?->nama_prodi;
-
-        abort_unless(
-            $user->isDpp()
-            && $peserta
-            && ($peserta->kode_prodi === $user->kode_prodi || ($namaProdi && $peserta->program_studi === $namaProdi)),
-            403,
-            'Anda tidak memiliki akses ke riwayat kegiatan program studi ini.'
-        );
     }
 
     private function ensureDraft(LogKegiatan $logKegiatan): void

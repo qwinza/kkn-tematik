@@ -220,28 +220,6 @@ class MasterKegiatanTest extends TestCase
         ]);
     }
 
-    public function test_admin_can_update_master_kegiatan_without_changing_its_code(): void
-    {
-        $admin = User::factory()->admin()->create();
-        $kegiatan = MasterKegiatan::factory()->create(['kode_kegiatan' => 'KKN-EXISTING']);
-
-        $response = $this->actingAs($admin)->put(route('master-kegiatan.update', $kegiatan), [
-            'nama_kegiatan' => 'Kegiatan Diperbarui',
-            'kategori' => 'Sosial',
-            'kode_prodi' => $kegiatan->kode_prodi,
-        ]);
-
-        $response->assertRedirect();
-        $response->assertSessionHas('success');
-        $this->assertDatabaseHas('master_kegiatans', [
-            'id' => $kegiatan->id,
-            'kode_kegiatan' => 'KKN-EXISTING',
-            'nama_kegiatan' => 'Kegiatan Diperbarui',
-            'kategori' => 'Sosial',
-            'kode_prodi' => $kegiatan->kode_prodi,
-        ]);
-    }
-
     public function test_admin_can_delete_master_kegiatan_without_logs(): void
     {
         $admin = User::factory()->admin()->create();

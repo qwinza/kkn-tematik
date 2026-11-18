@@ -62,12 +62,7 @@ export default function AuthenticatedLayout({
             active: route().current('admin.mahasiswa.*'),
         },
         {
-            label: 'Akun DPP',
-            href: route('admin.dpp.index'),
-            active: route().current('admin.dpp.*'),
-        },
-        {
-            label: 'Riwayat Kegiatan Mahasiswa',
+            label: 'Kegiatan',
             href: route('log-kegiatan.index'),
             active: route().current('log-kegiatan.*'),
         },
@@ -75,6 +70,16 @@ export default function AuthenticatedLayout({
             label: 'Jenis Kegiatan',
             href: route('master-kegiatan.index'),
             active: route().current('master-kegiatan.*'),
+        },
+        {
+            label: 'Analitik',
+            href: route('admin.analytics'),
+            active: route().current('admin.analytics'),
+        },
+        {
+            label: 'Akun DPP',
+            href: route('admin.dpp.index'),
+            active: route().current('admin.dpp.*'),
         },
     ];
     // Navigasi khusus DPP.
