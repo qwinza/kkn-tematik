@@ -1,13 +1,12 @@
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
-import { Transition } from '@headlessui/react';
 import { Link, useForm, usePage } from '@inertiajs/react';
 
 export default function UpdateProfileInformation({
     mustVerifyEmail,
     status,
+    mahasiswaProfile,
     className = '',
 }) {
     const user = usePage().props.auth.user;
@@ -32,7 +31,9 @@ export default function UpdateProfileInformation({
                 </h2>
 
                 <p className="mt-1 text-sm text-gray-600">
-                    Perbarui nama dan alamat email akun Anda.
+                    {mahasiswaProfile
+                        ? 'Informasi identitas, akademik, dan akun Anda.'
+                        : 'Perbarui nama dan alamat email akun Anda.'}
                 </p>
             </header>
 
@@ -93,6 +94,28 @@ export default function UpdateProfileInformation({
                     </div>
                 )}
             </form>
+
+            {mahasiswaProfile && (
+                <dl className="mt-8 grid grid-cols-1 gap-4 border-t border-gray-200 pt-6 sm:grid-cols-2">
+                    {[
+                        ['NIM', mahasiswaProfile.nim],
+                        ['Program Studi', mahasiswaProfile.program_studi],
+                        ['Fakultas', mahasiswaProfile.fakultas],
+                        ['Angkatan', mahasiswaProfile.angkatan],
+                        ['Nomor Telepon', mahasiswaProfile.no_telepon],
+                        ['Total Jam Disetujui', `${mahasiswaProfile.total_jam_disetujui ?? 0} jam`],
+                    ].map(([label, value]) => (
+                        <div key={label} className="rounded-lg bg-gray-50 p-4">
+                            <dt className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                {label}
+                            </dt>
+                            <dd className="mt-1 text-sm font-medium text-gray-900">
+                                {value || '-'}
+                            </dd>
+                        </div>
+                    ))}
+                </dl>
+            )}
         </section>
     );
 }

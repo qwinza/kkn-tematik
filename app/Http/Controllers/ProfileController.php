@@ -43,8 +43,8 @@ class ProfileController extends Controller
             'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => session('status'),
             'isDpp' => $user->isDpp(),
-            'canManageLocalPassword' => ! $user->isDpp(),
-            'canDeleteAccount' => ! $user->isDpp(),
+            'canManageLocalPassword' => ! $user->isDpp() && ! $user->isMahasiswa(),
+            'canDeleteAccount' => ! $user->isDpp() && ! $user->isMahasiswa(),
             'mahasiswaProfile' => $mahasiswaProfile,
         ]);
     }
