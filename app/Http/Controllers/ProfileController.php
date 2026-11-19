@@ -19,6 +19,25 @@ class ProfileController extends Controller
     public function edit(Request $request): Response
     {
         $user = $request->user();
+        $mahasiswaProfile = null;
+
+        if ($user->isMahasiswa()) {
+            $peserta = $user->peserta()
+                ->with(['prodi', 'logKegiatans' => fn ($query) => $query->where('status', 'disetujui')])
+                ->first();
+
+            if ($peserta) {
+                $mahasiswaProfile = [
+                    'nama_lengkap' => $peserta->nama_lengkap,
+                    'nim' => $peserta->nim,
+                    'program_studi' => $peserta->prodi?->nama_prodi ?? $peserta->program_studi,
+                    'fakultas' => $peserta->prodi?->fakultas,
+                    'angkatan' => $peserta->angkatan,
+                    'no_telepon' => $peserta->no_telepon,
+                    'total_jam_disetujui' => round($peserta->logKegiatans->sum(fn ($log) => $log->durasiJam()), 1),
+                ];
+            }
+        }
 
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $user instanceof MustVerifyEmail,
@@ -26,6 +45,7 @@ class ProfileController extends Controller
             'isDpp' => $user->isDpp(),
             'canManageLocalPassword' => ! $user->isDpp(),
             'canDeleteAccount' => ! $user->isDpp(),
+            'mahasiswaProfile' => $mahasiswaProfile,
         ]);
     }
 

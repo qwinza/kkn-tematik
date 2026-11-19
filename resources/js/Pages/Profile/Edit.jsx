@@ -11,6 +11,7 @@ export default function Edit({
     isDpp,
     canManageLocalPassword,
     canDeleteAccount,
+    mahasiswaProfile,
 }) {
     return (
         <AuthenticatedLayout
@@ -31,6 +32,39 @@ export default function Edit({
                             className="max-w-xl"
                         />
                     </div>
+
+                    {mahasiswaProfile && (
+                        <div className="portal-profile-card bg-white p-4 shadow sm:rounded-lg sm:p-8">
+                            <section className="max-w-2xl">
+                                <h2 className="text-lg font-medium text-gray-900">
+                                    Data Mahasiswa
+                                </h2>
+                                <p className="mt-1 text-sm text-gray-600">
+                                    Informasi identitas dan akademik yang tercatat untuk akun Anda.
+                                </p>
+                                <dl className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                    {[
+                                        ['Nama Lengkap', mahasiswaProfile.nama_lengkap],
+                                        ['NIM', mahasiswaProfile.nim],
+                                        ['Program Studi', mahasiswaProfile.program_studi],
+                                        ['Fakultas', mahasiswaProfile.fakultas],
+                                        ['Angkatan', mahasiswaProfile.angkatan],
+                                        ['Nomor Telepon', mahasiswaProfile.no_telepon],
+                                        ['Total Jam Disetujui', `${mahasiswaProfile.total_jam_disetujui ?? 0} jam`],
+                                    ].map(([label, value]) => (
+                                        <div key={label} className="rounded-lg bg-gray-50 p-4">
+                                            <dt className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                                {label}
+                                            </dt>
+                                            <dd className="mt-1 text-sm font-medium text-gray-900">
+                                                {value || '-'}
+                                            </dd>
+                                        </div>
+                                    ))}
+                                </dl>
+                            </section>
+                        </div>
+                    )}
 
                     {canManageLocalPassword && (
                         <div className="portal-profile-card bg-white p-4 shadow sm:rounded-lg sm:p-8">

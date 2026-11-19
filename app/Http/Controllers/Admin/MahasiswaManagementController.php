@@ -39,6 +39,8 @@ class MahasiswaManagementController extends Controller
                 'unique:pesertas,nim',
             ],
             'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
+            'angkatan' => ['nullable', 'integer', 'min:1900', 'max:2100'],
+            'no_telepon' => ['nullable', 'string', 'max:30'],
             'kode_prodi' => ['required', 'exists:prodi,kode_prodi'],
         ]);
 
@@ -57,6 +59,8 @@ class MahasiswaManagementController extends Controller
             $user->peserta()->create([
                 'nama_lengkap' => $validated['nama_lengkap'],
                 'nim' => $validated['nim'],
+                'angkatan' => $validated['angkatan'] ?? null,
+                'no_telepon' => $validated['no_telepon'] ?: null,
                 'kode_prodi' => $prodi->kode_prodi,
                 'program_studi' => $prodi->nama_prodi,
             ]);
@@ -88,6 +92,8 @@ class MahasiswaManagementController extends Controller
                 'max:255',
                 Rule::unique('users', 'email')->ignore($user->id),
             ],
+            'angkatan' => ['nullable', 'integer', 'min:1900', 'max:2100'],
+            'no_telepon' => ['nullable', 'string', 'max:30'],
             'kode_prodi' => ['required', 'exists:prodi,kode_prodi'],
         ]);
 
@@ -103,6 +109,8 @@ class MahasiswaManagementController extends Controller
             $peserta->update([
                 'nama_lengkap' => $validated['nama_lengkap'],
                 'nim' => $validated['nim'],
+                'angkatan' => $validated['angkatan'] ?? null,
+                'no_telepon' => $validated['no_telepon'] ?: null,
                 'kode_prodi' => $prodi->kode_prodi,
                 'program_studi' => $prodi->nama_prodi,
             ]);

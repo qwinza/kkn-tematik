@@ -106,6 +106,24 @@ export default function Show({ mahasiswa, isDpp = false }) {
                                     </dd>
                                 </div>
 
+                                <div className="rounded-lg bg-gray-50 p-4">
+                                    <dt className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                        Angkatan
+                                    </dt>
+                                    <dd className="mt-1 text-base font-medium text-gray-900">
+                                        {mahasiswa.angkatan || '-'}
+                                    </dd>
+                                </div>
+
+                                <div className="rounded-lg bg-gray-50 p-4">
+                                    <dt className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                        Nomor Telepon
+                                    </dt>
+                                    <dd className="mt-1 text-base font-medium text-gray-900">
+                                        {mahasiswa.no_telepon || '-'}
+                                    </dd>
+                                </div>
+
                                 <div className="rounded-lg bg-emerald-50 p-4">
                                     <dt className="text-xs font-semibold uppercase tracking-wider text-emerald-700">
                                         Total Jam Kegiatan Disetujui

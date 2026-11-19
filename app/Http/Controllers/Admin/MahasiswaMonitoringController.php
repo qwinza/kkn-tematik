@@ -212,6 +212,8 @@ class MahasiswaMonitoringController extends Controller
             'user_id' => $peserta->user_id,
             'nama_lengkap' => $peserta->nama_lengkap,
             'nim' => $peserta->nim,
+            'angkatan' => $peserta->angkatan,
+            'no_telepon' => $peserta->no_telepon,
             'program_studi' => $legacyProdi,
             'kode_prodi' => $peserta->kode_prodi,
             'total_jam_disetujui' => round($peserta->logKegiatans->sum(fn ($log) => $log->durasiJam()), 1),

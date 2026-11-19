@@ -35,6 +35,8 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
         nama_lengkap: '',
         nim: '',
         email: '',
+        angkatan: '',
+        no_telepon: '',
         kode_prodi: '',
     });
 
@@ -93,6 +95,8 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
             nama_lengkap: item.nama_lengkap || item.user?.name || '',
             nim: item.nim || item.user?.nim || '',
             email: item.user?.email || '',
+            angkatan: item.angkatan || '',
+            no_telepon: item.no_telepon || '',
             kode_prodi: item.kode_prodi || '',
         });
 
@@ -260,10 +264,9 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
                                         >
                                             No.
                                         </th>
-                                        <SortableHeading label="Nama Lengkap" column="nama_lengkap" sort={filters.sort} direction={filters.direction} onSort={handleSort} />
                                         <SortableHeading label="NIM" column="nim" sort={filters.sort} direction={filters.direction} onSort={handleSort} />
+                                        <SortableHeading label="Nama Mahasiswa" column="nama_lengkap" sort={filters.sort} direction={filters.direction} onSort={handleSort} />
                                         <SortableHeading label="Program Studi" column="prodi" sort={filters.sort} direction={filters.direction} onSort={handleSort} />
-                                        <SortableHeading label="Fakultas" column="fakultas" sort={filters.sort} direction={filters.direction} onSort={handleSort} />
                                         <th scope="col">Total Jam Disetujui</th>
                                         {(canManage || isDpp) && <th
                                             scope="col"
@@ -280,13 +283,6 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
                                                     mahasiswas.per_page +
                                                 index +
                                                 1;
-                                            const prodiNama =
-                                                mhs.prodi?.nama_prodi ||
-                                                mhs.program_studi ||
-                                                '-';
-                                            const fakultas =
-                                                mhs.prodi?.fakultas || '-';
-
                                             return (
                                                 <tr
                                                     key={mhs.id}
@@ -295,26 +291,16 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
                                                     <td className="portal-admin-students-number">
                                                         {rowNumber}
                                                     </td>
+                                                    <td className="portal-admin-students-nim">
+                                                        {mhs.nim || mhs.user?.nim || '-'}
+                                                    </td>
                                                     <td className="portal-admin-students-name-cell">
                                                         <div className="portal-admin-students-name">
                                                             {mhs.nama_lengkap || mhs.user?.name}
                                                         </div>
-                                                        {mhs.user?.email && (
-                                                            <div className="portal-admin-students-email">
-                                                                {mhs.user.email}
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                    <td className="portal-admin-students-nim">
-                                                        {mhs.nim || mhs.user?.nim || '-'}
                                                     </td>
                                                     <td className="portal-admin-students-prodi">
-                                                        {prodiNama}
-                                                    </td>
-                                                    <td className="portal-admin-students-faculty">
-                                                        <span>
-                                                            {fakultas}
-                                                        </span>
+                                                        {mhs.prodi?.nama_prodi || mhs.program_studi || '-'}
                                                     </td>
                                                     <td className="whitespace-nowrap px-4 py-4 font-semibold text-gray-900">
                                                         {mhs.total_jam_disetujui ?? 0} jam
@@ -369,7 +355,7 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
                                     ) : (
                                         <tr>
                                             <td
-                                                colSpan={canManage || isDpp ? 7 : 6}
+                                                colSpan={canManage || isDpp ? 6 : 5}
                                                 className="portal-admin-students-empty"
                                             >
                                                 Tidak ada data mahasiswa yang ditemukan.
@@ -482,6 +468,32 @@ export default function Index({ mahasiswas, prodis, filters, totalCount, isDpp =
                                 onChange={(e) => setData('email', e.target.value)}
                             />
                             <InputError message={errors.email} className="mt-1" />
+                        </div>
+
+                        <div>
+                            <InputLabel htmlFor="angkatan" value="Angkatan (Opsional)" />
+                            <TextInput
+                                id="angkatan"
+                                type="number"
+                                min="1900"
+                                max="2100"
+                                className="mt-1 block w-full"
+                                value={data.angkatan}
+                                onChange={(e) => setData('angkatan', e.target.value)}
+                            />
+                            <InputError message={errors.angkatan} className="mt-1" />
+                        </div>
+
+                        <div>
+                            <InputLabel htmlFor="no_telepon" value="Nomor Telepon (Opsional)" />
+                            <TextInput
+                                id="no_telepon"
+                                type="tel"
+                                className="mt-1 block w-full"
+                                value={data.no_telepon}
+                                onChange={(e) => setData('no_telepon', e.target.value)}
+                            />
+                            <InputError message={errors.no_telepon} className="mt-1" />
                         </div>
 
                         <div>
